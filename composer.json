@@ -103,6 +103,7 @@
         "flarum/phpstan": "^1.8",
         "flarum/suspend": "^1.8",
         "flarum/flags": "^1.8",
-        "fof/user-bio": "*"
+        "fof/user-bio": "*",
+        "flarum-lang/dutch": "*"
     }
 }
