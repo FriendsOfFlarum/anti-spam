@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Command;
 
 use Carbon\Carbon;
@@ -19,14 +28,14 @@ class MarkUserAsSpammerHandler
     public $bus;
 
     public $events;
-    
+
     public function __construct(ExtensionManager $extensions, Bus $bus, Events $events)
     {
         $this->extensions = $extensions;
         $this->bus = $bus;
         $this->events = $events;
     }
-    
+
     public function handle(MarkUserAsSpammer $command): void
     {
         $user = $command->user;
