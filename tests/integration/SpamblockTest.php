@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace FoF\AntiSpam\Tests\integration\api;
+namespace FoF\AntiSpam\Tests\integration;
 
 use Carbon\Carbon;
 use Flarum\Group\Group;

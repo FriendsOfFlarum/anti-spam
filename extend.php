@@ -41,10 +41,7 @@ return [
 
     (new Extend\Event())
         ->listen(Event\MarkedUserAsSpammer::class, Listener\ReportSpammer::class)
-        ->listen(RegisteringFromProvider::class, Listener\ProviderRegistration::class)
-        ->subscribe(Filters\CommentPost::class)
-        ->subscribe(Filters\Discussion::class)
-        ->subscribe(Filters\UserBio::class),
+        ->listen(RegisteringFromProvider::class, Listener\ProviderRegistration::class),
 
     (new Extend\Settings())
         ->default('fof-anti-spam.regionalEndpoint', 'closest')

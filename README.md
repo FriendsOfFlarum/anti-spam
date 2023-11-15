@@ -4,7 +4,7 @@
 
 A [Flarum](http://flarum.org) extension. Effective tools to manage spammers on your community
 
-Combines three previously seperate extentions (`fof/stopforumspam`, `fof/spamblock` and `blomstra/spam-prevention`) into one to better fight the war on forum spam.
+Combines previously seperate extentions (`fof/stopforumspam`, `fof/spamblock`) into one to better fight the war on forum spam.
 
 ## Installation
 

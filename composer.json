@@ -19,9 +19,7 @@
         }
     ],
     "require": {
-        "php": "^7.4 || ^8.0",
-        "flarum/core": "^1.8.0",
-        "patrickschur/language-detection": "^5.2"
+        "flarum/core": "^1.8.0"
     },
     "authors": [
         {
@@ -46,7 +44,8 @@
             },
             "optional-dependencies": [
                 "flarum/suspend",
-                "flarum/flags"
+                "flarum/flags",
+                "flarum/approval"
             ]
         },
         "flarum-cli": {
@@ -70,8 +69,7 @@
     },
     "replace": {
         "fof/stopforumspam": "*",
-        "fof/spamblock": "*",
-        "blomstra/spam-prevention": "*"
+        "fof/spamblock": "*"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -104,6 +102,6 @@
         "flarum/suspend": "^1.8",
         "flarum/flags": "^1.8",
         "fof/user-bio": "*",
-        "flarum-lang/dutch": "*"
+        "flarum/approval": "*"
     }
 }
