@@ -40,6 +40,3 @@ fof-anti-spam:
     user_controls:
       spammer_button: Spammer
       spammer_confirmation: "Are you sure you want to \n• Hide all the user's discussions & posts \n• [flarum/suspend] Suspend the user"
-  api:
-    error:
-      unknown: Failed to report user to StopForumSpam.
