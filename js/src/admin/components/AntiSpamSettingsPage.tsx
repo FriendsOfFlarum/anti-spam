@@ -6,7 +6,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   content() {
     const apiRegions = ['closest', 'europe', 'us'];
 
-    return [
+    return (
       <div className="FoFAntiSpamSettings">
         <div className="container">
           <div className="Form">
@@ -84,7 +84,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
             {this.submitButton()}
           </div>
         </div>
-      </div>,
-    ];
+      </div>
+    );
   }
 }
