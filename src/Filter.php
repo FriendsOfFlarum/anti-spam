@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam;
 
 use Flarum\Extend\ExtenderInterface;
@@ -30,7 +39,7 @@ class Filter implements ExtenderInterface
     {
         $scheme = parse_url($domain, PHP_URL_SCHEME) ?? 'http://';
 
-        $domain = $scheme . Str::after($domain, $scheme);
+        $domain = $scheme.Str::after($domain, $scheme);
 
         return parse_url($domain, PHP_URL_HOST);
     }

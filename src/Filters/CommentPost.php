@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Filters;
 
 use Flarum\Post\Event\Saving;
@@ -9,14 +18,16 @@ use Illuminate\Contracts\Events\Dispatcher;
 
 class CommentPost
 {
-    use Concerns\Approval,
-        Concerns\Users,
-        Concerns\Content;
+    use Concerns\Approval;
+    use Concerns\Users;
+    use Concerns\Content;
 
     public function subscribe(Dispatcher $events)
     {
         // This class is disabled, skip.
-        if (in_array(static::class, Filter::$disabled)) return;
+        if (in_array(static::class, Filter::$disabled)) {
+            return;
+        }
 
         $events->listen(Saving::class, [$this, 'filter']);
     }

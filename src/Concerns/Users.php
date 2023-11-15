@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Concerns;
 
 use Flarum\Group\Group;
@@ -40,7 +49,9 @@ trait Users
             $user = User::query()->find($moderatorId);
         }
 
-        if  ($user) return $user;
+        if ($user) {
+            return $user;
+        }
 
         /** @var User $user */
         $user = User::query()->whereHas('groups', function ($query) {

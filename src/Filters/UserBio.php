@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Filters;
 
 use FoF\AntiSpam\Concerns;
@@ -9,20 +18,22 @@ use Illuminate\Contracts\Events\Dispatcher;
 
 class UserBio
 {
-    use Concerns\Users,
-        Concerns\Content;
+    use Concerns\Users;
+    use Concerns\Content;
 
     public function subscribe(Dispatcher $events)
     {
         // This class is disabled, skip.
-        if (in_array(static::class, Filter::$disabled)) return;
+        if (in_array(static::class, Filter::$disabled)) {
+            return;
+        }
 
         $events->listen(BioChanged::class, [$this, 'filter']);
     }
 
     public function filter(BioChanged $event)
     {
-        if(
+        if (
             // Allow modifications by elevated users.
             $event->actor->is($event->user)
             // Ignore any elevated user.

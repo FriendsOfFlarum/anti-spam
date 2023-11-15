@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Concerns;
 
 use Carbon\Carbon;
@@ -43,7 +52,7 @@ trait Approval
         }
 
         if ($extensions->isEnabled('flarum-flags')) {
-            /** 
+            /**
              * @var HasMany $flags
              * @phpstan-ignore-next-line
              */
@@ -58,7 +67,7 @@ trait Approval
                 $flag->reason = 'Blocked by spam prevention';
                 $flag->reason_detail = $reason;
                 $flag->user()->associate($this->getModerator());
-                $flag->created_at = Carbon::now();;
+                $flag->created_at = Carbon::now();
 
                 $flag->save();
             }

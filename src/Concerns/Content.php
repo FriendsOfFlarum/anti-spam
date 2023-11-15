@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Concerns;
 
 use Flarum\Locale\LocaleManager;
@@ -31,7 +40,9 @@ trait Content
 
             // If custom callable allows it.
             foreach (Filter::$allowLinksCallables as $callable) {
-                if ($callable($uri, $actor) === true) continue 2;
+                if ($callable($uri, $actor) === true) {
+                    continue 2;
+                }
             }
 
             // Match exact domain or subdomains.
@@ -57,7 +68,9 @@ trait Content
         $content = preg_replace('~(\+|00)[0-9 ]{9,}~', '', $content);
 
         // Let's not do language analysis on short strings.
-        if (mb_strlen($content) < 10) return false;
+        if (mb_strlen($content) < 10) {
+            return false;
+        }
 
         /** @var LocaleManager $locales */
         $locales = resolve(LocaleManager::class);
