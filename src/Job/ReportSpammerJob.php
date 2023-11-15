@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Job;
 
 use Flarum\Queue\AbstractJob;
@@ -10,7 +19,7 @@ use Psr\Log\LoggerInterface;
 class ReportSpammerJob extends AbstractJob
 {
     protected $user;
-    
+
     public function __construct(User $user)
     {
         $this->user = $user;
