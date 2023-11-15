@@ -19,8 +19,9 @@
         }
     ],
     "require": {
+        "php": "^7.4 || ^8.0",
         "flarum/core": "^1.8.0",
-        "patrickschur/language-detection": "^5.1"
+        "patrickschur/language-detection": "^5.2"
     },
     "authors": [
         {
