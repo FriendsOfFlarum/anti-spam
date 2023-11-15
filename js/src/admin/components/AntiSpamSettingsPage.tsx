@@ -21,9 +21,8 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
             {this.buildSettingComponent({
               type: 'select',
               setting: 'fof-anti-spam.regionalEndpoint',
-              options: apiRegions.reduce((o, p) => {
-                o[p] = app.translator.trans(`fof-anti-spam.admin.settings.region_${p}_label`);
-
+              options: apiRegions.reduce((o: { [key: string]: string }, p) => {
+                o[p] = app.translator.trans(`fof-anti-spam.admin.settings.region_${p}_label`) as string;
                 return o;
               }, {}),
               label: app.translator.trans('fof-anti-spam.admin.settings.regional_endpoint_label'),
