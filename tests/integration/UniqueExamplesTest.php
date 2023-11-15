@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Tests\integration\api;
 
 use FoF\AntiSpam\Concerns\Content;
@@ -14,7 +23,7 @@ class UniqueExamplesTest extends AntiSpamTestCase
      * @test
      * @coversNothing
      */
-    function fails_on_example_from_discuss_2022_08_26()
+    public function fails_on_example_from_discuss_2022_08_26()
     {
         (new Filter)
             ->allowLinksFromDomain('flarum.org')
@@ -28,7 +37,7 @@ class UniqueExamplesTest extends AntiSpamTestCase
 
         $this->assertTrue(
             $this->containsProblematicContent(
-                <<<EOM
+                <<<'EOM'
 If you are looking for the best and most affordable car rental service, book Chandigarh to Delhi taxi at Vahan Seva. We are a renowned and reliable car rental agency in Chandigarh. We are famous for offering the best cab booking services to our clients. You can find various **[Chandigarh to Delhi Taxi Services](https://jkbrothertravels.com/oneway/taxi-service/chandigarh-to-delhi)** available from where you can book your cab from Chandigarh to Delhi. for more information visit our website.
 EOM
             )
@@ -40,21 +49,21 @@ EOM
      * @coversNothing
      * @see https://discuss.flarum.org/d/31524/5
      */
-    function fails_on_example_from_discuss_amazon_image()
+    public function fails_on_example_from_discuss_amazon_image()
     {
         (new Filter)
             ->allowLinksFromDomain('pianoclack.s3.us-east-1.amazonaws.com');
 
         $this->assertFalse(
             $this->containsProblematicContent(
-                <<<EOM
+                <<<'EOM'
 https://pianoclack.s3.us-east-1.amazonaws.com/2022-05-16/1652706371-369258-6931c6ee-525b-4025-b1c1-db1fb2d0d7b6.jpg
 EOM
             )
         );
         $this->assertFalse(
             $this->containsProblematicContent(
-                <<<EOM
+                <<<'EOM'
 https://pianoclack.s3.us-east-1.amazonaws.com/2022-09-01/1662053787-63955-how-effective-are-mask.jpg
 EOM
             )
@@ -66,7 +75,7 @@ EOM
      * @coversNothing
      * @see https://discuss.flarum.org/d/31524/63
      */
-    function allows_when_post_contains_one_allowed_domain()
+    public function allows_when_post_contains_one_allowed_domain()
     {
         (new Filter)
             ->allowLinksFromDomain('youtube.com')

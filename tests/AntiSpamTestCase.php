@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Tests;
 
 use Flarum\Testing\integration\TestCase;
@@ -21,7 +30,7 @@ class AntiSpamTestCase extends TestCase
      * @test
      * @covers \Blomstra\Spam\Filter::allowLinksFromDomain
      */
-    function allows_full_uri()
+    public function allows_full_uri()
     {
         (new Filter)
             ->allowLinksFromDomain('https://google.com/clark-kent');
@@ -36,7 +45,7 @@ class AntiSpamTestCase extends TestCase
      * @test
      * @covers \Blomstra\Spam\Filter::allowLinksFromDomains
      */
-    function allows_multiple_domains()
+    public function allows_multiple_domains()
     {
         (new Filter)
             ->allowLinksFromDomains([
@@ -54,7 +63,7 @@ class AntiSpamTestCase extends TestCase
      * @test
      * @covers \Blomstra\Spam\Filter
      */
-    function allows_fqdn()
+    public function allows_fqdn()
     {
         (new Filter)
             ->allowLinksFromDomain('google.com');
@@ -69,7 +78,7 @@ class AntiSpamTestCase extends TestCase
      * @test
      * @covers \Blomstra\Spam\Filter
      */
-    function allows_ftp()
+    public function allows_ftp()
     {
         (new Filter)
             ->allowLinksFromDomain('ftp://google.com');
@@ -84,7 +93,7 @@ class AntiSpamTestCase extends TestCase
      * @test
      * @covers \Blomstra\Spam\Filter
      */
-    function allows_ip()
+    public function allows_ip()
     {
         (new Filter)
             ->allowLinksFromDomain('127.0.0.1');
