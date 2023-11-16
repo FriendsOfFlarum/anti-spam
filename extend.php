@@ -11,6 +11,7 @@
 
 namespace FoF\AntiSpam;
 
+use Flarum\Api\Serializer\ForumSerializer;
 use Flarum\Api\Serializer\UserSerializer;
 use Flarum\Extend;
 use Flarum\User\Event\RegisteringFromProvider;
@@ -30,6 +31,9 @@ return [
     (new Extend\Routes('api'))
         ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class),
 
+    (new Extend\ApiSerializer(ForumSerializer::class))
+        ->attributes(Api\AddForumAttributes::class),
+
     (new Extend\ApiSerializer(UserSerializer::class))
         ->attributes(Api\AddUserPermissions::class),
 
@@ -47,5 +51,8 @@ return [
         ->default('fof-anti-spam.regionalEndpoint', 'closest')
         ->default('fof-anti-spam.emailhash', false)
         ->default('fof-anti-spam.frequency', 5)
-        ->default('fof-anti-spam.confidence', 50.0),
+        ->default('fof-anti-spam.confidence', 50.0)
+        ->default('fof-anti-spam.actions.deleteUser', false)
+        ->default('fof-anti-spam.actions.deletePosts', false)
+        ->default('fof-anti-spam.actions.deleteDiscussions', false),
 ];

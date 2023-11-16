@@ -1,0 +1,72 @@
+<?php
+
+namespace FoF\AntiSpam\Tests\integration;
+
+use Flarum\Group\Group;
+use Flarum\Testing\integration\TestCase;
+
+class ForumAttributesTest extends TestCase
+{
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $this->extension('fof-anti-spam');
+
+        $this->prepareDatabase([
+            'users' => [
+                ['id' => 3, 'username' => 'a_moderator', 'email' => 'a_mod@machine.local', 'is_email_confirmed' => 1],
+                ['id' => 4, 'username' => 'toby', 'email' => 'toby@machine.local', 'is_email_confirmed' => 1],
+                ['id' => 5, 'username' => 'bad_user', 'email' => 'bad_user@machine.local', 'is_email_confirmed' => 1],
+            ],
+            'group_user' => [
+                ['user_id' => 3, 'group_id' => Group::MODERATOR_ID],
+            ],
+            'group_permission' => [
+                ['group_id' => Group::MODERATOR_ID, 'permission' => 'user.spamblock'],
+            ],
+        ]);
+    }
+
+    /**
+     * @test
+     */
+    public function normal_user_does_not_see_spamblock_default_options()
+    {
+        $response = $this->send(
+            $this->request('GET', 'api', [
+                'authenticatedAs' => 4,
+            ])
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+
+        $json = json_decode($response->getBody()->getContents(), true);
+
+        $this->assertArrayNotHasKey('fof-anti-spam', $json['data']['attributes']);
+    }
+
+    /**
+     * @test
+     */
+    public function user_with_permission_does_see_spamblock_default_options()
+    {
+        $response = $this->send(
+            $this->request('GET', 'api', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+
+        $json = json_decode($response->getBody()->getContents(), true);
+
+        $this->assertArrayHasKey('fof-anti-spam', $json['data']['attributes']);
+
+        $defaultOptions = $json['data']['attributes']['fof-anti-spam']['default-options'];
+
+        $this->assertFalse($defaultOptions['deleteUser']);
+        $this->assertFalse($defaultOptions['deletePosts']);
+        $this->assertFalse($defaultOptions['deleteDiscussions']);
+    }
+}

@@ -11,14 +11,20 @@ interface HandleSpammerModalAttrs extends IInternalModalAttrs {
 
 export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
   user!: User;
-  hardDeleteUser: boolean = false;
-  hardDeleteDiscussions: boolean = false;
+  hardDeleteUser!: boolean;
+  hardDeleteDiscussions!: boolean;
+  hardDeletePosts!: boolean;
   moveDiscussionsToQuarantine: boolean = false;
 
   oninit(vnode: Mithril.Vnode<HandleSpammerModalAttrs>) {
     super.oninit(vnode);
 
     this.user = this.attrs.user;
+
+    const defaultActions = app.forum.attribute('fof-anti-spam')['default-options'];
+    this.hardDeleteUser = defaultActions['deleteUser'];
+    this.hardDeleteDiscussions = defaultActions['deleteDiscussions'];
+    this.hardDeletePosts = defaultActions['deletePosts'];
   }
 
   className() {
