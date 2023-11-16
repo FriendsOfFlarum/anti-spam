@@ -106,7 +106,9 @@ class MarkUserAsSpammerHandler
             $this->bus->dispatch(
                 new DeleteUser($user->id, $actor)
             );
-        } elseif ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
+        }
+        /** @phpstan-ignore-next-line */
+        elseif ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
             $this->bus->dispatch(
                 new EditUser($user->id, $actor, [
                     'attributes' => ['suspendedUntil' => Carbon::now()->addYears(20)],
