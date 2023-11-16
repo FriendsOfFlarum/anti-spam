@@ -37,6 +37,16 @@ fof-anti-spam:
   forum:
     message:
       spam: Your info has been marked as spam.
+    spammer_modal:
+      hard_delete_discussions_label: Hard delete discussions
+      hard_delete_discussions_help: This will permanently delete all discussions started by this user. When disabled, discussions will be soft deleted instead.
+      hard_delete_user_label: Hard delete user
+      hard_delete_user_help: This will permanently delete the user. When disabled, the user will be suspended instead.
+      intro: When marking a user as a spammer, several actions will be taken, which depends on the extensions available on your forum.
+      move_discussions_tag_label: Move discussions to quarantined tag
+      move_discussions_tag_help: This will move all discussions started by this user to the tag you specified in the forum settings. When disabled, discussions will be left in their current tags.
+      process_button: Process
+      title: "Mark {username} as a spammer"
     user_controls:
       spammer_button: Spammer
       spammer_confirmation: "Are you sure you want to \n• Hide all the user's discussions & posts \n• [flarum/suspend] Suspend the user"
