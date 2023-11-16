@@ -40,11 +40,13 @@ class MarkUserAsSpammerHandler
     {
         $user = $command->user;
         $actor = $command->actor;
+        
+        $this->parseOptions($command->options);
 
         $flagsEnabled = $this->extensions->isEnabled('flarum-flags');
 
         /** @phpstan-ignore-next-line */
-        if ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until !== null) {
+        if ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
             $this->bus->dispatch(
                 new EditUser($user->id, $actor, [
                     'attributes' => ['suspendedUntil' => Carbon::now()->addYears(20)],
@@ -81,5 +83,10 @@ class MarkUserAsSpammerHandler
         $this->events->dispatch(
             new MarkedUserAsSpammer($user, $actor)
         );
+    }
+
+    protected function parseOptions(array $options): void
+    {
+
     }
 }
