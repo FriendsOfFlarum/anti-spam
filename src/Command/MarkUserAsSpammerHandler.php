@@ -40,7 +40,7 @@ class MarkUserAsSpammerHandler
     {
         $user = $command->user;
         $actor = $command->actor;
-        
+
         $this->parseOptions($command->options);
 
         $flagsEnabled = $this->extensions->isEnabled('flarum-flags');
@@ -87,6 +87,5 @@ class MarkUserAsSpammerHandler
 
     protected function parseOptions(array $options): void
     {
-
     }
 }
