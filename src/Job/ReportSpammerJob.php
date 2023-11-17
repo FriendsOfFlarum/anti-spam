@@ -32,6 +32,7 @@ class ReportSpammerJob extends AbstractJob
     {
         if (! $sfs->isEnabled()) {
             $log->info('[FoF Anti Spam] Tried to report spammer to StopForumSpam, but not API key was configured.');
+
             return;
         }
 

@@ -215,10 +215,10 @@ class MarkUserAsSpammerHandler
 
     protected function reportToStopForumSpam(User $user): void
     {
-        if (!$this->reportToSfs) {
+        if (! $this->reportToSfs) {
             return;
         }
-        
+
         $post = $user->posts()->first();
 
         $ipAddress = '8.8.8.8';
@@ -226,7 +226,7 @@ class MarkUserAsSpammerHandler
         if ($post && filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
             $ipAddress = $post->ip_address;
         }
-        
+
         $this->queue->push(new ReportSpammerJob($user->username, $user->email, $ipAddress));
     }
 }
