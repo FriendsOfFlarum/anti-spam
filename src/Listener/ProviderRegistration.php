@@ -35,7 +35,7 @@ class ProviderRegistration
 
         if ($check) {
             throw new ValidationException([
-                'username' => resolve('translator')->trans('fof-stopforumspam.forum.message.spam'),
+                'username' => resolve('translator')->trans('fof-anti-spam.forum.message.spam'),
             ]);
         }
     }

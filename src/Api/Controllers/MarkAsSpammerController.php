@@ -11,19 +11,12 @@
 
 namespace FoF\AntiSpam\Api\Controllers;
 
-use Carbon\Carbon;
-use Flarum\Discussion\Command\EditDiscussion;
-use Flarum\Extension\ExtensionManager;
-use Flarum\Flags\Command\DeleteFlags;
 use Flarum\Http\RequestUtil;
-use Flarum\Post\Command\EditPost;
-use Flarum\User\Command\EditUser;
 use Flarum\User\User;
-use FoF\AntiSpam\Event\MarkedUserAsSpammer;
+use FoF\AntiSpam\Command\MarkUserAsSpammer;
 use Illuminate\Contracts\Bus\Dispatcher;
-use Illuminate\Contracts\Events\Dispatcher as EventsDispatcher;
 use Illuminate\Support\Arr;
-use Laminas\Diactoros\Response;
+use Laminas\Diactoros\Response\EmptyResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -36,25 +29,11 @@ class MarkAsSpammerController implements RequestHandlerInterface
     protected $bus;
 
     /**
-     * @var EventsDispatcher
-     */
-    protected $events;
-
-    /**
-     * @var ExtensionManager
-     */
-    protected $extensions;
-
-    /**
-     * @param EventsDispatcher $events
      * @param Dispatcher       $bus
-     * @param ExtensionManager $extensions
      */
-    public function __construct(Dispatcher $bus, EventsDispatcher $events, ExtensionManager $extensions)
+    public function __construct(Dispatcher $bus)
     {
         $this->bus = $bus;
-        $this->events = $events;
-        $this->extensions = $extensions;
     }
 
     /**
@@ -73,47 +52,10 @@ class MarkAsSpammerController implements RequestHandlerInterface
 
         $actor->assertCan('spamblock', $user);
 
-        $flarumFlags = $this->extensions->isEnabled('flarum-flags');
+        $options = Arr::get($request->getParsedBody(), 'options', []);
 
-        /** @phpstan-ignore-next-line */
-        if ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until !== null) {
-            $this->bus->dispatch(
-                new EditUser($user->id, $actor, [
-                    'attributes' => ['suspendedUntil' => Carbon::now()->addYears(20)],
-                ])
-            );
-        }
+        $this->bus->dispatch(new MarkUserAsSpammer($user, $options, $actor));
 
-        $user->posts()->where('hidden_at', null)->chunk(50, function ($posts) use ($actor, $flarumFlags) {
-            foreach ($posts as $post) {
-                $this->bus->dispatch(
-                    new EditPost($post->id, $actor, [
-                        'attributes' => ['isHidden' => true],
-                    ])
-                );
-
-                if ($flarumFlags) {
-                    $this->bus->dispatch(
-                        new DeleteFlags($post->id, $actor)
-                    );
-                }
-            }
-        });
-
-        $user->discussions()->where('hidden_at', null)->chunk(50, function ($discussions) use ($actor) {
-            foreach ($discussions as $discussion) {
-                $this->bus->dispatch(
-                    new EditDiscussion($discussion->id, $actor, [
-                        'attributes' => ['isHidden' => true],
-                    ])
-                );
-            }
-        });
-
-        $this->events->dispatch(
-            new MarkedUserAsSpammer($user, $actor)
-        );
-
-        return (new Response())->withStatus(204);
+        return new EmptyResponse();
     }
 }
