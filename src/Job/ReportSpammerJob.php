@@ -12,41 +12,37 @@
 namespace FoF\AntiSpam\Job;
 
 use Flarum\Queue\AbstractJob;
-use Flarum\User\User;
 use FoF\AntiSpam\StopForumSpam;
 use Psr\Log\LoggerInterface;
 
 class ReportSpammerJob extends AbstractJob
 {
-    protected $user;
+    public $username;
+    public $email;
+    public $ipAddress;
 
-    public function __construct(User $user)
+    public function __construct(string $username, string $email, string $ipAddress)
     {
-        $this->user = $user;
+        $this->username = $username;
+        $this->email = $email;
+        $this->ipAddress = $ipAddress;
     }
 
     public function handle(StopForumSpam $sfs, LoggerInterface $log)
     {
         if (! $sfs->isEnabled()) {
+            $log->info('[FoF Anti Spam] Tried to report spammer to StopForumSpam, but not API key was configured.');
             return;
-        }
-
-        $post = $this->user->posts()->first();
-
-        $ipAddress = '8.8.8.8';
-
-        if ($post && filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
-            $ipAddress = $post->ip_address;
         }
 
         try {
             $sfs->report([
-                'ip_addr'  => $ipAddress,
-                'username' => $this->user->username,
-                'email'    => $this->user->email,
+                'ip_addr'  => $this->ipAddress,
+                'username' => $this->username,
+                'email'    => $this->email,
             ]);
         } catch (\Throwable $e) {
-            $log->error("Failed to report spammer to StopForumSpam: {$e->getMessage()}");
+            $log->error("[FoF Anti Spam] Failed to report spammer to StopForumSpam: {$e->getMessage()}");
         }
     }
 }

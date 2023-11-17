@@ -44,7 +44,6 @@ return [
         ->add(Middleware\CheckLoginMiddleware::class),
 
     (new Extend\Event())
-        ->listen(Event\MarkedUserAsSpammer::class, Listener\ReportSpammer::class)
         ->listen(RegisteringFromProvider::class, Listener\ProviderRegistration::class),
 
     (new Extend\Settings())
@@ -54,5 +53,6 @@ return [
         ->default('fof-anti-spam.confidence', 50.0)
         ->default('fof-anti-spam.actions.deleteUser', false)
         ->default('fof-anti-spam.actions.deletePosts', false)
-        ->default('fof-anti-spam.actions.deleteDiscussions', false),
+        ->default('fof-anti-spam.actions.deleteDiscussions', false)
+        ->default('fof-anti-spam.reportToStopForumSpam', true),
 ];

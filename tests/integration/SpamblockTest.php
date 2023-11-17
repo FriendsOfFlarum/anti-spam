@@ -133,6 +133,11 @@ class SpamblockTest extends TestCase
     {
         $this->extension('flarum-suspend');
 
+        $this->app();
+
+        $user = User::find(5);
+        $this->assertNull($user->suspended_until, 'User should not be suspended');
+
         $response = $this->send(
             $this->request('POST', 'api/users/5/spamblock', [
                 'authenticatedAs' => 3,

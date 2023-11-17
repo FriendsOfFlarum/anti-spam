@@ -13,24 +13,34 @@ namespace FoF\AntiSpam\Api;
 
 use Flarum\Api\Serializer\ForumSerializer;
 use Flarum\Settings\SettingsRepositoryInterface;
+use FoF\AntiSpam\StopForumSpam;
 
 class AddForumAttributes
 {
     protected $settings;
+    protected $stopForumSpam;
 
-    public function __construct(SettingsRepositoryInterface $settings)
+    public function __construct(SettingsRepositoryInterface $settings, StopForumSpam $stopForumSpam)
     {
         $this->settings = $settings;
+        $this->stopForumSpam = $stopForumSpam;
     }
 
     public function __invoke(ForumSerializer $serializer, $model, array $attributes): array
     {
         if ($serializer->getActor()->hasPermission('user.spamblock')) {
+            $quarantine = $this->settings->get('fof-anti-spam.actions.moveDiscussionsToTags');
+
             $attributes['fof-anti-spam'] = [
                 'default-options' => [
-                    'deleteUser' => $this->settings->get('fof-anti-spam.actions.deleteUser'),
-                    'deletePosts' => $this->settings->get('fof-anti-spam.actions.deletePosts'),
-                    'deleteDiscussions' => $this->settings->get('fof-anti-spam.actions.deleteDiscussions'),
+                    'deleteUser' => (bool) $this->settings->get('fof-anti-spam.actions.deleteUser'),
+                    'deletePosts' => (bool) $this->settings->get('fof-anti-spam.actions.deletePosts'),
+                    'deleteDiscussions' => (bool) $this->settings->get('fof-anti-spam.actions.deleteDiscussions'),
+                    'spamQuarantine' => ($quarantine === null || $quarantine === '[]') ? false : $quarantine,
+                    'reportToSfs' => (bool) $this->settings->get('fof-anti-spam.reportToStopForumSpam'),
+                ],
+                'stopforumspam' => [
+                    'enabled' => $this->stopForumSpam->isEnabled(),
                 ]
             ];
         }

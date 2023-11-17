@@ -14,7 +14,8 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
   hardDeleteUser!: boolean;
   hardDeleteDiscussions!: boolean;
   hardDeletePosts!: boolean;
-  moveDiscussionsToQuarantine: boolean = false;
+  moveDiscussionsToQuarantine!: boolean;
+  reportToSfs!: boolean;
 
   oninit(vnode: Mithril.Vnode<HandleSpammerModalAttrs>) {
     super.oninit(vnode);
@@ -25,6 +26,8 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
     this.hardDeleteUser = defaultActions['deleteUser'];
     this.hardDeleteDiscussions = defaultActions['deleteDiscussions'];
     this.hardDeletePosts = defaultActions['deletePosts'];
+    this.moveDiscussionsToQuarantine = defaultActions['spamQuarantine'];
+    this.reportToSfs = defaultActions['reportToSfs'];
   }
 
   className() {
@@ -39,6 +42,7 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
 
   content() {
     const tagsEnabled = app.initializers.has('flarum-tags');
+    const sfsEnabled = !!app.forum.attribute('fof-anti-spam')['stopforumspam']['enabled'];
 
     return (
       <div className="Modal-body">
@@ -55,6 +59,17 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
               {app.translator.trans('fof-anti-spam.forum.spammer_modal.hard_delete_discussions_label')}
             </Switch>
             <p className="helpText">{app.translator.trans('fof-anti-spam.forum.spammer_modal.hard_delete_discussions_help')}</p>
+          </div>
+          <div className="Form-group">
+            <Switch
+              state={this.hardDeletePosts}
+              onchange={(value: boolean) => {
+                this.hardDeletePosts = value;
+              }}
+            >
+              {app.translator.trans('fof-anti-spam.forum.spammer_modal.hard_delete_posts_label')}
+            </Switch>
+            <p className="helpText">{app.translator.trans('fof-anti-spam.forum.spammer_modal.hard_delete_posts_help')}</p>
           </div>
           {tagsEnabled && !this.hardDeleteDiscussions && (
             <div className="Form-group">
@@ -80,6 +95,19 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
             </Switch>
             <p className="helpText">{app.translator.trans('fof-anti-spam.forum.spammer_modal.hard_delete_user_help')}</p>
           </div>
+          {sfsEnabled && (
+            <div className="Form-group">
+              <Switch
+                state={this.reportToSfs}
+                onchange={(value: boolean) => {
+                  this.reportToSfs = value;
+                }}
+              >
+                {app.translator.trans('fof-anti-spam.forum.spammer_modal.report_to_sfs_label')}
+              </Switch>
+              <p className="helpText">{app.translator.trans('fof-anti-spam.forum.spammer_modal.report_to_sfs_help')}</p>
+            </div>
+          )}
           <div className="Form-group">
             <Button className="Button Button--primary" onclick={() => this.submitData()} loading={this.loading} disabled={this.loading}>
               {app.translator.trans('fof-anti-spam.forum.spammer_modal.process_button')}
@@ -94,9 +122,13 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
     this.loading = true;
 
     const body = {
-      hardDeleteDiscussions: this.hardDeleteDiscussions,
-      hardDeleteUser: this.hardDeleteUser,
-      moveDiscussionsToQuarantine: this.moveDiscussionsToQuarantine,
+      options: {
+        hardDeletePosts: this.hardDeletePosts,
+        hardDeleteDiscussions: this.hardDeleteDiscussions,
+        hardDeleteUser: this.hardDeleteUser,
+        moveDiscussionsToQuarantine: this.moveDiscussionsToQuarantine,
+        reportToSfs: this.reportToSfs,
+      },
     };
 
     app

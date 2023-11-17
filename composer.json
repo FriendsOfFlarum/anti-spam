@@ -45,7 +45,8 @@
             "optional-dependencies": [
                 "flarum/suspend",
                 "flarum/flags",
-                "flarum/approval"
+                "flarum/approval",
+                "flarum/tags"
             ]
         },
         "flarum-cli": {
@@ -102,6 +103,7 @@
         "flarum/suspend": "^1.8",
         "flarum/flags": "^1.8",
         "fof/user-bio": "*",
-        "flarum/approval": "*"
+        "flarum/approval": "*",
+        "flarum/tags": "*"
     }
 }

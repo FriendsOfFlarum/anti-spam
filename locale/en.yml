@@ -13,6 +13,8 @@ fof-anti-spam:
         heading: Default moderation actions
         introduction: |
           When a user is marked as a spammer, moderators are able to choose from various actions on how to deal with the particular use case. These settings allow you to pre-set the actions you'll normally take, to speed up the process, but also allowing for variations as needed.
+        move_discussions_to_tags_label: Move discussions to tag(s)
+        move_discussions_to_tags_help: This will move all discussions started by this user to the tag(s) you specified. Clear the tag selection to leave discussions in their original tag(s). Has no effect if the 'Delete discussions' option is enabled.
 
       stopforumspam:
         heading: StopForumSpam
@@ -51,15 +53,19 @@ fof-anti-spam:
     message:
       spam: Your info has been marked as spam.
     spammer_modal:
-      hard_delete_discussions_label: Hard delete discussions
-      hard_delete_discussions_help: This will permanently delete all discussions started by this user. When disabled, discussions will be soft deleted instead.
-      hard_delete_user_label: Hard delete user
+      hard_delete_discussions_label: Delete discussions
+      hard_delete_discussions_help: This will permanently delete all discussions started by this user. When disabled, discussions will be hidden instead.
+      hard_delete_posts_label: Delete posts
+      hard_delete_posts_help: This will permanently delete all posts (comments, replies, etc) made by this user. When disabled, posts will be hidden instead.
+      hard_delete_user_label: Delete user
       hard_delete_user_help: This will permanently delete the user. When disabled, the user will be suspended instead.
       intro: When marking a user as a spammer, several actions will be taken, which depends on the extensions available on your forum.
       move_discussions_tag_label: Move discussions to quarantined tag
       move_discussions_tag_help: This will move all discussions started by this user to the tag you specified in the forum settings. When disabled, discussions will be left in their current tags.
       process_button: Process
       title: "Mark {username} as a spammer"
+      report_to_sfs_label: Report to StopForumSpam
+      report_to_sfs_help: This will report the user's basic details (username, email, IP address) to StopForumSpam. This will help prevent the user from registering on other forums that use the StopForumSpam service.
     user_controls:
       spammer_button: Spammer
       spammer_confirmation: "Are you sure you want to \n• Hide all the user's discussions & posts \n• [flarum/suspend] Suspend the user"

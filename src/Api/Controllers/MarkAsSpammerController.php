@@ -52,7 +52,7 @@ class MarkAsSpammerController implements RequestHandlerInterface
 
         $actor->assertCan('spamblock', $user);
 
-        $options = Arr::get($request->getParsedBody(), 'data.attributes', []);
+        $options = Arr::get($request->getParsedBody(), 'options', []);
 
         $this->bus->dispatch(new MarkUserAsSpammer($user, $options, $actor));
 

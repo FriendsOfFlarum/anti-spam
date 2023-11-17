@@ -32,6 +32,24 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                 label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_label'),
                 help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_help'),
               })}
+              {tagsEnabled &&
+                this.buildSettingComponent({
+                  type: 'flarum-tags.select-tags',
+                  setting: 'fof-anti-spam.actions.moveDiscussionsToTags',
+                  label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_label'),
+                  help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_help'),
+                  options: {
+                    requireParentTag: true,
+                    limits: {
+                      max: {
+                        primary: 1,
+                      },
+                      min: {
+                        primary: 1,
+                      },
+                    },
+                  },
+                })}
             </div>
             <div className="Section Section--stopforumspam">
               <h3>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.heading')}</h3>

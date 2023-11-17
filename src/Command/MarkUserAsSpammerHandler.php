@@ -22,8 +22,10 @@ use Flarum\User\Command\EditUser;
 use Flarum\User\Guest;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
+use FoF\AntiSpam\Job\ReportSpammerJob;
 use Illuminate\Contracts\Bus\Dispatcher as Bus;
 use Illuminate\Contracts\Events\Dispatcher as Events;
+use Illuminate\Contracts\Queue\Queue;
 use Illuminate\Support\Arr;
 use Psr\Log\LoggerInterface;
 
@@ -36,6 +38,8 @@ class MarkUserAsSpammerHandler
     public $events;
 
     public $settings;
+
+    public $queue;
 
     public $log;
 
@@ -54,14 +58,25 @@ class MarkUserAsSpammerHandler
      */
     private $deleteDiscussions;
 
+    /**
+     * @var bool
+     */
+    private $moveDiscussionsToQuarantine;
+
+    /**
+     * @var bool
+     */
+    private $reportToSfs;
+
     const settings_prefix = 'fof-anti-spam.actions.';
 
-    public function __construct(ExtensionManager $extensions, Bus $bus, Events $events, SettingsRepositoryInterface $settings, LoggerInterface $log)
+    public function __construct(ExtensionManager $extensions, Bus $bus, Events $events, SettingsRepositoryInterface $settings, Queue $queue, LoggerInterface $log)
     {
         $this->extensions = $extensions;
         $this->bus = $bus;
         $this->events = $events;
         $this->settings = $settings;
+        $this->queue = $queue;
         $this->log = $log;
     }
 
@@ -71,6 +86,8 @@ class MarkUserAsSpammerHandler
         $actor = $command->actor ?? new Guest();
 
         $this->parseOptions($command->options);
+
+        $this->reportToStopForumSpam($user);
 
         $this->handleUser($user, $actor);
         $this->handlePosts($user, $actor);
@@ -86,6 +103,24 @@ class MarkUserAsSpammerHandler
         $this->deleteUser = (bool) Arr::get($options, 'deleteUser', $this->settings->get(self::settings_prefix.'deleteUser'));
         $this->deletePosts = (bool) Arr::get($options, 'deletePosts', $this->settings->get(self::settings_prefix.'deletePosts'));
         $this->deleteDiscussions = (bool) Arr::get($options, 'deleteDiscussions', $this->settings->get(self::settings_prefix.'deleteDiscussions'));
+        $this->moveDiscussionsToQuarantine = (bool) Arr::get($options, 'moveDiscussionsToQuarantine', $this->shouldMoveToQuarantineSetting());
+        $this->reportToSfs = (bool) Arr::get($options, 'reportToSfs', $this->settings->get('fof-anti-spam.reportToStopForumSpam'));
+
+        dd($options, $this->deleteUser, $this->deletePosts, $this->deleteDiscussions, $this->moveDiscussionsToQuarantine, $this->reportToSfs);
+    }
+
+    protected function shouldMoveToQuarantineSetting(): bool
+    {
+        $value = $this->settings->get(self::settings_prefix.'moveDiscussionsToTags');
+
+        return ($value === null || $value === '[]') ? false : true;
+    }
+
+    protected function getQuanrantineTags(): object
+    {
+        $value = $this->settings->get(self::settings_prefix.'moveDiscussionsToTags');
+
+        return json_decode($value);
     }
 
     protected function flagsEnabled(): bool
@@ -176,5 +211,22 @@ class MarkUserAsSpammerHandler
                 }
             });
         }
+    }
+
+    protected function reportToStopForumSpam(User $user): void
+    {
+        if (!$this->reportToSfs) {
+            return;
+        }
+        
+        $post = $user->posts()->first();
+
+        $ipAddress = '8.8.8.8';
+
+        if ($post && filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
+            $ipAddress = $post->ip_address;
+        }
+        
+        $this->queue->push(new ReportSpammerJob($user->username, $user->email, $ipAddress));
     }
 }
