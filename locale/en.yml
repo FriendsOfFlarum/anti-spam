@@ -68,4 +68,3 @@ fof-anti-spam:
       report_to_sfs_help: This will report the user's basic details (username, email, IP address) to StopForumSpam. This will help prevent the user from registering on other forums that use the StopForumSpam service.
     user_controls:
       spammer_button: Spammer
-      spammer_confirmation: "Are you sure you want to \n• Hide all the user's discussions & posts \n• [flarum/suspend] Suspend the user"

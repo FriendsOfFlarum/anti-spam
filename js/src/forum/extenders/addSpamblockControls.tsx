@@ -16,14 +16,6 @@ export default function addSpamblockControls() {
         <Button
           icon="fas fa-pastafarianism"
           onclick={() => {
-            // if (!confirm(app.translator.trans('fof-anti-spam.forum.user_controls.spammer_confirmation') as string)) return;
-
-            // app
-            //   .request({
-            //     url: `${app.forum.attribute('apiUrl')}/users/${user.id()}/spamblock`,
-            //     method: 'POST',
-            //   })
-            //   .then(() => window.location.reload());
             app.modal.show(HandleSpammerModal, { user });
           }}
         >
