@@ -239,7 +239,6 @@ class MarkUserAsSpammerHandler
         }
 
         foreach ($discussions as $discussion) {
-
             $this->bus->dispatch(
                 new EditDiscussion($discussion->id, $actor, [
                     'relationships' => [
