@@ -89,9 +89,10 @@ class MarkUserAsSpammerHandler
 
         $this->reportToStopForumSpam($user);
 
+        $this->handleDiscussions($user, $actor);
+
         $this->handleUser($user, $actor);
         $this->handlePosts($user, $actor);
-        $this->handleDiscussions($user, $actor);
 
         $this->events->dispatch(
             new MarkedUserAsSpammer($user, $actor)
@@ -198,6 +199,8 @@ class MarkUserAsSpammerHandler
     {
         if ($this->deleteDiscussions) {
             $user->discussions()->delete();
+        } elseif ($this->moveDiscussionsToQuarantine) {
+            $this->moveUserDiscussionsToQuarantine($user, $actor);
         } else {
             $user->discussions()->where('hidden_at', null)->chunk(50, function ($discussions) use ($actor) {
                 foreach ($discussions as $discussion) {
@@ -208,6 +211,44 @@ class MarkUserAsSpammerHandler
                     );
                 }
             });
+        }
+    }
+
+    protected function moveUserDiscussionsToQuarantine(User $user, User $actor): void
+    {
+        if (! $this->moveDiscussionsToQuarantine) {
+            return;
+        }
+
+        $discussions = $user->discussions;
+        $quarantineTagsString = (string) $this->settings->get(self::settings_prefix.'moveDiscussionsToTags');
+
+        $tags = json_decode($quarantineTagsString);
+
+        if (! $tags) {
+            return;
+        }
+
+        $data = [];
+
+        foreach ($tags as $tag) {
+            $data[] = [
+                'type' => 'tags',
+                'id' => $tag,
+            ];
+        }
+
+        foreach ($discussions as $discussion) {
+
+            $this->bus->dispatch(
+                new EditDiscussion($discussion->id, $actor, [
+                    'relationships' => [
+                        'tags' => [
+                            'data' => $data,
+                        ],
+                    ],
+                ])
+            );
         }
     }
 
