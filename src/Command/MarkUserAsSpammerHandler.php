@@ -105,8 +105,6 @@ class MarkUserAsSpammerHandler
         $this->deleteDiscussions = (bool) Arr::get($options, 'deleteDiscussions', $this->settings->get(self::settings_prefix.'deleteDiscussions'));
         $this->moveDiscussionsToQuarantine = (bool) Arr::get($options, 'moveDiscussionsToQuarantine', $this->shouldMoveToQuarantineSetting());
         $this->reportToSfs = (bool) Arr::get($options, 'reportToSfs', $this->settings->get('fof-anti-spam.reportToStopForumSpam'));
-
-        dd($options, $this->deleteUser, $this->deletePosts, $this->deleteDiscussions, $this->moveDiscussionsToQuarantine, $this->reportToSfs);
     }
 
     protected function shouldMoveToQuarantineSetting(): bool
