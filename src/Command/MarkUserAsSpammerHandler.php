@@ -98,7 +98,7 @@ class MarkUserAsSpammerHandler
             new MarkedUserAsSpammer($user, $actor)
         );
 
-        return $command->user->refresh();
+        return $this->deleteUser ? new Guest() : $command->user->refresh();
     }
 
     protected function parseOptions(array $options): void
