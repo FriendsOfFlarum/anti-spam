@@ -197,8 +197,6 @@ class MarkUserAsSpammerHandler
     {
         if ($this->deleteDiscussions) {
             $user->discussions()->delete();
-        } elseif ($this->moveDiscussionsToQuarantine) {
-            $this->moveUserDiscussionsToQuarantine($user, $actor);
         } else {
             $user->discussions()->where('hidden_at', null)->chunk(50, function ($discussions) use ($actor) {
                 foreach ($discussions as $discussion) {
@@ -209,6 +207,10 @@ class MarkUserAsSpammerHandler
                     );
                 }
             });
+
+            if ($this->moveDiscussionsToQuarantine) {
+                $this->moveUserDiscussionsToQuarantine($user, $actor);
+            }
         }
     }
 
