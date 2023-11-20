@@ -123,9 +123,9 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
 
     const body = {
       options: {
-        hardDeletePosts: this.hardDeletePosts,
-        hardDeleteDiscussions: this.hardDeleteDiscussions,
-        hardDeleteUser: this.hardDeleteUser,
+        deletePosts: this.hardDeletePosts,
+        deleteDiscussions: this.hardDeleteDiscussions,
+        deleteUser: this.hardDeleteUser,
         moveDiscussionsToQuarantine: this.moveDiscussionsToQuarantine,
         reportToSfs: this.reportToSfs,
       },

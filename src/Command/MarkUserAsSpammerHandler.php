@@ -80,7 +80,7 @@ class MarkUserAsSpammerHandler
         $this->log = $log;
     }
 
-    public function handle(MarkUserAsSpammer $command): void
+    public function handle(MarkUserAsSpammer $command): User
     {
         $user = $command->user;
         $actor = $command->actor ?? new Guest();
@@ -91,12 +91,14 @@ class MarkUserAsSpammerHandler
 
         $this->handleDiscussions($user, $actor);
 
-        $this->handleUser($user, $actor);
         $this->handlePosts($user, $actor);
+        $this->handleUser($user, $actor);
 
         $this->events->dispatch(
             new MarkedUserAsSpammer($user, $actor)
         );
+
+        return $command->user->refresh();
     }
 
     protected function parseOptions(array $options): void
@@ -113,13 +115,6 @@ class MarkUserAsSpammerHandler
         $value = $this->settings->get(self::settings_prefix.'moveDiscussionsToTags');
 
         return ($value === null || $value === '[]') ? false : true;
-    }
-
-    protected function getQuanrantineTags(): object
-    {
-        $value = $this->settings->get(self::settings_prefix.'moveDiscussionsToTags');
-
-        return json_decode($value);
     }
 
     protected function flagsEnabled(): bool
@@ -154,6 +149,9 @@ class MarkUserAsSpammerHandler
                 'actor' => $actor->id,
             ]);
         }
+
+        $user->refreshDiscussionCount();
+        $user->refreshCommentCount();
     }
 
     /**
