@@ -6,6 +6,23 @@ A [Flarum](http://flarum.org) extension. Effective tools to manage spammers on y
 
 Combines previously seperate extentions (`fof/stopforumspam`, `fof/spamblock`) into one to better fight the war on forum spam.
 
+## Features
+
+- Set default actions to be processed when a user is marked as a "spammer"
+- Select either "delete" or "suspend" for users
+- Select "delete", "hide" or "move to tag" for spam discussions
+- Select either "delete" or "hide" for spam replies
+- Option to submit spammer details to the [StopForumSpam database](https://www.stopforumspam.com/)
+- Check new registrations agains the [StopForumSpam database](https://www.stopforumspam.com/) to block spammers before they can register on your forum (also supports OAuth registrations)
+
+## More integrations
+
+Future integrations with extensions such as:
+- `fof/user-bio`
+- `fof/upload`
+
+and more, are planned soon.
+
 ## Installation
 
 Install with composer:
