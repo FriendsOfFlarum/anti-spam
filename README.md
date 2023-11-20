@@ -20,6 +20,7 @@ Combines previously seperate extentions (`fof/stopforumspam`, `fof/spamblock`) i
 Future integrations with extensions such as:
 - `fof/user-bio`
 - `fof/upload`
+- `blomstra/spam-prevention`
 
 and more, are planned soon.
 
