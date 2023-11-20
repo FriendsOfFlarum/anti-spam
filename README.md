@@ -23,6 +23,10 @@ Future integrations with extensions such as:
 
 and more, are planned soon.
 
+## Upgrading from `fof/spamblock` and/or `fof/stopforumspam`
+
+If either of these extensions are installed on your current forum, they will be replaced by this one. Permissions and settings will be carried over.
+
 ## Installation
 
 Install with composer:
