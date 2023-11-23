@@ -12,11 +12,12 @@
 namespace FoF\AntiSpam\Api\Controllers;
 
 use Flarum\Http\RequestUtil;
+use Flarum\Http\UrlGenerator;
 use Flarum\User\User;
 use FoF\AntiSpam\Command\MarkUserAsSpammer;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\Arr;
-use Laminas\Diactoros\Response\EmptyResponse;
+use Laminas\Diactoros\Response\RedirectResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -29,11 +30,17 @@ class MarkAsSpammerController implements RequestHandlerInterface
     protected $bus;
 
     /**
+     * @var UrlGenerator
+     */
+    protected $url;
+
+    /**
      * @param Dispatcher       $bus
      */
-    public function __construct(Dispatcher $bus)
+    public function __construct(Dispatcher $bus, UrlGenerator $url)
     {
         $this->bus = $bus;
+        $this->url = $url;
     }
 
     /**
@@ -56,6 +63,6 @@ class MarkAsSpammerController implements RequestHandlerInterface
 
         $this->bus->dispatch(new MarkUserAsSpammer($user, $options, $actor));
 
-        return new EmptyResponse();
+        return new RedirectResponse($this->url->to('forum')->base());
     }
 }
