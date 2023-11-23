@@ -86,7 +86,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(302, $response->getStatusCode());
 
         $response = $this->send(
             $this->request('GET', 'api/discussions/2', [
@@ -115,7 +115,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(302, $response->getStatusCode());
 
         $response = $this->send(
             $this->request('GET', 'api/discussions/2', [
@@ -144,7 +144,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(302, $response->getStatusCode());
 
         $user = User::find(5);
 
