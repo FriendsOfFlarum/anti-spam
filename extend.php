@@ -48,6 +48,10 @@ return [
 
     (new Extend\Settings())
         ->default('fof-anti-spam.regionalEndpoint', 'closest')
+        ->default('fof-anti-spam.sfs-lookup', true)
+        ->default('fof-anti-spam.username', false)
+        ->default('fof-anti-spam.ip', true)
+        ->default('fof-anti-spam.email', true)
         ->default('fof-anti-spam.emailhash', false)
         ->default('fof-anti-spam.frequency', 5)
         ->default('fof-anti-spam.confidence', 50.0)
