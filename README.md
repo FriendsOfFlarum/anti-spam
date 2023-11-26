@@ -47,7 +47,7 @@ php flarum cache:clear
 ## Links
 
 - [Packagist](https://packagist.org/packages/fof/anti-spam)
-- [GitHub](https://github.com/fof/anti-spam)
+- [GitHub](https://github.com/FriendsOfFlarum/anti-spam)
 - [Discuss](https://discuss.flarum.org/d/33698)
 
 An extension by [FriendsOfFlarum](https://github.com/FriendsOfFlarum).
