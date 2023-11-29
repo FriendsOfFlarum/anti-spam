@@ -11,6 +11,9 @@
 
 namespace FoF\AntiSpam\Event;
 
+/**
+ * @deprecated Use `\FoF\AntiSpam\Event\RegistrationWasBlocked` instead. Will be removed in Flarum 2.0
+ */
 class RegistrationBlocked
 {
     public $username;

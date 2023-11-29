@@ -12,7 +12,6 @@
 namespace FoF\AntiSpam;
 
 use Flarum\Settings\SettingsRepositoryInterface;
-use FoF\AntiSpam\Event\RegistrationBlocked;
 use GuzzleHttp\Client;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
@@ -63,7 +62,7 @@ class StopForumSpam
     {
         $key = $this->settings->get(self::KEY);
 
-        return $key !== null && ! empty($key);
+        return $key !== null && !empty($key);
     }
 
     public function report(array $data): ResponseInterface
@@ -92,7 +91,7 @@ class StopForumSpam
     public function shouldPreventLogin(array $data, ?string $provider = null, ?array $providerData = null): bool
     {
         // If we don't have sfs lookup enabled, we return false early.
-        if (! (bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
+        if (!(bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
             return false;
         }
 
@@ -129,19 +128,40 @@ class StopForumSpam
             }
 
             if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency) {
-                $this->bus->dispatch(new RegistrationBlocked(
-                    Arr::get($data, 'username', 'unknown'),
-                    Arr::get($data, 'ip', 'unknown'),
-                    Arr::get($data, 'email', 'unknown'),
-                    $data,
-                    $provider,
-                    $providerData
-                ));
+                $this->buildAndDispatchEvents($data, $provider, $providerData);
 
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function buildAndDispatchEvents(array $data, string $provider = null, array $providerData = null): void
+    {
+        $ip = Arr::pull($data, 'ip', 'unknown');
+        $email = Arr::pull($data, 'email', 'unknown');
+        $username = Arr::pull($data, 'username', 'unknown');
+
+        $this->bus->dispatch(new Event\RegistrationWasBlocked(
+            Model\BlockedRegistration::create(
+                $ip,
+                $email,
+                $username,
+                $data,
+                $provider,
+                $providerData
+            )
+        ));
+
+        // Kept for backwards compatibility, remove for Flarum 2.0
+        $this->bus->dispatch(new Event\RegistrationBlocked(
+            $username,
+            $ip,
+            $email,
+            $data,
+            $provider,
+            $providerData
+        ));
     }
 }
