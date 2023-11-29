@@ -29,7 +29,8 @@ return [
     new Extend\Locales(__DIR__.'/locale'),
 
     (new Extend\Routes('api'))
-        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class),
+        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
+        ->get('/blocked-registrations', 'fof-anti-spam.blocked-registrations.index', Api\Controllers\ListBlockedRegistrationsController::class),
 
     (new Extend\ApiSerializer(ForumSerializer::class))
         ->attributes(Api\AddForumAttributes::class),

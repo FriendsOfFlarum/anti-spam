@@ -12,7 +12,7 @@ use Flarum\Database\AbstractModel;
  * @property string $username
  * @property array $data
  * @property string|null $provider
- * @property string|null $provider_data
+ * @property array|null $provider_data
  * @property Carbon $attempted_at
  */
 class BlockedRegistration extends AbstractModel
