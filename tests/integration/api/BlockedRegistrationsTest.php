@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Tests\integration\api;
 
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
@@ -34,7 +43,7 @@ class BlockedRegistrationsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'GET', 
+                'GET',
                 '/api/blocked-registrations',
                 [
                     'authenticatedAs' => 2,
@@ -52,7 +61,7 @@ class BlockedRegistrationsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'GET', 
+                'GET',
                 '/api/blocked-registrations',
                 [
                     'authenticatedAs' => 3,

@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Api\Controllers;
 
 use Flarum\Api\Controller\AbstractListController;
@@ -29,20 +38,20 @@ class ListBlockedRegistrationsController extends AbstractListController
         RequestUtil::getActor($request)->assertCan('fof-anti-spam.viewBlockedRegistrations');
 
         $limit = $this->extractLimit($request);
-		$offset = $this->extractOffset($request);
+        $offset = $this->extractOffset($request);
 
         $query = BlockedRegistration::query();
 
         $totalItems = $query->count();
-		$items = $query->orderBy('id')->skip($offset)->take($limit)->get();
+        $items = $query->orderBy('id')->skip($offset)->take($limit)->get();
 
         $document->addPaginationLinks(
-			$this->url->to('api')->route('fof-anti-spam.blocked-registrations.index'),
-			$request->getQueryParams(),
-			$offset,
-			$limit,
-			$totalItems - ($offset + $limit) > 0 ? null : 0
-		);
+            $this->url->to('api')->route('fof-anti-spam.blocked-registrations.index'),
+            $request->getQueryParams(),
+            $offset,
+            $limit,
+            $totalItems - ($offset + $limit) > 0 ? null : 0
+        );
 
         return $items;
     }

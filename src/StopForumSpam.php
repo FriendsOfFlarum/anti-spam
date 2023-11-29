@@ -62,7 +62,7 @@ class StopForumSpam
     {
         $key = $this->settings->get(self::KEY);
 
-        return $key !== null && !empty($key);
+        return $key !== null && ! empty($key);
     }
 
     public function report(array $data): ResponseInterface
@@ -91,7 +91,7 @@ class StopForumSpam
     public function shouldPreventLogin(array $data, ?string $provider = null, ?array $providerData = null): bool
     {
         // If we don't have sfs lookup enabled, we return false early.
-        if (!(bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
+        if (! (bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
             return false;
         }
 
