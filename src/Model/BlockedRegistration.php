@@ -19,10 +19,10 @@ use Flarum\Database\AbstractModel;
  * @property string $ip
  * @property string $email
  * @property string $username
- * @property array $data
+ * @property string $data
  * @property string|null $provider
  * @property array|null $provider_data
- * @property Carbon $attempted_at
+ * @property DateTime $attempted_at
  */
 class BlockedRegistration extends AbstractModel
 {
@@ -30,10 +30,9 @@ class BlockedRegistration extends AbstractModel
 
     public $casts = [
         'attempted_at' => 'datetime',
-        'data' => 'array'
     ];
 
-    public static function create(string $ip, string $email, string $username, array $data, ?string $provider = null, ?array $providerData = null): self
+    public static function create(string $ip, string $email, string $username, string $data, ?string $provider = null, ?array $providerData = null): self
     {
         $blocked = new static();
 

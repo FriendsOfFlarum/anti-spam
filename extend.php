@@ -55,7 +55,7 @@ return [
         ->default('fof-anti-spam.email', true)
         ->default('fof-anti-spam.emailhash', false)
         ->default('fof-anti-spam.frequency', 5)
-        ->default('fof-anti-spam.confidence', 50.0)
+        ->default('fof-anti-spam.confidence', 70.0)
         ->default('fof-anti-spam.actions.deleteUser', false)
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)

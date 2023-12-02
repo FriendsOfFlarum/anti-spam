@@ -28,7 +28,7 @@ class BlockedRegistrationSerializer extends AbstractSerializer
             'ip' => $blocked->ip,
             'email' => $blocked->email,
             'username' => $blocked->username,
-            'data' => $blocked->data,
+            'sfsData' => $blocked->data,
             'provider' => $blocked->provider,
             'providerData' => $blocked->provider_data,
             'attemptedAt' => $this->formatDate($blocked->attempted_at),
