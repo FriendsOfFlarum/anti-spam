@@ -12,7 +12,7 @@ import fullTime from 'flarum/common/helpers/fullTime';
 export default class AntiSpamSettingsPage extends ExtensionPage {
   page!: string;
   blockedLoading: boolean = false;
-  blockedRegistrations: BlockedRegistration[] | null = null;
+  blockedRegistrations: BlockedRegistration[] | null | undefined = null;
 
   oninit(vnode: any) {
     super.oninit(vnode);
