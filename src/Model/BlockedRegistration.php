@@ -22,7 +22,7 @@ use Flarum\Database\AbstractModel;
  * @property string $data
  * @property string|null $provider
  * @property array|null $provider_data
- * @property DateTime $attempted_at
+ * @property Carbon $attempted_at
  */
 class BlockedRegistration extends AbstractModel
 {
