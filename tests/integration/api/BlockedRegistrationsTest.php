@@ -92,7 +92,6 @@ class BlockedRegistrationsTest extends TestCase
         $this->assertEquals('spammer@machine.local', $data->attributes->email);
     }
 
-
     /**
      * @test
      */
