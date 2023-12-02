@@ -203,42 +203,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
           {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length > 0 && (
             <div>
               <p className="helpText">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.help')}</p>
-              <div className="BlockedRegistrationsModal-list">
+              <div className="BlockedRegistrations--list">
                 {this.blockedRegistrations.map((blockedRegistration) => {
                   return (
-                    <div className="BlockedRegistrationsModal-item">
-                      <div className="BlockedRegistrationsModal-item-details">
-                        <LabelValue
-                          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.attempted-at')}
-                          value={fullTime(blockedRegistration.attemptedAt() ?? new Date())}
-                        />
-                        <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.ip')} value={blockedRegistration.ip()} />
-                        <LabelValue
-                          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.email')}
-                          value={blockedRegistration.email()}
-                        />
-                        <LabelValue
-                          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.username')}
-                          value={blockedRegistration.username()}
-                        />
-                        {blockedRegistration.provider() && (
-                          <LabelValue
-                            label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider')}
-                            value={blockedRegistration.provider()}
-                          />
-                        )}
-                        {blockedRegistration.providerData() && (
-                          <LabelValue
-                            label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider-data')}
-                            value={blockedRegistration.providerData()}
-                          />
-                        )}
-                        <LabelValue
-                          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.sfs-data')}
-                          value={blockedRegistration.sfsData()}
-                        />
-                      </div>
-                      <div className="BlockedRegistrationsModal-item-actions">{this.actionItems(blockedRegistration).toArray()}</div>
+                    <div className="BlockedRegistrations--item">
+                      <div className="BlockedRegistrations-item--details">{this.detailItems(blockedRegistration).toArray()}</div>
+                      <div className="BlockedRegistrations-item--actions">{this.actionItems(blockedRegistration).toArray()}</div>
                     </div>
                   );
                 })}
@@ -258,8 +228,78 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     m.redraw();
   }
 
+  detailItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children> {
+    const items = new ItemList<Mithril.Children>();
+
+    items.add(
+      'attemptedAt',
+      <LabelValue
+        label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.attempted-at')}
+        value={fullTime(blockedRegistration.attemptedAt() ?? new Date())}
+      />,
+      100
+    );
+
+    items.add('ip', <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.ip')} value={blockedRegistration.ip()} />, 90);
+
+    items.add(
+      'email',
+      <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.email')} value={blockedRegistration.email()} />,
+      80
+    );
+
+    items.add(
+      'username',
+      <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.username')} value={blockedRegistration.username()} />,
+      70
+    );
+
+    blockedRegistration.provider() &&
+      items.add(
+        'provider',
+        <LabelValue
+          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider')}
+          value={blockedRegistration.provider()}
+        />,
+        60
+      );
+
+    blockedRegistration.providerData() &&
+      items.add(
+        'providerData',
+        <LabelValue
+          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider-data')}
+          value={blockedRegistration.providerData()}
+        />,
+        50
+      );
+
+    items.add(
+      'sfsData',
+      <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.sfs-data')} value={blockedRegistration.sfsData()} />,
+      20
+    );
+
+    return items;
+  }
+
   actionItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children> {
     const items = new ItemList<Mithril.Children>();
+
+    items.add(
+      'delete',
+      <Button
+        className="Button Button--danger"
+        icon="fas fa-trash"
+        onclick={() => {
+          blockedRegistration.delete();
+          this.blockedRegistrations = this.blockedRegistrations?.filter((b) => b.id() !== blockedRegistration.id());
+          m.redraw();
+        }}
+      >
+        {app.translator.trans('fof-anti-spam.admin.blocked_registrations.delete_entry')}
+      </Button>
+    );
 
     return items;
   }
