@@ -17,7 +17,7 @@ use Flarum\User\User;
 use FoF\AntiSpam\Command\MarkUserAsSpammer;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\Arr;
-use Laminas\Diactoros\Response\RedirectResponse;
+use Laminas\Diactoros\Response\EmptyResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -63,6 +63,6 @@ class MarkAsSpammerController implements RequestHandlerInterface
 
         $this->bus->dispatch(new MarkUserAsSpammer($user, $options, $actor));
 
-        return new RedirectResponse($this->url->to('forum')->base());
+        return new EmptyResponse();
     }
 }
