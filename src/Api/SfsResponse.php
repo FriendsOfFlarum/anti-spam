@@ -22,7 +22,7 @@ class SfsResponse
 
     public function __construct(array $data)
     {
-        $this->success = (bool) Arr::get($data, 'success', false);
+        $this->success = Arr::get($data, 'success', false);
         $this->ip = isset($data['ip']) ? new IpFieldData($data['ip']) : null;
         $this->username = isset($data['username']) ? new BasicFieldData($data['username']) : null;
         $this->email = isset($data['email']) ? new BasicFieldData($data['email']) : (isset($data['emailhash']) ? new BasicFieldData($data['emailhash']) : null);

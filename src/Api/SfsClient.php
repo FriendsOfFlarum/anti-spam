@@ -22,7 +22,7 @@ class SfsClient
     protected $endpoints = [
         'closest' => 'https://api.stopforumspam.org/',
         'europe'  => 'https://europe.stopforumspam.org/',
-        'us'      => 'https://us.stopforumspam.org/',
+        'us'      => 'https://us.stopforumspam.org/'
     ];
 
     /**
