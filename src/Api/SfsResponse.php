@@ -19,9 +19,21 @@ class SfsResponse
      * @var bool
      */
     public $success;
-    public ?IpFieldData $ip;
-    public ?BasicFieldData $username;
-    public ?BasicFieldData $email;
+
+    /**
+     * @var IpFieldData|null
+     */
+    public $ip;
+
+    /**
+     * @var BasicFieldData|null
+     */
+    public $username;
+
+    /**
+     * @var BasicFieldData|null
+     */
+    public $email;
 
     public function __construct(array $data)
     {
