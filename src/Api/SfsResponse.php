@@ -52,12 +52,12 @@ class BasicFieldData
     public $value;
 
     /**
-     * @var boolean
+     * @var bool
      */
     public $appears;
 
     /**
-     * @var integer|null
+     * @var int|null
      */
     public $frequency = null;
 
@@ -72,7 +72,7 @@ class BasicFieldData
     public $confidence = null;
 
     /**
-     * @var boolean
+     * @var bool
      */
     public $blacklisted;
 
@@ -90,7 +90,7 @@ class BasicFieldData
 class IpFieldData extends BasicFieldData
 {
     /**
-     * @var integer|null
+     * @var int|null
      */
     public $asn = null;
 
