@@ -69,7 +69,7 @@ fof-anti-spam:
 
   forum:
     message:
-      spam: Your info has been marked as spam.
+      spam: Your registration data has been marked as spam, so you have been prevented from completing your registration. If you believe this is a mistake, please contact the forum administrator.
     spammer_modal:
       hard_delete_discussions_label: Delete discussions
       hard_delete_discussions_help: This will permanently delete all discussions started by this user. When disabled, discussions will be hidden instead.
