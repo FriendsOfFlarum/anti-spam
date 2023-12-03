@@ -46,12 +46,35 @@ class SfsResponse
 
 class BasicFieldData
 {
-    public string $value;
-    public bool $appears;
-    public ?int $frequency = null;
-    public ?string $lastseen = null;
-    public ?float $confidence = null;
-    public bool $blacklisted;
+    /**
+     * @var string
+     */
+    public $value;
+
+    /**
+     * @var boolean
+     */
+    public $appears;
+
+    /**
+     * @var integer|null
+     */
+    public $frequency = null;
+
+    /**
+     * @var string|null
+     */
+    public $lastseen = null;
+
+    /**
+     * @var float|null
+     */
+    public $confidence = null;
+
+    /**
+     * @var boolean
+     */
+    public $blacklisted;
 
     public function __construct(array $fieldData)
     {
@@ -66,8 +89,15 @@ class BasicFieldData
 
 class IpFieldData extends BasicFieldData
 {
-    public ?int $asn = null;
-    public ?string $country = null;
+    /**
+     * @var integer|null
+     */
+    public $asn = null;
+
+    /**
+     * @var string|null
+     */
+    public $country = null;
 
     public function __construct(array $fieldData)
     {
