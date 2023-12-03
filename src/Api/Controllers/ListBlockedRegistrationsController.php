@@ -58,8 +58,8 @@ class ListBlockedRegistrationsController extends AbstractListController
             $totalItems - ($offset + $limit) > 0 ? null : 0
         );
 
-        $document->addLink('totalPages', ceil($totalItems / $limit));
-        $document->addLink('totalItems', $totalItems);
+        $document->addLink('totalPages', (string) ceil($totalItems / $limit));
+        $document->addLink('totalItems', (string) $totalItems);
 
         return $items;
     }
