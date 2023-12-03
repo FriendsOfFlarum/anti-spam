@@ -10,9 +10,14 @@ import LabelValue from 'flarum/common/components/LabelValue';
 import fullTime from 'flarum/common/helpers/fullTime';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
+  private static readonly ITEMS_PER_PAGE: number = 20;
+
   page!: string;
   blockedLoading: boolean = false;
   blockedRegistrations: BlockedRegistration[] | null | undefined = null;
+
+  currentPage: number = 1;
+  totalPages: number = 1;
 
   oninit(vnode: any) {
     super.oninit(vnode);
@@ -213,6 +218,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                   );
                 })}
               </div>
+              {this.renderPagination()}
             </div>
           )}
         </div>
@@ -220,12 +226,44 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     );
   }
 
-  async loadData() {
+  async loadData(page: number = 1) {
     this.blockedLoading = true;
     m.redraw();
-    this.blockedRegistrations = await app.store.find<BlockedRegistration[]>('blocked-registrations');
+
+    try {
+      const response = await app.store.find<BlockedRegistration[]>('blocked-registrations', {
+        page: {
+          offset: (page - 1) * AntiSpamSettingsPage.ITEMS_PER_PAGE,
+          limit: AntiSpamSettingsPage.ITEMS_PER_PAGE,
+        },
+      });
+
+      this.blockedRegistrations = response;
+      this.totalPages = response.payload.links?.totalPages || 1;
+    } catch (error) {
+      console.error(error);
+      this.blockedRegistrations = [];
+    }
+
     this.blockedLoading = false;
+    this.currentPage = page;
     m.redraw();
+  }
+
+  renderPagination(): Mithril.Children {
+    return (
+      <nav className="BlockedRegistrations--pagination">
+        <Button className="Button" disabled={this.currentPage <= 1} onclick={() => this.loadData(this.currentPage - 1)}>
+          Previous
+        </Button>
+        <span>
+          Page {this.currentPage} of {this.totalPages}
+        </span>
+        <Button className="Button" disabled={this.currentPage >= this.totalPages} onclick={() => this.loadData(this.currentPage + 1)}>
+          Next
+        </Button>
+      </nav>
+    );
   }
 
   detailItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children> {

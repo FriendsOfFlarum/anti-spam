@@ -24,6 +24,11 @@ class ListBlockedRegistrationsController extends AbstractListController
     public $serializer = BlockedRegistrationSerializer::class;
 
     /**
+     * @var string
+     */
+    protected $contentRange;
+
+    /**
      * @var UrlGenerator
      */
     public $url;
@@ -43,7 +48,7 @@ class ListBlockedRegistrationsController extends AbstractListController
         $query = BlockedRegistration::query();
 
         $totalItems = $query->count();
-        $items = $query->orderBy('id')->skip($offset)->take($limit)->get();
+        $items = $query->orderBy('id', 'desc')->skip($offset)->take($limit)->get();
 
         $document->addPaginationLinks(
             $this->url->to('api')->route('fof-anti-spam.blocked-registrations.index'),
@@ -52,6 +57,9 @@ class ListBlockedRegistrationsController extends AbstractListController
             $limit,
             $totalItems - ($offset + $limit) > 0 ? null : 0
         );
+
+        $document->addLink('totalPages', ceil($totalItems / $limit));
+        $document->addLink('totalItems', $totalItems);
 
         return $items;
     }
