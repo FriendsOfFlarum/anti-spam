@@ -48,18 +48,20 @@ class CheckLoginMiddleware implements MiddlewareInterface
         if ($request->getUri()->getPath() === $registerPath) {
             $data = $request->getParsedBody();
 
-            try {
-                $shouldPrevent = $this->sfs->shouldPreventLogin([
-                    'ip'       => $this->getIpAddress($request),
-                    'email'    => $data['email'],
-                    'username' => $data['username'],
-                ]);
-            } catch (\Throwable $e) {
-                return (new JsonApiFormatter())->format(
-                    resolve(Registry::class)->handle($e),
-                    $request
+            //try {
+                $shouldPrevent = $this->sfs->shouldPreventLogin(
+                    $this->getIpAddress($request),
+                    $data['email'],
+                    $data['username'],
+                    'forum',
+                    $data
                 );
-            }
+            // } catch (\Throwable $e) {
+            //     return (new JsonApiFormatter())->format(
+            //         resolve(Registry::class)->handle($e),
+            //         $request
+            //     );
+            // }
 
             if ($shouldPrevent) {
                 return (new JsonApiFormatter())

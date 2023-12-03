@@ -143,11 +143,6 @@ class MarkUserAsSpammerHandler
                     'attributes' => ['suspendedUntil' => Carbon::now()->addYears(20)],
                 ])
             );
-        } else {
-            $this->log->info('User was marked as spam, but no action was taken.', [
-                'user' => $user->id,
-                'actor' => $actor->id,
-            ]);
         }
 
         $user->refreshDiscussionCount();

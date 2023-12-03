@@ -27,11 +27,13 @@ class ProviderRegistration
 
     public function handle(RegisteringFromProvider $event)
     {
-        $check = $this->sfs->shouldPreventLogin([
-            'ip'       => $this->getIpAddress(),
-            'email'    => $event->user->email,
-            'username' => $event->user->username,
-        ], $event->provider, $event->payload);
+        $check = $this->sfs->shouldPreventLogin(
+            $this->getIpAddress(),
+            $event->user->email,
+            $event->user->username,
+            $event->provider,
+            $event->payload
+        );
 
         if ($check) {
             throw new ValidationException([

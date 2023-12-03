@@ -41,7 +41,7 @@ class BlockedRegistration extends AbstractModel
         $blocked->username = $username;
         $blocked->data = $data;
         $blocked->provider = $provider;
-        $blocked->provider_data = $providerData;
+        $blocked->provider_data = json_encode($providerData);
         $blocked->attempted_at = Carbon::now();
 
         $blocked->save();
