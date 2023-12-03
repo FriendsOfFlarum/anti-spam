@@ -140,7 +140,6 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
       .then(() => {
         this.loading = false;
         this.hide();
-        
       });
   }
 }
