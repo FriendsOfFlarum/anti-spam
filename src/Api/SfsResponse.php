@@ -15,14 +15,17 @@ use Illuminate\Support\Arr;
 
 class SfsResponse
 {
-    public bool $success;
+    /**
+     * @var bool
+     */
+    public $success;
     public ?IpFieldData $ip;
     public ?BasicFieldData $username;
     public ?BasicFieldData $email;
 
     public function __construct(array $data)
     {
-        $this->success = Arr::get($data, 'success', false);
+        $this->success = (bool) Arr::get($data, 'success', false);
         $this->ip = isset($data['ip']) ? new IpFieldData($data['ip']) : null;
         $this->username = isset($data['username']) ? new BasicFieldData($data['username']) : null;
         $this->email = isset($data['email']) ? new BasicFieldData($data['email']) : (isset($data['emailhash']) ? new BasicFieldData($data['emailhash']) : null);
