@@ -72,7 +72,7 @@ class BasicFieldData
     public $confidence = null;
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $blacklisted;
 
