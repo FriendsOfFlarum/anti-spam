@@ -271,50 +271,74 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
     items.add(
       'attemptedAt',
-      <LabelValue
-        label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.attempted-at')}
-        value={fullTime(blockedRegistration.attemptedAt() ?? new Date())}
-      />,
+      <div className="BlockedRegistrations-item--details">
+        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.attempted-at')}</span>
+        <span className="BlockedRegistrations-value">{fullTime(blockedRegistration.attemptedAt() ?? new Date())}</span>
+      </div>,
       100
     );
 
-    items.add('ip', <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.ip')} value={blockedRegistration.ip()} />, 90);
+    items.add(
+      'ip',
+      <div className="BlockedRegistrations-item--details">
+        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.ip')}</span>
+        <span className="BlockedRegistrations-value">{blockedRegistration.ip()}</span>
+      </div>,
+      90
+    );
 
     items.add(
       'email',
-      <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.email')} value={blockedRegistration.email()} />,
+      <div className="BlockedRegistrations-item--details">
+        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.email')}</span>
+        <span className="BlockedRegistrations-value">{blockedRegistration.email()}</span>
+      </div>,
       80
     );
 
     items.add(
       'username',
-      <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.username')} value={blockedRegistration.username()} />,
+      <div className="BlockedRegistrations-item--details">
+        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.username')}</span>
+        <span className="BlockedRegistrations-value">{blockedRegistration.username()}</span>
+      </div>,
       70
     );
 
-    blockedRegistration.provider() &&
+    if (blockedRegistration.provider()) {
       items.add(
         'provider',
-        <LabelValue
-          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider')}
-          value={blockedRegistration.provider()}
-        />,
+        <div className="BlockedRegistrations-item--details">
+          <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider')}</span>
+          <span className="BlockedRegistrations-value">
+            <code>{blockedRegistration.provider()}</code>
+          </span>
+        </div>,
         60
       );
+    }
 
-    blockedRegistration.providerData() &&
+    if (blockedRegistration.providerData()) {
       items.add(
         'providerData',
-        <LabelValue
-          label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider-data')}
-          value={blockedRegistration.providerData()}
-        />,
+        <div className="BlockedRegistrations-item--details">
+          <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider-data')}</span>
+          <span className="BlockedRegistrations-value">
+            <code>{blockedRegistration.providerData()}</code>
+          </span>
+        </div>,
         50
       );
+    }
 
     items.add(
       'sfsData',
-      <LabelValue label={app.translator.trans('fof-anti-spam.admin.blocked_registrations.sfs-data')} value={blockedRegistration.sfsData()} />,
+      <div className="BlockedRegistrations-item--details">
+        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.sfs-data')}</span>
+        <span className="BlockedRegistrations-value">
+          <code>{blockedRegistration.sfsData()}</code>
+        </span>
+      </div>,
       20
     );
 

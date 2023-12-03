@@ -68,9 +68,10 @@
 
     .BlockedRegistrations--list {
       .BlockedRegistrations--item {
-        display: flex; // Enable flexbox layout
-        justify-content: space-between; // Space between details and actions
-        align-items: center; // Vertically align the contents
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
         background: @body-bg;
         border-radius: @border-radius;
         box-shadow: 0 1px 3px @shadow-color;
@@ -83,20 +84,27 @@
         }
 
         .BlockedRegistrations-item--details {
-          flex-grow: 1; // Allows details to take up the available space
-          padding: 5px;
-          color: @text-color;
+          display: contents;
+
+          .BlockedRegistrations-label {
+            grid-column: 1;
+            font-weight: bold;
+            white-space: nowrap;
+          }
+
+          .BlockedRegistrations-value {
+            grid-column: 2;
+            overflow-wrap: break-word;
+            overflow: auto;
+          }
         }
 
         .BlockedRegistrations-item--actions {
-          // Align the actions to the right
-          padding: 5px;
-          display: flex; // Enable flexbox layout for actions
-          align-items: center; // Vertically align the buttons
-
-          .Button {
-            margin-left: 10px; // Space between buttons
-          }
+          grid-column: 3;
+          grid-row: -1;
+          justify-self: end;
+          display: flex;
+          gap: 10px;
         }
       }
     }

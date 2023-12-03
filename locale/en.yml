@@ -70,7 +70,7 @@ fof-anti-spam:
   forum:
     message:
       stopforumspam:
-        blocked: Your registration data has been marked as spam, so you have been prevented from completing your registration. If you believe this is a mistake, please contact the forum administrator.
+        blocked: Details of your registration have been found in a spam prevention database, therefore your registration has been blocked.
     spammer_modal:
       hard_delete_discussions_label: Delete discussions
       hard_delete_discussions_help: This will permanently delete all discussions started by this user. When disabled, discussions will be hidden instead.
