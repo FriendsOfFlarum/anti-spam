@@ -41,7 +41,7 @@ class SfsClient
 
         $this->client = new Client([
             'base_uri' => $this->endpoint(),
-            'verify'   => false,
+            'verify'   => false
         ]);
     }
 
