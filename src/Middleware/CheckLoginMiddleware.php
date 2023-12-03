@@ -49,13 +49,13 @@ class CheckLoginMiddleware implements MiddlewareInterface
             $data = $request->getParsedBody();
 
             //try {
-                $shouldPrevent = $this->sfs->shouldPreventLogin(
-                    $this->getIpAddress($request),
-                    $data['email'],
-                    $data['username'],
-                    'forum',
-                    $data
-                );
+            $shouldPrevent = $this->sfs->shouldPreventLogin(
+                $this->getIpAddress($request),
+                $data['email'],
+                $data['username'],
+                'forum',
+                $data
+            );
             // } catch (\Throwable $e) {
             //     return (new JsonApiFormatter())->format(
             //         resolve(Registry::class)->handle($e),

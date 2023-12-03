@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Api;
 
 use Illuminate\Support\Arr;
@@ -29,11 +38,10 @@ class BasicFieldData
     public ?float $confidence = null;
     public bool $blacklisted;
 
-
     public function __construct(array $fieldData)
     {
         $this->value = Arr::get($fieldData, 'value');
-        $this->appears = Arr::get($fieldData, 'appears')  !== null ? (bool) Arr::get($fieldData, 'appears') : false;
+        $this->appears = Arr::get($fieldData, 'appears') !== null ? (bool) Arr::get($fieldData, 'appears') : false;
         $this->frequency = Arr::get($fieldData, 'frequency') !== null ? (int) Arr::get($fieldData, 'frequency') : null;
         $this->lastseen = Arr::get($fieldData, 'lastseen');
         $this->confidence = Arr::get($fieldData, 'confidence') !== null ? (float) Arr::get($fieldData, 'confidence') : null;

@@ -44,11 +44,11 @@ class StopForumSpam
     {
         $key = $this->settings->get(SfsClient::KEY);
 
-        return $key !== null && !empty($key);
+        return $key !== null && ! empty($key);
     }
 
     /**
-     * Validates against the StopForumSpam API. Returns a simple boolean indicating if based on the current 
+     * Validates against the StopForumSpam API. Returns a simple boolean indicating if based on the current
      * extension settings this registration should be prevented or not.
      *
      * @return bool
@@ -56,7 +56,7 @@ class StopForumSpam
     public function shouldPreventLogin(?string $ip, ?string $email, ?string $username, ?string $provider = null, ?array $providerData = null): bool
     {
         // If we don't have sfs lookup enabled, we return false early.
-        if (!(bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
+        if (! (bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
             return false;
         }
 
@@ -70,7 +70,7 @@ class StopForumSpam
             $blacklisted = false;
 
             foreach (['ip' => $sfsResponse->ip, 'email' => $sfsResponse->email, 'username' => $sfsResponse->username] as $key => $value) {
-                if ($value === null || !(bool) $this->settings->get("fof-anti-spam.$key")) {
+                if ($value === null || ! (bool) $this->settings->get("fof-anti-spam.$key")) {
                     continue;
                 }
 
@@ -79,11 +79,12 @@ class StopForumSpam
                 }
 
                 $frequency += $value->frequency ?? 0;
-                $confidence += $value->confidence ?? 0.0;               
+                $confidence += $value->confidence ?? 0.0;
             }
 
             if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency || $blacklisted) {
                 $this->buildAndDispatchEvents(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData);
+
                 return true;
             }
         }
@@ -91,13 +92,12 @@ class StopForumSpam
         return false;
     }
 
-
     private function buildAndDispatchEvents(array $data, string $sfsData, string $provider = null, array $providerData = null): void
     {
         $ip = Arr::get($data, 'ip') ?? 'unknown';
         $email = Arr::get($data, 'email') ?? 'unknown';
         $username = Arr::get($data, 'username') ?? 'unknown';
-        
+
         // If there's a password in the provider data, we remove it from the data we send to the event.
         Arr::pull($providerData, 'password');
 
