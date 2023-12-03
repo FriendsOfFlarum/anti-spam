@@ -86,7 +86,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(302, $response->getStatusCode());
+        $this->assertEquals(204, $response->getStatusCode());
 
         $response = $this->send(
             $this->request('GET', 'api/discussions/2', [
