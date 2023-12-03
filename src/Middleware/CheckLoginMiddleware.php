@@ -68,7 +68,7 @@ class CheckLoginMiddleware implements MiddlewareInterface
                     ->format(
                         resolve(Registry::class)
                             ->handle(new ValidationException([
-                                'username' => resolve('translator')->trans('fof-anti-spam.forum.message.spam'),
+                                'username' => resolve('translator')->trans('fof-anti-spam.forum.message.stopforumspam.blocked'),
                             ])),
                         $request
                     );
