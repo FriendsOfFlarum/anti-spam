@@ -1,20 +1,112 @@
 .FoFAntiSpamSettings {
-    padding-top: 20px;
-  
+  padding-top: 20px;
+
+  .Button {
+    margin-right: 10px;
+    margin-bottom: 10px;
+  }
+
+  &--settings {
+    background: @control-bg; // Use control background for coherence
+    padding: 20px;
+    border-radius: @border-radius; // Consistent border radius
+    box-shadow: 0 2px 4px @shadow-color; // Subtle shadow for depth
+    //max-width: 720px;
+    margin: 0 auto; // Center align for better presentation
+
     @media @desktop-up {
-      .container {
-        max-width: 600px;
-        margin: 0;
+      margin: 0;
+    }
+
+    .Section {
+      background: @body-bg; // Contrast with the section background
+      border-radius: @border-radius;
+      box-shadow: 0 1px 3px @shadow-color;
+      padding: 15px;
+      margin-bottom: 20px;
+
+      h3 {
+        color: @primary-color; // Primary color for headings
+        margin-bottom: 10px;
       }
     }
-  
-    fieldset {
-      margin-bottom: 30px;
-  
-      > ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
+
+    .Form {
+      .control {
+        background: @body-bg;
+        border: 1px solid @muted-color; // Defines the input fields
+        color: @text-color;
+        padding: 6px 12px;
+        border-radius: @border-radius;
+      }
+
+      .Button {
+        background: @primary-color; // Button with primary color
+        color: @body-bg;
+
+        &:hover {
+          background: darken(@primary-color, 5%);
+        }
       }
     }
   }
+
+  &--blockedRegistrations {
+    background: @control-bg; // Use control background for coherence
+    padding: 20px;
+    border-radius: @border-radius; // Consistent border radius
+    box-shadow: 0 2px 4px @shadow-color; // Subtle shadow for depth
+
+    .Form {
+      margin-bottom: 20px;
+    }
+
+    h3 {
+      color: @primary-color; // Primary color for headings
+      margin-bottom: 10px;
+    }
+
+    .BlockedRegistrations--list {
+      .BlockedRegistrations--item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        background: @body-bg;
+        border-radius: @border-radius;
+        box-shadow: 0 1px 3px @shadow-color;
+        margin-bottom: 10px;
+        padding: 10px;
+        transition: box-shadow 0.3s;
+
+        &:hover {
+          box-shadow: 0 2px 5px @shadow-color;
+        }
+
+        .BlockedRegistrations-item--details {
+          display: contents;
+
+          .BlockedRegistrations-label {
+            grid-column: 1;
+            font-weight: bold;
+            white-space: nowrap;
+          }
+
+          .BlockedRegistrations-value {
+            grid-column: 2;
+            overflow-wrap: break-word;
+            overflow: auto;
+          }
+        }
+
+        .BlockedRegistrations-item--actions {
+          grid-column: 3;
+          grid-row: -1;
+          justify-self: end;
+          display: flex;
+          gap: 10px;
+        }
+      }
+    }
+  }
+}

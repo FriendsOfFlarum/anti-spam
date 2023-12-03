@@ -12,136 +12,114 @@
 namespace FoF\AntiSpam;
 
 use Flarum\Settings\SettingsRepositoryInterface;
-use FoF\AntiSpam\Event\RegistrationBlocked;
-use GuzzleHttp\Client;
+use FoF\AntiSpam\Api\SfsClient;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
-use Psr\Http\Message\ResponseInterface;
 
 class StopForumSpam
 {
-    private const KEY = 'fof-anti-spam.api_key';
-
-    protected $endpoints = [
-        'closest' => 'https://api.stopforumspam.org/',
-        'europe'  => 'https://europe.stopforumspam.org/',
-        'us'      => 'https://us.stopforumspam.org/',
-    ];
-
     /**
      * @var SettingsRepositoryInterface
      */
-    private $settings;
-
-    /**
-     * @var Client
-     */
-    private $client;
+    protected $settings;
 
     /**
      * @var Dispatcher
      */
-    private $bus;
+    protected $bus;
 
-    public function __construct(SettingsRepositoryInterface $settings, Dispatcher $bus)
+    /**
+     * @var SfsClient
+     */
+    protected $client;
+
+    public function __construct(SettingsRepositoryInterface $settings, Dispatcher $bus, SfsClient $client)
     {
         $this->settings = $settings;
         $this->bus = $bus;
-
-        $this->client = new Client([
-            'base_uri' => $this->endpoint(),
-            'verify'   => false,
-        ]);
-    }
-
-    private function endpoint(): string
-    {
-        return $this->endpoints[$this->settings->get('fof-anti-spam.regionalEndpoint')];
+        $this->client = $client;
     }
 
     public function isEnabled(): bool
     {
-        $key = $this->settings->get(self::KEY);
+        $key = $this->settings->get(SfsClient::KEY);
 
         return $key !== null && ! empty($key);
     }
 
-    public function report(array $data): ResponseInterface
-    {
-        $data['api_key'] = $this->settings->get(self::KEY);
-
-        return $this->call('https://www.stopforumspam.com/add', $data);
-    }
-
-    private function call(string $url, array $data): ResponseInterface
-    {
-        return $this->client->post($url, [
-            'form_params' => $data,
-        ]);
-    }
-
     /**
-     * Consumes an array containing `ip`, `email` and `username` and validates against the StopForumSpam API.
-     * Returns a simple boolean indicating if based on the current extension settings this registration
-     * should be prevented or not.
-     *
-     * @param array $data
+     * Validates against the StopForumSpam API. Returns a simple boolean indicating if based on the current
+     * extension settings this registration should be prevented or not.
      *
      * @return bool
      */
-    public function shouldPreventLogin(array $data, ?string $provider = null, ?array $providerData = null): bool
+    public function shouldPreventLogin(?string $ip, ?string $email, ?string $username, ?string $provider = null, ?array $providerData = null): bool
     {
         // If we don't have sfs lookup enabled, we return false early.
         if (! (bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
             return false;
         }
 
-        $data['json'] = 1;
+        $sfsResponse = $this->client->check($ip, $email, $username);
 
-        $hashEmail = (bool) $this->settings->get('fof-anti-spam.emailhash');
-
-        if ($hashEmail) {
-            $data['emailhash'] = md5($data['email']);
-            Arr::pull($data, 'email');
-        }
-
-        $response = $this->call('api', $data);
-        $body = json_decode($response->getBody());
-
-        if ($body->success === 1) {
-            unset($body->success);
-
+        if ($sfsResponse->success) {
             $requiredFrequency = (int) $this->settings->get('fof-anti-spam.frequency');
             $requiredConfidence = (float) $this->settings->get('fof-anti-spam.confidence');
             $frequency = 0;
             $confidence = 0.0;
+            $blacklisted = false;
 
-            foreach ($body as $key => $value) {
-                if ((int) $this->settings->get("fof-anti-spam.$key")) {
-                    if (isset($value->frequency)) {
-                        $frequency += $value->frequency;
-                    }
-
-                    if (isset($value->confidence)) {
-                        $confidence += $value->confidence;
-                    }
+            foreach (['ip' => $sfsResponse->ip, 'email' => $sfsResponse->email, 'username' => $sfsResponse->username] as $key => $value) {
+                if ($value === null || ! (bool) $this->settings->get("fof-anti-spam.$key")) {
+                    continue;
                 }
+
+                if (isset($value->blacklisted) && $value->blacklisted) {
+                    $blacklisted = true;
+                }
+
+                $frequency += $value->frequency ?? 0;
+                $confidence += $value->confidence ?? 0.0;
             }
 
-            if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency) {
-                $this->bus->dispatch(new RegistrationBlocked(
-                    Arr::get($data, 'username', 'unknown'),
-                    Arr::get($data, 'ip', 'unknown'),
-                    Arr::get($data, 'email', 'unknown'),
-                    $data,
-                    $provider,
-                    $providerData
-                ));
+            if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency || $blacklisted) {
+                $this->buildAndDispatchEvents(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData);
 
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function buildAndDispatchEvents(array $data, string $sfsData, string $provider = null, array $providerData = null): void
+    {
+        $ip = Arr::get($data, 'ip') ?? 'unknown';
+        $email = Arr::get($data, 'email') ?? 'unknown';
+        $username = Arr::get($data, 'username') ?? 'unknown';
+
+        // If there's a password in the provider data, we remove it from the data we send to the event.
+        Arr::pull($providerData, 'password');
+
+        $this->bus->dispatch(new Event\RegistrationWasBlocked(
+            Model\BlockedRegistration::create(
+                $ip,
+                $email,
+                $username,
+                $sfsData,
+                $provider,
+                $providerData
+            )
+        ));
+
+        // Kept for backwards compatibility, remove for Flarum 2.0
+        $this->bus->dispatch(new Event\RegistrationBlocked(
+            $username,
+            $ip,
+            $email,
+            $data,
+            $provider,
+            $providerData
+        ));
     }
 }

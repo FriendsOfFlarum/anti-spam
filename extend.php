@@ -29,7 +29,9 @@ return [
     new Extend\Locales(__DIR__.'/locale'),
 
     (new Extend\Routes('api'))
-        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class),
+        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
+        ->get('/blocked-registrations', 'fof-anti-spam.blocked-registrations.index', Api\Controllers\ListBlockedRegistrationsController::class)
+        ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class),
 
     (new Extend\ApiSerializer(ForumSerializer::class))
         ->attributes(Api\AddForumAttributes::class),
@@ -54,9 +56,12 @@ return [
         ->default('fof-anti-spam.email', true)
         ->default('fof-anti-spam.emailhash', false)
         ->default('fof-anti-spam.frequency', 5)
-        ->default('fof-anti-spam.confidence', 50.0)
+        ->default('fof-anti-spam.confidence', 70.0)
         ->default('fof-anti-spam.actions.deleteUser', false)
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)
         ->default('fof-anti-spam.reportToStopForumSpam', true),
+
+    (new Extend\ServiceProvider())
+        ->register(Providers\SfsProvider::class),
 ];
