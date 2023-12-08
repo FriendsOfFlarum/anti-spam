@@ -64,7 +64,13 @@ class StopForumSpam
 
         if ($sfsResponse->success) {
             $requiredFrequency = (int) $this->settings->get('fof-anti-spam.frequency');
+            if ($requiredFrequency === 0) {
+                $requiredFrequency = 1;
+            }
             $requiredConfidence = (float) $this->settings->get('fof-anti-spam.confidence');
+            if ($requiredConfidence === 0.0) {
+                $requiredConfidence = 1.0;
+            }
             $frequency = 0;
             $confidence = 0.0;
             $blacklisted = false;

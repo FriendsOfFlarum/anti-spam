@@ -15,6 +15,7 @@ use Flarum\Foundation\ErrorHandling\JsonApiFormatter;
 use Flarum\Foundation\ErrorHandling\Registry;
 use Flarum\Foundation\ValidationException;
 use Flarum\Http\UrlGenerator;
+use Flarum\User\RegistrationToken;
 use FoF\AntiSpam\StopForumSpam;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -25,6 +26,16 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class CheckLoginMiddleware implements MiddlewareInterface
 {
+    /**
+     * @var string
+     */
+    private $provider = 'flarum';
+
+    /**
+     * @var array
+     */
+    private $providerData = [];
+    
     /**
      * @var StopForumSpam
      */
@@ -48,20 +59,17 @@ class CheckLoginMiddleware implements MiddlewareInterface
         if ($request->getUri()->getPath() === $registerPath) {
             $data = $request->getParsedBody();
 
-            //try {
+            if (!$this->isOAuthRegistration($data)) {
+                $this->providerData = $data;
+            }
+
             $shouldPrevent = $this->sfs->shouldPreventLogin(
                 $this->getIpAddress($request),
                 $data['email'],
                 $data['username'],
-                'forum',
-                $data
+                $this->provider,
+                $this->providerData
             );
-            // } catch (\Throwable $e) {
-            //     return (new JsonApiFormatter())->format(
-            //         resolve(Registry::class)->handle($e),
-            //         $request
-            //     );
-            // }
 
             if ($shouldPrevent) {
                 return (new JsonApiFormatter())
@@ -86,5 +94,16 @@ class CheckLoginMiddleware implements MiddlewareInterface
             ?? Arr::get($serverParams, 'HTTP_CF_CONNECTING_IP')
             ?? Arr::get($serverParams, 'HTTP_X_FORWARDED_FOR')
             ?? Arr::get($serverParams, 'REMOTE_ADDR');
+    }
+
+    protected function isOAuthRegistration(array $data): bool
+    {
+        if (Arr::has($data, 'token') && $registration = RegistrationToken::find(Arr::get($data, 'token'))) {
+            $this->provider = $registration->provider;
+            $this->providerData = $registration->payload;
+            return true;
+        }
+
+        return false;
     }
 }
