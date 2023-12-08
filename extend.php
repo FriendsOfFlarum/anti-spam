@@ -14,7 +14,6 @@ namespace FoF\AntiSpam;
 use Flarum\Api\Serializer\ForumSerializer;
 use Flarum\Api\Serializer\UserSerializer;
 use Flarum\Extend;
-use Flarum\User\Event\RegisteringFromProvider;
 use Flarum\User\User;
 
 return [
@@ -44,9 +43,6 @@ return [
 
     (new Extend\Middleware('forum'))
         ->add(Middleware\CheckLoginMiddleware::class),
-
-    (new Extend\Event())
-        ->listen(RegisteringFromProvider::class, Listener\ProviderRegistration::class),
 
     (new Extend\Settings())
         ->default('fof-anti-spam.regionalEndpoint', 'closest')

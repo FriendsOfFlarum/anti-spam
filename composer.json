@@ -104,6 +104,7 @@
         "flarum/flags": "^1.8",
         "fof/user-bio": "*",
         "flarum/approval": "*",
-        "flarum/tags": "*"
+        "flarum/tags": "*",
+        "fof/oauth": "*"
     }
 }
