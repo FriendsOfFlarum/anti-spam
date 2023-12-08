@@ -35,7 +35,7 @@ class CheckLoginMiddleware implements MiddlewareInterface
      * @var array
      */
     private $providerData = [];
-    
+
     /**
      * @var StopForumSpam
      */
@@ -59,7 +59,7 @@ class CheckLoginMiddleware implements MiddlewareInterface
         if ($request->getUri()->getPath() === $registerPath) {
             $data = $request->getParsedBody();
 
-            if (!$this->isOAuthRegistration($data)) {
+            if (! $this->isOAuthRegistration($data)) {
                 $this->providerData = $data;
             }
 
@@ -101,6 +101,7 @@ class CheckLoginMiddleware implements MiddlewareInterface
         if (Arr::has($data, 'token') && $registration = RegistrationToken::find(Arr::get($data, 'token'))) {
             $this->provider = $registration->provider;
             $this->providerData = $registration->payload;
+
             return true;
         }
 
