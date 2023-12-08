@@ -30,7 +30,9 @@ return [
     (new Extend\Routes('api'))
         ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
         ->get('/blocked-registrations', 'fof-anti-spam.blocked-registrations.index', Api\Controllers\ListBlockedRegistrationsController::class)
-        ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class),
+        ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class)
+        ->get('/fof/antispam/question', 'fof-anti-spam.question.index', Api\Controllers\ListChallengeQuestionsController::class)
+        ->post('/fof/antispam/question', 'fof-anti-spam.question.create', Api\Controllers\CreateChallengeQuestionController::class),
 
     (new Extend\ApiSerializer(ForumSerializer::class))
         ->attributes(Api\AddForumAttributes::class),
