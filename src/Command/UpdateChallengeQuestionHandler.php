@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Command;
 
 use FoF\AntiSpam\Model\ChallengeQuestion;
@@ -33,7 +42,7 @@ class UpdateChallengeQuestionHandler
             $challenge->answer = $answer;
         }
 
-        if (($caseSensitive = Arr::get($command->data, 'attributes.case_sensitive')) !==  null) {
+        if (($caseSensitive = Arr::get($command->data, 'attributes.case_sensitive')) !== null) {
             $challenge->case_sensitive = $caseSensitive;
         }
 

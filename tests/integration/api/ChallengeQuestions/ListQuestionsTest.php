@@ -17,7 +17,8 @@ use FoF\AntiSpam\Tests\integration\ProvidesChallengeQuestions;
 
 class ListQuestionsTest extends TestCase
 {
-    use RetrievesAuthorizedUsers, ProvidesChallengeQuestions;
+    use RetrievesAuthorizedUsers;
+    use ProvidesChallengeQuestions;
 
     public function setUp(): void
     {
