@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Listener;
 
 use Flarum\Settings\SettingsRepositoryInterface;
@@ -13,7 +22,7 @@ class ReportBlockedRegistration
     protected $settings;
     protected $sfs;
     protected $queue;
-    
+
     public function __construct(SettingsRepositoryInterface $settings, StopForumSpam $sfs, Queue $queue)
     {
         $this->settings = $settings;
