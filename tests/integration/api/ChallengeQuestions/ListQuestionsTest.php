@@ -13,10 +13,11 @@ namespace FoF\AntiSpam\Tests\integration\api\ChallengeQuestions;
 
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
+use FoF\AntiSpam\Tests\integration\ProvidesChallengeQuestions;
 
 class ListQuestionsTest extends TestCase
 {
-    use RetrievesAuthorizedUsers;
+    use RetrievesAuthorizedUsers, ProvidesChallengeQuestions;
 
     public function setUp(): void
     {
@@ -29,8 +30,7 @@ class ListQuestionsTest extends TestCase
                 $this->normalUser(),
             ],
             'challenge_questions' => [
-                ['id' => 1, 'question' => 'What is the answer to life, the universe, and everything?', 'answer' => '42', 'case_sensitive' => 0, 'is_active' => 1],
-
+                $this->challengeQuestion(),
             ]
         ]);
     }
@@ -74,8 +74,8 @@ class ListQuestionsTest extends TestCase
         $this->assertEquals(1, count($json['data']));
 
         $this->assertEquals(1, $json['data'][0]['id']);
-        $this->assertEquals('What is the answer to life, the universe, and everything?', $json['data'][0]['attributes']['question']);
-        $this->assertEquals('42', $json['data'][0]['attributes']['answer']);
+        $this->assertEquals($this->challengeQuestion()['question'], $json['data'][0]['attributes']['question']);
+        $this->assertEquals($this->challengeQuestion()['answer'], $json['data'][0]['attributes']['answer']);
         $this->assertFalse($json['data'][0]['attributes']['caseSensitive']);
         $this->assertTrue($json['data'][0]['attributes']['isActive']);
     }
