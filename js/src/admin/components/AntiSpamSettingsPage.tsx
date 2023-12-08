@@ -139,6 +139,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
             })}
             {this.buildSettingComponent({
               type: 'boolean',
+              setting: 'fof-anti-spam.report_blocked_registrations',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_help'),
+            })}
+            {this.buildSettingComponent({
+              type: 'boolean',
               setting: 'fof-anti-spam.username',
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.username_label'),
             })}
