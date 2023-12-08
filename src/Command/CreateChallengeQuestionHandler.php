@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Command;
 
 use FoF\AntiSpam\Model\ChallengeQuestion;
@@ -26,14 +35,13 @@ class CreateChallengeQuestionHandler
         $actor->assertAdmin();
 
         $attributes = Arr::only(Arr::get($data, 'attributes'), ['question', 'answer', 'case_sensitive', 'is_active']);
-        
 
         $question = ChallengeQuestion::build(
             Arr::get($attributes, 'question', ''),
             Arr::get($attributes, 'answer', ''),
             Arr::get($attributes, 'case_sensitive', false),
             Arr::get($attributes, 'is_active', false)
-            );
+        );
 
         $this->validator->assertValid($question->getAttributes());
 

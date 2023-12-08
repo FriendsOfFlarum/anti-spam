@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Tests\integration\api\ChallengeQuestions;
 
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
@@ -133,7 +142,7 @@ class CreateQuestionsTest extends TestCase
      */
     public function admin_cannot_create_a_question_that_is_too_long()
     {
-        $longQuestion = str_repeat("This is a really, really long question that is way too long to be a question. ", 5);
+        $longQuestion = str_repeat('This is a really, really long question that is way too long to be a question. ', 5);
 
         $response = $this->makeRequest([
             'question' => $longQuestion,
@@ -174,7 +183,7 @@ class CreateQuestionsTest extends TestCase
      */
     public function admin_cannot_create_a_question_with_an_answer_that_is_too_long()
     {
-        $longAnswer = str_repeat("This is a really, really long answer that is way too long to be an answer. ", 5);
+        $longAnswer = str_repeat('This is a really, really long answer that is way too long to be an answer. ', 5);
 
         $response = $this->makeRequest([
             'question' => 'What is the answer to life, the universe, and everything?',
