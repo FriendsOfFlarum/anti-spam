@@ -71,7 +71,7 @@ class CreateQuestionsTest extends TestCase
             [false, false],
             [false, true],
             [true, false],
-            [true, true],
+            [true, true]
         ];
     }
 
