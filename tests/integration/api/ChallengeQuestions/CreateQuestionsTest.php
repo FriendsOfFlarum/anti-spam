@@ -65,7 +65,10 @@ class CreateQuestionsTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
-    protected function adminCreateOptions(): array
+    /**
+     * @return array
+     */
+    protected function adminCreateOptions()
     {
         return [
             [false, false],
