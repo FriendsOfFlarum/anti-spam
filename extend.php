@@ -56,7 +56,8 @@ return [
         ->default('fof-anti-spam.actions.deleteUser', false)
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)
-        ->default('fof-anti-spam.reportToStopForumSpam', true),
+        ->default('fof-anti-spam.reportToStopForumSpam', true)
+        ->default('fof-anti-spam.report_blocked_registrations', true),
 
     (new Extend\ServiceProvider())
         ->register(Providers\SfsProvider::class),
