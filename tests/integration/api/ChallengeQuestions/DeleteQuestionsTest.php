@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Tests\integration\api\ChallengeQuestions;
 
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
@@ -9,7 +18,8 @@ use FoF\AntiSpam\Tests\integration\ProvidesChallengeQuestions;
 
 class DeleteQuestionsTest extends TestCase
 {
-    use RetrievesAuthorizedUsers, ProvidesChallengeQuestions;
+    use RetrievesAuthorizedUsers;
+    use ProvidesChallengeQuestions;
 
     public function setUp(): void
     {
