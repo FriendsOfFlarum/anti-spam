@@ -68,7 +68,7 @@ class CreateQuestionsTest extends TestCase
     /**
      * @return array
      */
-    protected function adminCreateOptions()
+    public function adminCreateOptions()
     {
         return [
             [false, false],
