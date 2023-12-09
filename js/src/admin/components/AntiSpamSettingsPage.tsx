@@ -6,8 +6,8 @@ import type Mithril from 'mithril';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import BlockedRegistration from '../../common/models/BlockedRegistration';
 import ItemList from 'flarum/common/utils/ItemList';
-import LabelValue from 'flarum/common/components/LabelValue';
 import fullTime from 'flarum/common/helpers/fullTime';
+import ChallengeQuestion from '../../common/models/ChallengeQuestion';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
   private static readonly ITEMS_PER_PAGE: number = 20;
@@ -15,6 +15,9 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   page!: string;
   blockedLoading: boolean = false;
   blockedRegistrations: BlockedRegistration[] | null | undefined = null;
+
+  challengeLoading: boolean = false;
+  challengeQuestions: ChallengeQuestion[] | null | undefined = null;
 
   currentPage: number = 1;
   totalPages: number = 1;
@@ -32,26 +35,49 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
           {this.menuButtons()}
           {this.page === 'settings' && this.settingsContent()}
           {this.page === 'blocked-registrations' && this.blockedRegistrationsContent()}
+          {this.page === 'challenge-questions' && this.challengeQuestionsContent()}
         </div>
       </div>
     );
   }
 
   menuButtons(): Mithril.Children {
-    return (
-      <div className="MenuButtons">
-        <Button className={`Button ${this.page === 'settings' ? 'active' : ''}`} icon="fas fa-cog" onclick={() => this.setPage('settings')}>
-          {app.translator.trans('fof-anti-spam.admin.settings.button')}
-        </Button>
-        <Button
-          className={`Button ${this.page === 'blocked-registrations' ? 'active' : ''}`}
-          icon="fas fa-ban"
-          onclick={() => this.setPage('blocked-registrations')}
-        >
-          {app.translator.trans('fof-anti-spam.admin.blocked_registrations.button')}
-        </Button>
-      </div>
+    return <div className="MenuButtons">{this.menuButtonItems().toArray()}</div>;
+  }
+
+  menuButtonItems(): ItemList<Mithril.Children> {
+    const items = new ItemList<Mithril.Children>();
+
+    items.add(
+      'settings',
+      <Button className={`Button ${this.page === 'settings' ? 'active' : ''}`} icon="fas fa-cog" onclick={() => this.setPage('settings')}>
+        {app.translator.trans('fof-anti-spam.admin.settings.button')}
+      </Button>
     );
+
+    items.add(
+      'blocked-registrations',
+      <Button
+        className={`Button ${this.page === 'blocked-registrations' ? 'active' : ''}`}
+        icon="fas fa-ban"
+        onclick={() => this.setPage('blocked-registrations')}
+      >
+        {app.translator.trans('fof-anti-spam.admin.blocked_registrations.button')}
+      </Button>
+    );
+
+    items.add(
+      'challenge-questions',
+      <Button
+        className={`Button ${this.page === 'challenge-questions' ? 'active' : ''}`}
+        icon="fas fa-brain"
+        onclick={() => this.setPage('challenge-questions')}
+      >
+        {app.translator.trans('fof-anti-spam.admin.challenge_questions.button')}
+      </Button>
+    );
+
+    return items;
   }
 
   setPage(page: string): void {
@@ -69,11 +95,11 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     const tagsEnabled = app.initializers.has('flarum-tags');
 
     return (
-      <div className="FoFAntiSpamSettings--settings">
+      <div className="FoFAntiSpamTabPage FoFAntiSpamSettings--settings">
         <div className="Form">
+          <h3>{app.translator.trans('fof-anti-spam.admin.settings.default-actions.heading')}</h3>
+          <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.default-actions.introduction')}</p>
           <div className="Section Section--defaultActions">
-            <h3>{app.translator.trans('fof-anti-spam.admin.settings.default-actions.heading')}</h3>
-            <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.default-actions.introduction')}</p>
             {this.buildSettingComponent({
               type: 'boolean',
               setting: 'fof-anti-spam.actions.deleteUser',
@@ -111,15 +137,15 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                 },
               })}
           </div>
+          <h3>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.heading')}</h3>
+          <div className="Introduction">
+            <p className="helpText">
+              {app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.introduction', {
+                a: <Link href="https://stopforumspam.com" target="_blank" external={true} />,
+              })}
+            </p>
+          </div>
           <div className="Section Section--stopforumspam">
-            <h3>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.heading')}</h3>
-            <div className="Introduction">
-              <p className="helpText">
-                {app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.introduction', {
-                  a: <Link href="https://stopforumspam.com" target="_blank" external={true} />,
-                })}
-              </p>
-            </div>
             {this.buildSettingComponent({
               type: 'select',
               setting: 'fof-anti-spam.regionalEndpoint',
@@ -202,7 +228,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
   blockedRegistrationsContent(): Mithril.Children {
     return (
-      <div className="FoFAntiSpamSettings--blockedRegistrations">
+      <div className="FoFAntiSpamTabPage FoFAntiSpamSettings--blockedRegistrations">
         <div className="Form">
           <h3>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.title')}</h3>
           {this.blockedLoading && <LoadingIndicator />}
@@ -220,6 +246,38 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                     <div className="BlockedRegistrations--item">
                       <div className="BlockedRegistrations-item--details">{this.detailItems(blockedRegistration).toArray()}</div>
                       <div className="BlockedRegistrations-item--actions">{this.actionItems(blockedRegistration).toArray()}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {this.renderPagination()}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  challengeQuestionsContent(): Mithril.Children {
+    return (
+      <div className="FoFAntiSpamTabPage FoFAntiSpamSettings--challengeQuestions">
+        <div className="Form">
+          <h3>{app.translator.trans('fof-anti-spam.admin.challenge_questions.title')}</h3>
+          {this.challengeLoading && <LoadingIndicator />}
+          {!this.challengeLoading && this.challengeQuestions && this.challengeQuestions.length === 0 && (
+            <div>
+              <p>{app.translator.trans('fof-anti-spam.admin.challenge_questions.no-records')}</p>
+            </div>
+          )}
+          {!this.challengeLoading && this.challengeQuestions && this.challengeQuestions.length > 0 && (
+            <div>
+              <p className="helpText">{app.translator.trans('fof-anti-spam.admin.challenge_questions.help')}</p>
+              <div className="ChallengeQuestions--list">
+                {this.challengeQuestions.map((challengeQuestion) => {
+                  return (
+                    <div className="ChallengeQuestions--item">
+                      <div className="ChallengeQuestions-item--details">{this.detailItems(challengeQuestion).toArray()}</div>
+                      <div className="ChallengeQuestions-item--actions">{this.actionItems(challengeQuestion).toArray()}</div>
                     </div>
                   );
                 })}

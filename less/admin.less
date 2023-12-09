@@ -6,16 +6,15 @@
     margin-bottom: 10px;
   }
 
-  &--settings {
+  .FoFAntiSpamTabPage {
     background: @control-bg; // Use control background for coherence
     padding: 20px;
     border-radius: @border-radius; // Consistent border radius
     box-shadow: 0 2px 4px @shadow-color; // Subtle shadow for depth
-    //max-width: 720px;
-    margin: 0 auto; // Center align for better presentation
 
-    @media @desktop-up {
-      margin: 0;
+    h3 {
+      color: @primary-color; // Primary color for headings
+      margin-bottom: 10px;
     }
 
     .Section {
@@ -24,11 +23,6 @@
       box-shadow: 0 1px 3px @shadow-color;
       padding: 15px;
       margin-bottom: 20px;
-
-      h3 {
-        color: @primary-color; // Primary color for headings
-        margin-bottom: 10px;
-      }
     }
 
     .Form {
@@ -39,33 +33,19 @@
         padding: 6px 12px;
         border-radius: @border-radius;
       }
+    }
+  }
 
-      .Button {
-        background: @primary-color; // Button with primary color
-        color: @body-bg;
+  &--settings {
+    //max-width: 720px;
+    margin: 0 auto; // Center align for better presentation
 
-        &:hover {
-          background: darken(@primary-color, 5%);
-        }
-      }
+    @media @desktop-up {
+      margin: 0;
     }
   }
 
   &--blockedRegistrations {
-    background: @control-bg; // Use control background for coherence
-    padding: 20px;
-    border-radius: @border-radius; // Consistent border radius
-    box-shadow: 0 2px 4px @shadow-color; // Subtle shadow for depth
-
-    .Form {
-      margin-bottom: 20px;
-    }
-
-    h3 {
-      color: @primary-color; // Primary color for headings
-      margin-bottom: 10px;
-    }
-
     .BlockedRegistrations--list {
       .BlockedRegistrations--item {
         display: grid;

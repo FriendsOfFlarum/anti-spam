@@ -69,6 +69,8 @@ fof-anti-spam:
       login-provider-data: Login Provider Data
       sfs-data: StopForumSpam Data
       delete_entry: Delete entry
+    challenge_questions:
+      button: Challenge Questions
 
   forum:
     message:

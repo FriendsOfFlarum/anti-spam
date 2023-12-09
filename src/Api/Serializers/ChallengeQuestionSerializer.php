@@ -15,7 +15,7 @@ use Flarum\Api\Serializer\AbstractSerializer;
 
 class ChallengeQuestionSerializer extends AbstractSerializer
 {
-    protected $type = 'challenge_questions';
+    protected $type = 'challenge-questions';
 
     /**
      * Get the default set of serialized attributes for a model.
