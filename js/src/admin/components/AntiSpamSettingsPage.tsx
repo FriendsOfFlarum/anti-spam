@@ -3,24 +3,14 @@ import ExtensionPage from 'flarum/admin/components/ExtensionPage';
 import Button from 'flarum/common/components/Button';
 import Link from 'flarum/common/components/Link';
 import type Mithril from 'mithril';
-import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
-import BlockedRegistration from '../../common/models/BlockedRegistration';
 import ItemList from 'flarum/common/utils/ItemList';
-import fullTime from 'flarum/common/helpers/fullTime';
-import ChallengeQuestion from '../../common/models/ChallengeQuestion';
+import BlockedRegistrationsPage from './BlockedRegistrationsPage';
+import ChallengeQuestionsPage from './ChallengeQuestionsPage';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
-  private static readonly ITEMS_PER_PAGE: number = 20;
+  public static readonly ITEMS_PER_PAGE: number = 20;
 
   page!: string;
-  blockedLoading: boolean = false;
-  blockedRegistrations: BlockedRegistration[] | null | undefined = null;
-
-  challengeLoading: boolean = false;
-  challengeQuestions: ChallengeQuestion[] | null | undefined = null;
-
-  currentPage: number = 1;
-  totalPages: number = 1;
 
   oninit(vnode: any) {
     super.oninit(vnode);
@@ -70,7 +60,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       'challenge-questions',
       <Button
         className={`Button ${this.page === 'challenge-questions' ? 'active' : ''}`}
-        icon="fas fa-brain"
+        icon="fas fa-question-circle"
         onclick={() => this.setPage('challenge-questions')}
       >
         {app.translator.trans('fof-anti-spam.admin.challenge_questions.button')}
@@ -83,11 +73,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   setPage(page: string): void {
     this.page = page;
 
-    if (page === 'blocked-registrations' && !this.blockedRegistrations) {
-      this.loadData();
-    } else {
-      m.redraw();
-    }
+    m.redraw();
   }
 
   settingsContent(): Mithril.Children {
@@ -227,206 +213,10 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   }
 
   blockedRegistrationsContent(): Mithril.Children {
-    return (
-      <div className="FoFAntiSpamTabPage FoFAntiSpamSettings--blockedRegistrations">
-        <div className="Form">
-          <h3>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.title')}</h3>
-          {this.blockedLoading && <LoadingIndicator />}
-          {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length === 0 && (
-            <div>
-              <p>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.no-records')}</p>
-            </div>
-          )}
-          {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length > 0 && (
-            <div>
-              <p className="helpText">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.help')}</p>
-              <div className="BlockedRegistrations--list">
-                {this.blockedRegistrations.map((blockedRegistration) => {
-                  return (
-                    <div className="BlockedRegistrations--item">
-                      <div className="BlockedRegistrations-item--details">{this.detailItems(blockedRegistration).toArray()}</div>
-                      <div className="BlockedRegistrations-item--actions">{this.actionItems(blockedRegistration).toArray()}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              {this.renderPagination()}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return <BlockedRegistrationsPage />;
   }
 
   challengeQuestionsContent(): Mithril.Children {
-    return (
-      <div className="FoFAntiSpamTabPage FoFAntiSpamSettings--challengeQuestions">
-        <div className="Form">
-          <h3>{app.translator.trans('fof-anti-spam.admin.challenge_questions.title')}</h3>
-          {this.challengeLoading && <LoadingIndicator />}
-          {!this.challengeLoading && this.challengeQuestions && this.challengeQuestions.length === 0 && (
-            <div>
-              <p>{app.translator.trans('fof-anti-spam.admin.challenge_questions.no-records')}</p>
-            </div>
-          )}
-          {!this.challengeLoading && this.challengeQuestions && this.challengeQuestions.length > 0 && (
-            <div>
-              <p className="helpText">{app.translator.trans('fof-anti-spam.admin.challenge_questions.help')}</p>
-              <div className="ChallengeQuestions--list">
-                {this.challengeQuestions.map((challengeQuestion) => {
-                  return (
-                    <div className="ChallengeQuestions--item">
-                      <div className="ChallengeQuestions-item--details">{this.detailItems(challengeQuestion).toArray()}</div>
-                      <div className="ChallengeQuestions-item--actions">{this.actionItems(challengeQuestion).toArray()}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              {this.renderPagination()}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  async loadData(page: number = 1) {
-    this.blockedLoading = true;
-    m.redraw();
-
-    try {
-      const response = await app.store.find<BlockedRegistration[]>('blocked-registrations', {
-        page: {
-          offset: (page - 1) * AntiSpamSettingsPage.ITEMS_PER_PAGE,
-          limit: AntiSpamSettingsPage.ITEMS_PER_PAGE,
-        },
-      });
-
-      this.blockedRegistrations = response;
-      this.totalPages = response.payload.links?.totalPages || 1;
-    } catch (error) {
-      console.error(error);
-      this.blockedRegistrations = [];
-    }
-
-    this.blockedLoading = false;
-    this.currentPage = page;
-    m.redraw();
-  }
-
-  renderPagination(): Mithril.Children {
-    return (
-      <nav className="BlockedRegistrations--pagination">
-        <Button className="Button" disabled={this.currentPage <= 1} onclick={() => this.loadData(this.currentPage - 1)}>
-          Previous
-        </Button>
-        <span>
-          Page {this.currentPage} of {this.totalPages}
-        </span>
-        <Button className="Button" disabled={this.currentPage >= this.totalPages} onclick={() => this.loadData(this.currentPage + 1)}>
-          Next
-        </Button>
-      </nav>
-    );
-  }
-
-  detailItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children> {
-    const items = new ItemList<Mithril.Children>();
-
-    items.add(
-      'attemptedAt',
-      <div className="BlockedRegistrations-item--details">
-        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.attempted-at')}</span>
-        <span className="BlockedRegistrations-value">{fullTime(blockedRegistration.attemptedAt() ?? new Date())}</span>
-      </div>,
-      100
-    );
-
-    items.add(
-      'ip',
-      <div className="BlockedRegistrations-item--details">
-        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.ip')}</span>
-        <span className="BlockedRegistrations-value">{blockedRegistration.ip()}</span>
-      </div>,
-      90
-    );
-
-    items.add(
-      'email',
-      <div className="BlockedRegistrations-item--details">
-        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.email')}</span>
-        <span className="BlockedRegistrations-value">{blockedRegistration.email()}</span>
-      </div>,
-      80
-    );
-
-    items.add(
-      'username',
-      <div className="BlockedRegistrations-item--details">
-        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.username')}</span>
-        <span className="BlockedRegistrations-value">{blockedRegistration.username()}</span>
-      </div>,
-      70
-    );
-
-    if (blockedRegistration.provider()) {
-      items.add(
-        'provider',
-        <div className="BlockedRegistrations-item--details">
-          <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider')}</span>
-          <span className="BlockedRegistrations-value">
-            <code>{blockedRegistration.provider()}</code>
-          </span>
-        </div>,
-        60
-      );
-    }
-
-    if (blockedRegistration.providerData()) {
-      items.add(
-        'providerData',
-        <div className="BlockedRegistrations-item--details">
-          <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider-data')}</span>
-          <span className="BlockedRegistrations-value">
-            <code>{blockedRegistration.providerData()}</code>
-          </span>
-        </div>,
-        50
-      );
-    }
-
-    items.add(
-      'sfsData',
-      <div className="BlockedRegistrations-item--details">
-        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.sfs-data')}</span>
-        <span className="BlockedRegistrations-value">
-          <code>{blockedRegistration.sfsData()}</code>
-        </span>
-      </div>,
-      20
-    );
-
-    return items;
-  }
-
-  actionItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children> {
-    const items = new ItemList<Mithril.Children>();
-
-    items.add(
-      'delete',
-      <Button
-        className="Button Button--danger"
-        icon="fas fa-trash"
-        onclick={() => {
-          blockedRegistration.delete();
-          this.blockedRegistrations = this.blockedRegistrations?.filter((b) => b.id() !== blockedRegistration.id());
-          m.redraw();
-        }}
-      >
-        {app.translator.trans('fof-anti-spam.admin.blocked_registrations.delete_entry')}
-      </Button>
-    );
-
-    return items;
+    return <ChallengeQuestionsPage />;
   }
 }

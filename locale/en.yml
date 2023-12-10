@@ -70,7 +70,12 @@ fof-anti-spam:
       sfs-data: StopForumSpam Data
       delete_entry: Delete entry
     challenge_questions:
+      add: Add Question
       button: Challenge Questions
+      title: Challenge Questions
+      help: |
+        This page shows all challenge questions that have been configured for your forum. You can view the details of each question, select which ones are currently active, and if you wish, you can delete the question from the database.
+      no-records: No challenge questions found.
 
   forum:
     message:
