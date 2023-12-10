@@ -45,7 +45,7 @@ class DeleteQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'DELETE',
-                '/api/fof/antispam/question/1',
+                '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 2,
                 ]
@@ -63,7 +63,7 @@ class DeleteQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'DELETE',
-                '/api/fof/antispam/question/2',
+                '/api/challenge-questions/2',
                 [
                     'authenticatedAs' => 1,
                 ]
@@ -81,7 +81,7 @@ class DeleteQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'DELETE',
-                '/api/fof/antispam/question/1',
+                '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
                 ]

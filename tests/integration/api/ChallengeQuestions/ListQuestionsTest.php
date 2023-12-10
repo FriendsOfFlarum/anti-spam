@@ -44,7 +44,7 @@ class ListQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'GET',
-                '/api/fof/antispam/question',
+                '/api/challenge-questions',
                 [
                     'authenticatedAs' => 2,
                 ]
@@ -62,7 +62,7 @@ class ListQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'GET',
-                '/api/fof/antispam/question',
+                '/api/challenge-questions',
                 [
                     'authenticatedAs' => 1,
                 ]

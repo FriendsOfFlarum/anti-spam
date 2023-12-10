@@ -45,7 +45,7 @@ class UpdateQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'POST',
-                '/api/fof/antispam/question/1',
+                '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 2,
                 ]
@@ -63,7 +63,7 @@ class UpdateQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'POST',
-                '/api/fof/antispam/question/2',
+                '/api/challenge-questions/2',
                 [
                     'authenticatedAs' => 1,
                     'json' => [
@@ -91,7 +91,7 @@ class UpdateQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'POST',
-                '/api/fof/antispam/question/1',
+                '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
                     'json' => [
@@ -129,7 +129,7 @@ class UpdateQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'POST',
-                '/api/fof/antispam/question/1',
+                '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
                     'json' => [
@@ -167,7 +167,7 @@ class UpdateQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'POST',
-                '/api/fof/antispam/question/1',
+                '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
                     'json' => [
@@ -205,7 +205,7 @@ class UpdateQuestionsTest extends TestCase
         $response = $this->send(
             $this->request(
                 'POST',
-                '/api/fof/antispam/question/1',
+                '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
                     'json' => [

@@ -37,7 +37,7 @@ class CreateQuestionsTest extends TestCase
         return $this->send(
             $this->request(
                 'POST',
-                '/api/fof/antispam/question',
+                '/api/challenge-questions',
                 [
                     'authenticatedAs' => $userId,
                     'json' => [

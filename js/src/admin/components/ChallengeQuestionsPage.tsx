@@ -6,6 +6,7 @@ import ChallengeQuestion from '../../common/models/ChallengeQuestion';
 import ItemList from 'flarum/common/utils/ItemList';
 import Button from 'flarum/common/components/Button';
 import AntiSpamSettingsPage from './AntiSpamSettingsPage';
+import CreateEditQuestionModal from './CreateEditQuestionModal';
 
 interface CustomAttrs extends ComponentAttrs {}
 
@@ -60,7 +61,12 @@ export default class ChallengeQuestionsPage extends Component<CustomAttrs> {
 
     items.add(
       'add',
-      <Button className="Button" icon="fas fa-plus" enabled={!this.challengeLoading}>
+      <Button
+        className="Button"
+        icon="fas fa-plus"
+        enabled={!this.challengeLoading}
+        onclick={() => app.modal.show(CreateEditQuestionModal, { onSave: this.loadData.bind(this) })}
+      >
         {app.translator.trans('fof-anti-spam.admin.challenge_questions.add')}
       </Button>
     );
@@ -101,7 +107,7 @@ export default class ChallengeQuestionsPage extends Component<CustomAttrs> {
     m.redraw();
 
     try {
-      const response = await app.store.find<ChallengeQuestion[]>('fof/antispam/question', {
+      const response = await app.store.find<ChallengeQuestion[]>('challenge-questions', {
         page: {
           offset: (page - 1) * AntiSpamSettingsPage.ITEMS_PER_PAGE,
           limit: AntiSpamSettingsPage.ITEMS_PER_PAGE,

@@ -76,6 +76,19 @@ fof-anti-spam:
       help: |
         This page shows all challenge questions that have been configured for your forum. You can view the details of each question, select which ones are currently active, and if you wish, you can delete the question from the database.
       no-records: No challenge questions found.
+      modal:
+        title:
+          edit: Edit Question
+          create: Add Question
+        question_label: Question
+        question_placeholder: Enter a question
+        answer_label: Answer
+        answer_placeholder: Enter an answer
+        case_sensitive_label: Case sensitive
+        case_sensitive_help: If enabled, the answer must match the case of the answer you enter here.
+        is_active_label: Active
+        is_active_help: If enabled, this question will be used when a user registers on your forum.
+        save_button: Save question
 
   forum:
     message:
