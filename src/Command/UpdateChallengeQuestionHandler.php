@@ -11,6 +11,7 @@
 
 namespace FoF\AntiSpam\Command;
 
+use Carbon\Carbon;
 use FoF\AntiSpam\Model\ChallengeQuestion;
 use FoF\AntiSpam\Validator\ChallengeValidator;
 use Illuminate\Support\Arr;
@@ -53,6 +54,7 @@ class UpdateChallengeQuestionHandler
         $this->validator->assertValid($challenge->getAttributes());
 
         if ($challenge->isDirty()) {
+            $challenge->updated_at = Carbon::now();
             $challenge->save();
         }
 

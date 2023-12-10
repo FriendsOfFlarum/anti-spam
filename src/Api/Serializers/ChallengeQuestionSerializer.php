@@ -12,6 +12,7 @@
 namespace FoF\AntiSpam\Api\Serializers;
 
 use Flarum\Api\Serializer\AbstractSerializer;
+use Flarum\Http\RequestUtil;
 
 class ChallengeQuestionSerializer extends AbstractSerializer
 {
@@ -26,11 +27,18 @@ class ChallengeQuestionSerializer extends AbstractSerializer
      */
     protected function getDefaultAttributes($model)
     {
-        return [
-            'question'       => $model->question,
-            'answer'         => $model->answer,
-            'caseSensitive' => $model->case_sensitive,
-            'isActive'      => $model->is_active,
+        $data = [
+            'question' => $model->question,
         ];
+
+        if (RequestUtil::getActor($this->request)->isAdmin()) {
+            $data['answer'] = $model->answer;
+            $data['caseSensitive'] = $model->case_sensitive;
+            $data['isActive'] = $model->is_active;
+            $data['createdAt'] = $this->formatDate($model->created_at);
+            $data['updatedAt'] = $this->formatDate($model->updated_at);
+        }
+
+        return $data;
     }
 }

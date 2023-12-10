@@ -33,7 +33,7 @@ return [
         ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class)
         ->get('/challenge-questions', 'fof-anti-spam.question.index', Api\Controllers\ListChallengeQuestionsController::class)
         ->post('/challenge-questions', 'fof-anti-spam.question.create', Api\Controllers\CreateChallengeQuestionController::class)
-        ->post('/challenge-questions/{id}', 'fof-anti-spam.question.update', Api\Controllers\UpdateChallengeQuestionController::class)
+        ->patch('/challenge-questions/{id}', 'fof-anti-spam.question.update', Api\Controllers\UpdateChallengeQuestionController::class)
         ->delete('/challenge-questions/{id}', 'fof-anti-spam.question.delete', Api\Controllers\DeleteChallengeQuestionController::class),
 
     (new Extend\ApiSerializer(ForumSerializer::class))

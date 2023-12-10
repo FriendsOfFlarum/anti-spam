@@ -7,6 +7,9 @@ import ItemList from 'flarum/common/utils/ItemList';
 import Button from 'flarum/common/components/Button';
 import AntiSpamSettingsPage from './AntiSpamSettingsPage';
 import CreateEditQuestionModal from './CreateEditQuestionModal';
+import fullTime from 'flarum/common/helpers/fullTime';
+import LabelValue from 'flarum/common/components/LabelValue';
+import icon from 'flarum/common/helpers/icon';
 
 interface CustomAttrs extends ComponentAttrs {}
 
@@ -41,7 +44,7 @@ export default class ChallengeQuestionsPage extends Component<CustomAttrs> {
               <div className="ChallengeQuestions--list">
                 {this.challengeQuestions.map((challengeQuestion) => {
                   return (
-                    <div className="ChallengeQuestions--item">
+                    <div className="Section ChallengeQuestions--item">
                       <div className="ChallengeQuestions-item--details">{this.detailItems(challengeQuestion).toArray()}</div>
                       <div className="ChallengeQuestions-item--actions">{this.actionItems(challengeQuestion).toArray()}</div>
                     </div>
@@ -66,6 +69,7 @@ export default class ChallengeQuestionsPage extends Component<CustomAttrs> {
         icon="fas fa-plus"
         enabled={!this.challengeLoading}
         onclick={() => app.modal.show(CreateEditQuestionModal, { onSave: this.loadData.bind(this) })}
+        aria-label="add question"
       >
         {app.translator.trans('fof-anti-spam.admin.challenge_questions.add')}
       </Button>
@@ -77,18 +81,84 @@ export default class ChallengeQuestionsPage extends Component<CustomAttrs> {
   detailItems(challengeQuestion: ChallengeQuestion): ItemList<Mithril.Children> {
     const items = new ItemList<Mithril.Children>();
 
+    items.add(
+      'question',
+      <LabelValue label={app.translator.trans('fof-anti-spam.admin.challenge_questions.details.question')} value={challengeQuestion.question()} />
+    );
+
+    items.add(
+      'answer',
+      <LabelValue label={app.translator.trans('fof-anti-spam.admin.challenge_questions.details.answer')} value={challengeQuestion.answer()} />
+    );
+
+    items.add(
+      'caseSensitive',
+      <LabelValue
+        label={app.translator.trans('fof-anti-spam.admin.challenge_questions.details.case_sensitive')}
+        value={challengeQuestion.caseSensitive() ? icon('fas fa-check') : icon('fas fa-times')}
+      />
+    );
+
+    items.add(
+      'isActive',
+      <LabelValue
+        label={app.translator.trans('fof-anti-spam.admin.challenge_questions.details.is_active')}
+        value={challengeQuestion.isActive() ? icon('fas fa-check') : icon('fas fa-times')}
+      />
+    );
+
+    items.add(
+      'createdAt',
+      <LabelValue
+        label={app.translator.trans('fof-anti-spam.admin.challenge_questions.details.created_at')}
+        value={fullTime(challengeQuestion.createdAt())}
+      />
+    );
+
+    if (challengeQuestion.updatedAt() !== undefined || challengeQuestion.updatedAt() !== null) {
+      items.add(
+        'updatedAt',
+        <LabelValue
+          label={app.translator.trans('fof-anti-spam.admin.challenge_questions.details.updated_at')}
+          value={fullTime(challengeQuestion.updatedAt())}
+        />
+      );
+    }
+
     return items;
   }
 
   actionItems(challengeQuestion: ChallengeQuestion): ItemList<Mithril.Children> {
     const items = new ItemList<Mithril.Children>();
 
+    items.add(
+      'edit',
+      <Button
+        className="Button Button--icon"
+        icon="fas fa-edit"
+        onclick={() => app.modal.show(CreateEditQuestionModal, { question: challengeQuestion, onSave: this.loadData.bind(this) })}
+        aria-label="edit question"
+      />
+    );
+
+    items.add(
+      'delete',
+      <Button
+        className="Button Button--icon Button--danger"
+        icon="fas fa-trash"
+        onclick={() => {
+          this.deleteQuestion(challengeQuestion);
+        }}
+        aria-label="delete question"
+      />
+    );
+
     return items;
   }
 
   renderPagination(): Mithril.Children {
     return (
-      <nav className="BlockedRegistrations--pagination">
+      <nav className="ChallengeQuestions--pagination">
         <Button className="Button" disabled={this.currentPage <= 1} onclick={() => this.loadData(this.currentPage - 1)}>
           Previous
         </Button>
@@ -100,6 +170,18 @@ export default class ChallengeQuestionsPage extends Component<CustomAttrs> {
         </Button>
       </nav>
     );
+  }
+
+  deleteQuestion(challengeQuestion: ChallengeQuestion) {
+    let result = confirm('are you sure?');
+
+    if (!result) {
+      return;
+    }
+
+    challengeQuestion.delete();
+    this.challengeQuestions = this.challengeQuestions?.filter((b) => b.id() !== challengeQuestion.id());
+    m.redraw();
   }
 
   async loadData(page: number = 1) {

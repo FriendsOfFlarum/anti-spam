@@ -89,6 +89,13 @@ fof-anti-spam:
         is_active_label: Active
         is_active_help: If enabled, this question will be used when a user registers on your forum.
         save_button: Save question
+      details:
+        question: Question
+        answer: Answer
+        case_sensitive: Case sensitive
+        is_active: Active
+        created_at: Created at
+        updated_at: Updated at
 
   forum:
     message:

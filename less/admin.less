@@ -89,4 +89,38 @@
       }
     }
   }
+
+  .ChallengeQuestions--item {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    background: @body-bg;
+    border-radius: @border-radius;
+    box-shadow: 0 1px 3px @shadow-color;
+    padding: 15px;
+    margin-bottom: 20px;
+  
+    .ChallengeQuestions-item--details {
+      flex-grow: 1;
+      padding-right: 10px; // Add some space between details and actions
+    }
+  
+    .ChallengeQuestions-item--actions {
+      flex-shrink: 0; // Prevent actions from shrinking
+    }
+  
+    @media @phone {
+      flex-direction: column;
+      align-items: flex-start;
+  
+      .ChallengeQuestions-item--actions {
+        order: -1; // Move actions to the top on mobile
+        width: 100%;
+        justify-content: flex-end;
+        margin-bottom: 10px;
+      }
+    }
+  }
+  
 }

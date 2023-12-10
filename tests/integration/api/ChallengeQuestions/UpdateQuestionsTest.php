@@ -44,7 +44,7 @@ class UpdateQuestionsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'POST',
+                'PATCH',
                 '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 2,
@@ -62,7 +62,7 @@ class UpdateQuestionsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'POST',
+                'PATCH',
                 '/api/challenge-questions/2',
                 [
                     'authenticatedAs' => 1,
@@ -90,7 +90,7 @@ class UpdateQuestionsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'POST',
+                'PATCH',
                 '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
@@ -128,7 +128,7 @@ class UpdateQuestionsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'POST',
+                'PATCH',
                 '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
@@ -166,7 +166,7 @@ class UpdateQuestionsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'POST',
+                'PATCH',
                 '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
@@ -204,7 +204,7 @@ class UpdateQuestionsTest extends TestCase
     {
         $response = $this->send(
             $this->request(
-                'POST',
+                'PATCH',
                 '/api/challenge-questions/1',
                 [
                     'authenticatedAs' => 1,
