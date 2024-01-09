@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Tests\integration\Api;
 
 use Flarum\Testing\integration\TestCase;
@@ -40,7 +49,7 @@ class AnswerChallengeTest extends TestCase
         $this->assertEquals(422, $response->getStatusCode());
 
         $json = json_decode($response->getBody()->getContents(), true);
-        
+
         $this->assertArrayHasKey('errors', $json);
 
         $errors = $json['errors'];
@@ -70,14 +79,10 @@ class AnswerChallengeTest extends TestCase
         $this->assertEquals(200, $response->getStatusCode());
 
         $json = json_decode($response->getBody()->getContents(), true);
-        
+
         $this->assertArrayHasKey('token', $json);
 
         $token = $json['token'];
         $this->assertNotNull($token, 'Correct answer should have a token');
-
-        
     }
-
-    
 }

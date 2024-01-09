@@ -70,11 +70,11 @@ class ChallengeQuestion extends AbstractModel
 
         if ($challenge->case_sensitive) {
             if ($challenge->answer === $answer) {
-                return '1234';//self::generateToken($challengeId);
+                return '1234'; //self::generateToken($challengeId);
             }
         } else {
             if (strtolower($challenge->answer) === strtolower($answer)) {
-                return '12345';//self::generateToken($challengeId);
+                return '12345'; //self::generateToken($challengeId);
             }
         }
 

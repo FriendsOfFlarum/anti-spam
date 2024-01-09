@@ -11,7 +11,6 @@
 
 namespace FoF\AntiSpam\Api\Serializers;
 
-use Flarum\Api\Serializer\AbstractSerializer;
 use Flarum\Http\RequestUtil;
 
 class ChallengeQuestionSerializer extends BasicChallengeQuestionSerializer

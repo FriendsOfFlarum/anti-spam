@@ -21,8 +21,8 @@ class SfsClient
 
     protected $endpoints = [
         'closest' => 'https://api.stopforumspam.org/',
-        'europe'  => 'https://europe.stopforumspam.org/',
-        'us'      => 'https://us.stopforumspam.org/'
+        'europe' => 'https://europe.stopforumspam.org/',
+        'us' => 'https://us.stopforumspam.org/'
     ];
 
     /**
@@ -41,7 +41,7 @@ class SfsClient
 
         $this->client = new Client([
             'base_uri' => $this->endpoint(),
-            'verify'   => false
+            'verify' => false
         ]);
     }
 
