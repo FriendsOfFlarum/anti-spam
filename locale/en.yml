@@ -76,6 +76,8 @@ fof-anti-spam:
       help: |
         This page shows all challenge questions that have been configured for your forum. You can view the details of each question, select which ones are currently active, and if you wish, you can delete the question from the database.
       no-records: No challenge questions found.
+      ask_challenge_questions_label: Ask challenge questions
+      ask_challenge_questions_help: If enabled, users will be asked to answer a challenge question when they register on your forum.
       modal:
         title:
           edit: Edit Question

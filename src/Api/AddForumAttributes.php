@@ -13,17 +13,20 @@ namespace FoF\AntiSpam\Api;
 
 use Flarum\Api\Serializer\ForumSerializer;
 use Flarum\Settings\SettingsRepositoryInterface;
+use FoF\AntiSpam\Repository\ChallengeRepository;
 use FoF\AntiSpam\StopForumSpam;
 
 class AddForumAttributes
 {
     protected $settings;
     protected $stopForumSpam;
+    protected $challengeRepository;
 
-    public function __construct(SettingsRepositoryInterface $settings, StopForumSpam $stopForumSpam)
+    public function __construct(SettingsRepositoryInterface $settings, StopForumSpam $stopForumSpam, ChallengeRepository $challengeRepository)
     {
         $this->settings = $settings;
         $this->stopForumSpam = $stopForumSpam;
+        $this->challengeRepository = $challengeRepository;
     }
 
     public function __invoke(ForumSerializer $serializer, $model, array $attributes): array
@@ -43,6 +46,10 @@ class AddForumAttributes
                     'enabled' => $this->stopForumSpam->isEnabled(),
                 ]
             ];
+        }
+
+        if ($serializer->getActor()->isGuest()) {
+            $attributes['fof-anti-spam.challenge'] = $this->challengeRepository->challengeEnabled();
         }
 
         return $attributes;

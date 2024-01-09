@@ -53,4 +53,31 @@ class ChallengeQuestion extends AbstractModel
 
         return $self;
     }
+
+    public static function validateAnswer(?int $challengeId, ?string $answer): ?string
+    {
+        if (is_null($challengeId) || is_null($answer)) {
+            return null;
+        }
+
+        $answer = trim($answer);
+
+        $challenge = self::find($challengeId);
+
+        if (is_null($challenge)) {
+            return null;
+        }
+
+        if ($challenge->case_sensitive) {
+            if ($challenge->answer === $answer) {
+                return '1234';//self::generateToken($challengeId);
+            }
+        } else {
+            if (strtolower($challenge->answer) === strtolower($answer)) {
+                return '12345';//self::generateToken($challengeId);
+            }
+        }
+
+        return null;
+    }
 }

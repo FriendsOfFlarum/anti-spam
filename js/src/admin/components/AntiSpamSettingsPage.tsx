@@ -123,6 +123,16 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                 },
               })}
           </div>
+          <h3>{app.translator.trans('fof-anti-spam.admin.challenge_questions.title')}</h3>
+          <p className="helpText">{app.translator.trans('fof-anti-spam.admin.challenge_questions.introduction')}</p>
+          <div className="Section Section--challengeQuestions">
+            {this.buildSettingComponent({
+              type: 'boolean',
+              setting: 'fof-anti-spam.ask-challenge-questions',
+              label: app.translator.trans('fof-anti-spam.admin.challenge_questions.ask_challenge_questions_label'),
+              help: app.translator.trans('fof-anti-spam.admin.challenge_questions.ask_challenge_questions_help'),
+            })}
+          </div>
           <h3>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.heading')}</h3>
           <div className="Introduction">
             <p className="helpText">
