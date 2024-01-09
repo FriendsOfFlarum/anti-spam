@@ -15,7 +15,7 @@ export default class ChallengeQuestionField extends Component {
 
   showChallengeModal() {
     if (this.challengeToken !== null) {
-        return;
+      return;
     }
 
     app.modal.show(

@@ -10,7 +10,7 @@ import ChallengeQuestionField from '../components/ChallengeQuestionField';
 export default function extendSignUp() {
   extend(SignUpModal.prototype, 'fields', function (fields) {
     if (app.forum.attribute('fof-anti-spam.challenge')) {
-        fields.add('challenge-question', <ChallengeQuestionField />, 8);
+      fields.add('challenge-question', <ChallengeQuestionField />, 8);
     }
   });
 }
