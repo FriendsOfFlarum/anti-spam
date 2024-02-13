@@ -37,9 +37,9 @@ class ReportSpammerJob extends AbstractJob
 
         try {
             $client->report([
-                'ip_addr'  => $this->ipAddress,
+                'ip_addr' => $this->ipAddress,
                 'username' => $this->username,
-                'email'    => $this->email,
+                'email' => $this->email,
             ]);
         } catch (\Throwable $e) {
             $log->error("[FoF Anti Spam] Failed to report spammer to StopForumSpam: {$e->getMessage()}");
