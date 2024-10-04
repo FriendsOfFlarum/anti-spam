@@ -14,7 +14,9 @@ namespace FoF\AntiSpam;
 use Flarum\Api\Serializer\ForumSerializer;
 use Flarum\Api\Serializer\UserSerializer;
 use Flarum\Extend;
+use Flarum\User\Event\Saving;
 use Flarum\User\User;
+use FoF\AntiSpam\Event\RegistrationWasBlocked;
 
 return [
     (new Extend\Frontend('forum'))
@@ -30,7 +32,13 @@ return [
     (new Extend\Routes('api'))
         ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
         ->get('/blocked-registrations', 'fof-anti-spam.blocked-registrations.index', Api\Controllers\ListBlockedRegistrationsController::class)
-        ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class),
+        ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class)
+        ->get('/challenge-questions', 'fof-anti-spam.question.index', Api\Controllers\ListChallengeQuestionsController::class)
+        ->post('/challenge-questions', 'fof-anti-spam.question.create', Api\Controllers\CreateChallengeQuestionController::class)
+        ->patch('/challenge-questions/{id}', 'fof-anti-spam.question.update', Api\Controllers\UpdateChallengeQuestionController::class)
+        ->delete('/challenge-questions/{id}', 'fof-anti-spam.question.delete', Api\Controllers\DeleteChallengeQuestionController::class)
+        ->get('/challenge', 'fof-anti-spam.challenge.show', Api\Controllers\ShowChallengeQuestionController::class)
+        ->post('/challenge', 'fof-anti-spam.challenge.answer', Api\Controllers\AnswerChallengeQuestionController::class),
 
     (new Extend\ApiSerializer(ForumSerializer::class))
         ->attributes(Api\AddForumAttributes::class),
@@ -57,8 +65,16 @@ return [
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)
         ->default('fof-anti-spam.reportToStopForumSpam', true)
-        ->default('fof-anti-spam.report_blocked_registrations', true),
+        ->default('fof-anti-spam.report_blocked_registrations', true)
+        ->default('fof-anti-spam.ask-challenge-questions', true),
 
     (new Extend\ServiceProvider())
         ->register(Providers\SfsProvider::class),
+
+    (new Extend\Csrf())
+        ->exemptRoute('fof-anti-spam.challenge.answer'),
+
+    (new Extend\Event())
+        ->listen(RegistrationWasBlocked::class, Listener\ReportBlockedRegistration::class)
+        ->listen(Saving::class, Listener\ValidateRegistration::class),
 ];
