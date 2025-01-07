@@ -36,7 +36,7 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
 
   title() {
     return app.translator.trans('fof-anti-spam.forum.spammer_modal.title', {
-      username: this.user.username(),
+      username: this.user.displayName(),
     });
   }
 
