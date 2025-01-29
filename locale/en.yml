@@ -17,7 +17,6 @@ fof-anti-spam:
         move_discussions_to_tags_help: This will move all discussions started by this user to the tag(s) you specified. Clear the tag selection to leave discussions in their original tag(s). Has no effect if the 'Delete discussions' option is enabled.
 
       stopforumspam:
-        heading: StopForumSpam
         introduction: |
           Checks new user registrations against the <a>StopForumSpam</a> database. If either the <code>confidence</code> or <code>frequency</code> thresholds are reached, the user is prevented from completing their registration on your forum.
 
