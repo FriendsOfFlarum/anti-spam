@@ -21,6 +21,7 @@ fof-anti-spam:
           Checks new user registrations against the <a>StopForumSpam</a> database. If either the <code>confidence</code> or <code>frequency</code> thresholds are reached, the user is prevented from completing their registration on your forum.
 
           SSO register via <code>fof/oauth</code> and <code>fof/passport</code> is also supported. Other SSO providers should work, but are untested.
+
         username_label: Username Spam Check
         ip_label: IP Address Spam Check
         email_label: Email Spam Check
@@ -51,6 +52,7 @@ fof-anti-spam:
 
         report_blocked_registrations_label: Report blocked registrations
         report_blocked_registrations_help: When a registration is blocked by the Lookup Registrations feature, we will report the attempt back to StopForumSpam, so that the spammers activity can be better confirmed. Requires a StopForumSpam API key to be set (see below).
+
     blocked_registrations:
       button: Blocked Registrations
       title: Blocked Registrations
