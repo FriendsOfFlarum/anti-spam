@@ -12,13 +12,11 @@ fof-anti-spam:
         delete_posts_label: Delete posts
         delete_posts_help: This will permanently delete all posts made by this user. When disabled, posts will be soft deleted instead.
         heading: Default moderation actions
-        introduction: |
-          When a user is marked as a spammer, moderators are able to choose from various actions on how to deal with the particular use case. These settings allow you to pre-set the actions you'll normally take, to speed up the process, but also allowing for variations as needed.
+        introduction: When a user is marked as a spammer, moderators are able to choose from various actions on how to deal with the particular use case. These settings allow you to pre-set the actions you'll normally take, to speed up the process, but also allowing for variations as needed.
         move_discussions_to_tags_label: Move discussions to tag(s)
         move_discussions_to_tags_help: This will move all discussions started by this user to the tag(s) you specified. Clear the tag selection to leave discussions in their original tag(s). Has no effect if the 'Delete discussions' option is enabled.
 
       stopforumspam:
-        heading: StopForumSpam
         introduction: |
           Checks new user registrations against the <a>StopForumSpam</a> database. If either the <code>confidence</code> or <code>frequency</code> thresholds are reached, the user is prevented from completing their registration on your forum.
 
@@ -32,7 +30,6 @@ fof-anti-spam:
         frequency_help: | 
           The number of spam reports between all enabled checks that will trip the spam filter.
           Ex: If the email has 1 hit, and the ip has 2 hits, there will be 3 hits in total. If the threshold is set to 3 or less we will prevent the registration.
-
         api_key_label: API Key
         api_key_text: You have the option to report spammers to StopForumSpam in order to keep the greater forum community spam free.
         api_key_instructions_text: <register>Sign up for StopForumSpam</register>. Then you will need to <key>obtain an API key</key>.
@@ -55,6 +52,7 @@ fof-anti-spam:
 
         report_blocked_registrations_label: Report blocked registrations
         report_blocked_registrations_help: When a registration is blocked by the Lookup Registrations feature, we will report the attempt back to StopForumSpam, so that the spammers activity can be better confirmed. Requires a StopForumSpam API key to be set (see below).
+
     blocked_registrations:
       button: Blocked Registrations
       title: Blocked Registrations

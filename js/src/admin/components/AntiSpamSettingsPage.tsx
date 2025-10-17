@@ -112,7 +112,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               })}
           </div>
           <div className="Section Section--stopforumspam">
-            <h3>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.heading')}</h3>
+            <h3>StopForumSpam</h3>
             <div className="Introduction">
               <p className="helpText">
                 {app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.introduction', {
