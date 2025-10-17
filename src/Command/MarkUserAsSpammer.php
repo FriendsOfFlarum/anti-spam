@@ -37,7 +37,7 @@ class MarkUserAsSpammer
      */
     public $actor;
 
-    public function __construct(User $user, array $options = [], User $actor = null)
+    public function __construct(User $user, array $options = [], ?User $actor = null)
     {
         $this->user = $user;
         $this->options = $options;

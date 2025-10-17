@@ -98,7 +98,7 @@ class StopForumSpam
         return false;
     }
 
-    private function buildAndDispatchEvents(array $data, string $sfsData, string $provider = null, array $providerData = null): void
+    private function buildAndDispatchEvents(array $data, string $sfsData, ?string $provider = null, ?array $providerData = null): void
     {
         $ip = Arr::get($data, 'ip') ?? 'unknown';
         $email = Arr::get($data, 'email') ?? 'unknown';
