@@ -6,7 +6,6 @@ import type Mithril from 'mithril';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import BlockedRegistration from '../../common/models/BlockedRegistration';
 import ItemList from 'flarum/common/utils/ItemList';
-import LabelValue from 'flarum/common/components/LabelValue';
 import fullTime from 'flarum/common/helpers/fullTime';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
