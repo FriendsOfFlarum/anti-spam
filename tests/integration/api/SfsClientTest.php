@@ -14,6 +14,7 @@ namespace FoF\AntiSpam\Tests\integration\api;
 use Flarum\Testing\integration\TestCase;
 use FoF\AntiSpam\Api\SfsClient;
 use FoF\AntiSpam\Api\SfsResponse;
+use PHPUnit\Framework\Attributes\Test;
 
 class SfsClientTest extends TestCase
 {
@@ -34,9 +35,7 @@ class SfsClientTest extends TestCase
         $this->sfsClient = $this->app()->getContainer()->make(SfsClient::class);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_can_check_data_and_parse_it()
     {
         $this->setUpClient();
@@ -73,9 +72,7 @@ class SfsClientTest extends TestCase
         $this->assertObjectHasProperty('blacklisted', $response->username);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function email_is_hashed_when_setting_enabled()
     {
         $this->setting('fof-anti-spam.emailhash', true);

@@ -16,6 +16,9 @@ use Flarum\Group\Group;
 use Flarum\Post\CommentPost;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
+use PHPUnit\Framework\Attributes\Test;
+use Flarum\Discussion\Discussion;
+use Flarum\Post\Post;
 
 class SpamblockTest extends TestCase
 {
@@ -26,7 +29,7 @@ class SpamblockTest extends TestCase
         $this->extension('fof-anti-spam');
 
         $this->prepareDatabase([
-            'users' => [
+            User::class => [
                 ['id' => 3, 'username' => 'a_moderator', 'email' => 'a_mod@machine.local', 'is_email_confirmed' => 1],
                 ['id' => 4, 'username' => 'toby', 'email' => 'toby@machine.local', 'is_email_confirmed' => 1],
                 ['id' => 5, 'username' => 'bad_user', 'email' => 'bad_user@machine.local', 'is_email_confirmed' => 1],
@@ -37,19 +40,17 @@ class SpamblockTest extends TestCase
             'group_permission' => [
                 ['group_id' => Group::MODERATOR_ID, 'permission' => 'user.spamblock'],
             ],
-            'discussions' => [
+            Discussion::class => [
                 ['id' => 2, 'title' => __CLASS__, 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 5, 'first_post_id' => 4, 'comment_count' => 2, 'last_post_id' => 5],
             ],
-            'posts' => [
+            Post::class => [
                 ['id' => 4, 'number' => 2, 'discussion_id' => 2, 'created_at' => Carbon::now(), 'user_id' => 5, 'type' => 'comment', 'content' => '<r>Some spammy content</r>'],
                 ['id' => 5, 'number' => 3, 'discussion_id' => 2, 'created_at' => Carbon::now(), 'user_id' => 4, 'type' => 'comment', 'content' => '<r>Some regular content</r>'],
             ],
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function moderator_cannot_spamblock_self()
     {
         $response = $this->send(
@@ -61,9 +62,7 @@ class SpamblockTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_without_permissions_cannot_spamblock()
     {
         $response = $this->send(
@@ -75,9 +74,7 @@ class SpamblockTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function moderator_can_spamblock_and_posts_are_hidden()
     {
         $response = $this->send(
@@ -104,9 +101,7 @@ class SpamblockTest extends TestCase
         $this->assertNull(CommentPost::find(5)->hidden_at);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function normal_user_cannot_see_spamblocked_posts()
     {
         $response = $this->send(
@@ -126,9 +121,7 @@ class SpamblockTest extends TestCase
         $this->assertEquals(404, $response->getStatusCode());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_is_also_suspended_when_suspend_is_enabled()
     {
         $this->extension('flarum-suspend');

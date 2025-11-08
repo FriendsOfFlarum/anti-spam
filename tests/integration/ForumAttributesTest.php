@@ -13,6 +13,8 @@ namespace FoF\AntiSpam\Tests\integration;
 
 use Flarum\Group\Group;
 use Flarum\Testing\integration\TestCase;
+use PHPUnit\Framework\Attributes\Test;
+use Flarum\User\User;
 
 class ForumAttributesTest extends TestCase
 {
@@ -23,7 +25,7 @@ class ForumAttributesTest extends TestCase
         $this->extension('fof-anti-spam');
 
         $this->prepareDatabase([
-            'users' => [
+            User::class => [
                 ['id' => 3, 'username' => 'a_moderator', 'email' => 'a_mod@machine.local', 'is_email_confirmed' => 1],
                 ['id' => 4, 'username' => 'toby', 'email' => 'toby@machine.local', 'is_email_confirmed' => 1],
                 ['id' => 5, 'username' => 'bad_user', 'email' => 'bad_user@machine.local', 'is_email_confirmed' => 1],
@@ -37,9 +39,7 @@ class ForumAttributesTest extends TestCase
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function normal_user_does_not_see_spamblock_default_options()
     {
         $response = $this->send(
@@ -55,9 +55,7 @@ class ForumAttributesTest extends TestCase
         $this->assertArrayNotHasKey('fof-anti-spam', $json['data']['attributes']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_with_permission_does_see_spamblock_default_options()
     {
         $response = $this->send(

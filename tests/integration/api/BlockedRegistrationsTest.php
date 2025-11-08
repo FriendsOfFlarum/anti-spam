@@ -14,6 +14,8 @@ namespace FoF\AntiSpam\Tests\integration\api;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
 use FoF\AntiSpam\Model\BlockedRegistration;
+use PHPUnit\Framework\Attributes\Test;
+use Flarum\User\User;
 
 class BlockedRegistrationsTest extends TestCase
 {
@@ -24,7 +26,7 @@ class BlockedRegistrationsTest extends TestCase
         $this->extension('fof-anti-spam');
 
         $this->prepareDatabase([
-            'users' => [
+            User::class => [
                 $this->normalUser(),
                 ['id' => 3, 'username' => 'moderator', 'email' => 'moderator@machine.local', 'is_email_confirmed' => true]
             ],
@@ -40,9 +42,7 @@ class BlockedRegistrationsTest extends TestCase
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_without_permission_cannot_list_blocked_registrations()
     {
         $response = $this->send(
@@ -58,9 +58,7 @@ class BlockedRegistrationsTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_with_permission_can_list_blocked_registrations()
     {
         $response = $this->send(
@@ -92,9 +90,7 @@ class BlockedRegistrationsTest extends TestCase
         $this->assertEquals('spammer@machine.local', $data->attributes->email);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_without_permission_cannot_delete_blocked_registrations()
     {
         $response = $this->send(
@@ -114,9 +110,7 @@ class BlockedRegistrationsTest extends TestCase
         $this->assertCount(1, $blocked);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_with_permission_can_delete_blocked_registrations()
     {
         $response = $this->send(
