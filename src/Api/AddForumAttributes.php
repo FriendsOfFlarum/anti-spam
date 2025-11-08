@@ -17,13 +17,8 @@ use FoF\AntiSpam\StopForumSpam;
 
 class AddForumAttributes
 {
-    protected $settings;
-    protected $stopForumSpam;
-
-    public function __construct(SettingsRepositoryInterface $settings, StopForumSpam $stopForumSpam)
+    public function __construct(protected SettingsRepositoryInterface $settings, protected StopForumSpam $stopForumSpam)
     {
-        $this->settings = $settings;
-        $this->stopForumSpam = $stopForumSpam;
     }
 
     public function __invoke(ForumSerializer $serializer, $model, array $attributes): array

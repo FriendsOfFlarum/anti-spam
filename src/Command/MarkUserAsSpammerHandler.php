@@ -31,18 +31,6 @@ use Psr\Log\LoggerInterface;
 
 class MarkUserAsSpammerHandler
 {
-    public $extensions;
-
-    public $bus;
-
-    public $events;
-
-    public $settings;
-
-    public $queue;
-
-    public $log;
-
     /**
      * @var bool
      */
@@ -70,14 +58,8 @@ class MarkUserAsSpammerHandler
 
     const settings_prefix = 'fof-anti-spam.actions.';
 
-    public function __construct(ExtensionManager $extensions, Bus $bus, Events $events, SettingsRepositoryInterface $settings, Queue $queue, LoggerInterface $log)
+    public function __construct(public ExtensionManager $extensions, public Bus $bus, public Events $events, public SettingsRepositoryInterface $settings, public Queue $queue, public LoggerInterface $log)
     {
-        $this->extensions = $extensions;
-        $this->bus = $bus;
-        $this->events = $events;
-        $this->settings = $settings;
-        $this->queue = $queue;
-        $this->log = $log;
     }
 
     public function handle(MarkUserAsSpammer $command): User

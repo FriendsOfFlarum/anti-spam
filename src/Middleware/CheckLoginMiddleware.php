@@ -36,20 +36,8 @@ class CheckLoginMiddleware implements MiddlewareInterface
      */
     private $providerData = [];
 
-    /**
-     * @var StopForumSpam
-     */
-    private $sfs;
-
-    /**
-     * @var UrlGenerator
-     */
-    private $url;
-
-    public function __construct(StopForumSpam $sfs, UrlGenerator $url)
+    public function __construct(private StopForumSpam $sfs, private UrlGenerator $url)
     {
-        $this->sfs = $sfs;
-        $this->url = $url;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

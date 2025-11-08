@@ -28,14 +28,8 @@ class ListBlockedRegistrationsController extends AbstractListController
      */
     protected $contentRange;
 
-    /**
-     * @var UrlGenerator
-     */
-    public $url;
-
-    public function __construct(UrlGenerator $url)
+    public function __construct(public UrlGenerator $url)
     {
-        $this->url = $url;
     }
 
     public function data(ServerRequestInterface $request, Document $document)

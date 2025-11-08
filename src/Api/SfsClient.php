@@ -26,19 +26,12 @@ class SfsClient
     ];
 
     /**
-     * @var SettingsRepositoryInterface
-     */
-    protected $settings;
-
-    /**
      * @var Client
      */
     protected $client;
 
-    public function __construct(SettingsRepositoryInterface $settings)
+    public function __construct(protected SettingsRepositoryInterface $settings)
     {
-        $this->settings = $settings;
-
         $this->client = new Client([
             'base_uri' => $this->endpoint(),
             'verify' => false

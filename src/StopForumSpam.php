@@ -18,26 +18,8 @@ use Illuminate\Support\Arr;
 
 class StopForumSpam
 {
-    /**
-     * @var SettingsRepositoryInterface
-     */
-    protected $settings;
-
-    /**
-     * @var Dispatcher
-     */
-    protected $bus;
-
-    /**
-     * @var SfsClient
-     */
-    protected $client;
-
-    public function __construct(SettingsRepositoryInterface $settings, Dispatcher $bus, SfsClient $client)
+    public function __construct(protected SettingsRepositoryInterface $settings, protected Dispatcher $bus, protected SfsClient $client)
     {
-        $this->settings = $settings;
-        $this->bus = $bus;
-        $this->client = $client;
     }
 
     public function isEnabled(): bool

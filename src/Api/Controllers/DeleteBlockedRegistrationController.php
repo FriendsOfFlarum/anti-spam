@@ -18,7 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class DeleteBlockedRegistrationController extends AbstractDeleteController
 {
-    public function delete(ServerRequestInterface $request)
+    public function delete(ServerRequestInterface $request): void
     {
         RequestUtil::getActor($request)->assertAdmin();
 
