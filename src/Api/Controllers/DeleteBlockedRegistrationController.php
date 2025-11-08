@@ -16,6 +16,12 @@ use Flarum\Http\RequestUtil;
 use FoF\AntiSpam\Model\BlockedRegistration;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * @TODO: Remove this in favor of one of the API resource classes that were added.
+ *      Or extend an existing API Resource to add this to.
+ *      Or use a vanilla RequestHandlerInterface controller.
+ *      @link https://docs.flarum.org/2.x/extend/api#endpoints
+ */
 class DeleteBlockedRegistrationController extends AbstractDeleteController
 {
     public function delete(ServerRequestInterface $request): void

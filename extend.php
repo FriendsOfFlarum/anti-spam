@@ -15,6 +15,10 @@ use Flarum\Api\Serializer\ForumSerializer;
 use Flarum\Api\Serializer\UserSerializer;
 use Flarum\Extend;
 use Flarum\User\User;
+use Flarum\Api\Context;
+use Flarum\Api\Endpoint;
+use Flarum\Api\Resource;
+use Flarum\Api\Schema;
 
 return [
     (new Extend\Frontend('forum'))
@@ -32,9 +36,11 @@ return [
         ->get('/blocked-registrations', 'fof-anti-spam.blocked-registrations.index', Api\Controllers\ListBlockedRegistrationsController::class)
         ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class),
 
+    // @TODO: Replace with the new implementation https://docs.flarum.org/2.x/extend/api#extending-api-resources
     (new Extend\ApiSerializer(ForumSerializer::class))
         ->attributes(Api\AddForumAttributes::class),
 
+    // @TODO: Replace with the new implementation https://docs.flarum.org/2.x/extend/api#extending-api-resources
     (new Extend\ApiSerializer(UserSerializer::class))
         ->attributes(Api\AddUserPermissions::class),
 
@@ -61,4 +67,5 @@ return [
 
     (new Extend\ServiceProvider())
         ->register(Providers\SfsProvider::class),
+    new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
 ];
