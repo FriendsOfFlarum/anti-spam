@@ -1,3 +1,4 @@
+import Form from 'flarum/common/components/Form';
 import Button from 'flarum/common/components/Button';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import User from 'flarum/common/models/User';
@@ -46,7 +47,7 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
 
     return (
       <div className="Modal-body">
-        <div className="Form">
+        <Form>
           <p className="helpText">{app.translator.trans('fof-anti-spam.forum.spammer_modal.intro')}</p>
           <div className="Form-group">
             <Switch
@@ -113,7 +114,7 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
               {app.translator.trans('fof-anti-spam.forum.spammer_modal.process_button')}
             </Button>
           </div>
-        </div>
+        </Form>
       </div>
     );
   }

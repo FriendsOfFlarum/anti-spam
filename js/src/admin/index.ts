@@ -4,7 +4,7 @@ import AntiSpamSettingsPage from './components/AntiSpamSettingsPage';
 export { default as extend } from './extend';
 
 app.initializers.add('fof/anti-spam', () => {
-  app.extensionData
+  app.registry
     .for('fof-anti-spam')
     .registerPage(AntiSpamSettingsPage)
     .registerPermission(

@@ -1,3 +1,4 @@
+import Form from 'flarum/common/components/Form';
 import app from 'flarum/admin/app';
 import ExtensionPage from 'flarum/admin/components/ExtensionPage';
 import Button from 'flarum/common/components/Button';
@@ -69,7 +70,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
     return (
       <div className="FoFAntiSpamSettings--settings">
-        <div className="Form">
+        <Form>
           <div className="Section Section--defaultActions">
             <h3>{app.translator.trans('fof-anti-spam.admin.settings.default-actions.heading')}</h3>
             <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.default-actions.introduction')}</p>
@@ -95,14 +96,19 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               this.buildSettingComponent({
                 type: 'flarum-tags.select-tags',
                 setting: 'fof-anti-spam.actions.moveDiscussionsToTags',
+
                 label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_label'),
+
                 help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_help'),
+
                 options: {
                   requireParentTag: true,
+
                   limits: {
                     max: {
                       primary: 1,
                     },
+
                     min: {
                       primary: 1,
                     },
@@ -122,10 +128,20 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
             {this.buildSettingComponent({
               type: 'select',
               setting: 'fof-anti-spam.regionalEndpoint',
-              options: apiRegions.reduce((o: { [key: string]: string }, p) => {
-                o[p] = app.translator.trans(`fof-anti-spam.admin.settings.stopforumspam.region_${p}_label`) as string;
-                return o;
-              }, {}),
+
+              options: apiRegions.reduce(
+                (
+                  o: {
+                    [key: string]: string;
+                  },
+                  p
+                ) => {
+                  o[p] = app.translator.trans(`fof-anti-spam.admin.settings.stopforumspam.region_${p}_label`) as string;
+                  return o;
+                },
+                {}
+              ),
+
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_label'),
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_help'),
               default: 'closest',
@@ -139,7 +155,9 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
             {this.buildSettingComponent({
               type: 'boolean',
               setting: 'fof-anti-spam.report_blocked_registrations',
+
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_label'),
+
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_help'),
             })}
             {this.buildSettingComponent({
@@ -186,6 +204,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               type: 'string',
               setting: 'fof-anti-spam.api_key',
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_label'),
+
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_instructions_text', {
                 register: <a href="https://www.stopforumspam.com/forum/register.php" />,
                 key: <a href="https://www.stopforumspam.com/keys" />,
@@ -194,7 +213,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
           </div>
           <hr />
           {this.submitButton()}
-        </div>
+        </Form>
       </div>
     );
   }
@@ -202,7 +221,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   blockedRegistrationsContent(): Mithril.Children {
     return (
       <div className="FoFAntiSpamSettings--blockedRegistrations">
-        <div className="Form">
+        <Form>
           <h3>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.title')}</h3>
           {this.blockedLoading && <LoadingIndicator />}
           {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length === 0 && (
@@ -226,7 +245,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               {this.renderPagination()}
             </div>
           )}
-        </div>
+        </Form>
       </div>
     );
   }
