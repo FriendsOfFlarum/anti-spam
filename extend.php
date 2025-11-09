@@ -18,6 +18,8 @@ use Flarum\User\User;
 use Flarum\Api\Context;
 use Flarum\Api\Endpoint;
 use Flarum\Api\Resource;
+use Flarum\Api\Resource\ForumResource;
+use Flarum\Api\Resource\UserResource;
 use Flarum\Api\Schema;
 
 return [
@@ -32,23 +34,19 @@ return [
     new Extend\Locales(__DIR__.'/locale'),
 
     (new Extend\Routes('api'))
-        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
-        ->get('/blocked-registrations', 'fof-anti-spam.blocked-registrations.index', Api\Controllers\ListBlockedRegistrationsController::class)
-        ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class),
+        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class),
 
-    // @TODO: Replace with the new implementation https://docs.flarum.org/2.x/extend/api#extending-api-resources
-    (new Extend\ApiSerializer(ForumSerializer::class))
-        ->attributes(Api\AddForumAttributes::class),
+    (new Extend\ApiResource(ForumResource::class))
+        ->fields(Api\AddForumFields::class),
 
-    // @TODO: Replace with the new implementation https://docs.flarum.org/2.x/extend/api#extending-api-resources
-    (new Extend\ApiSerializer(UserSerializer::class))
-        ->attributes(Api\AddUserPermissions::class),
+    (new Extend\ApiResource(UserResource::class))
+        ->fields(Api\AddUserPermissions::class),
 
     (new Extend\Policy())
         ->modelPolicy(User::class, Access\UserPolicy::class),
 
     (new Extend\Middleware('forum'))
-        ->add(Middleware\CheckLoginMiddleware::class),
+        ->add(Middleware\CheckRegistrationMiddleware::class),
 
     (new Extend\Settings())
         ->default('fof-anti-spam.regionalEndpoint', 'closest')
@@ -67,5 +65,6 @@ return [
 
     (new Extend\ServiceProvider())
         ->register(Providers\SfsProvider::class),
+
     new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
 ];

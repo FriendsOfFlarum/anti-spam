@@ -36,7 +36,7 @@ class BlockedRegistrationsTest extends TestCase
             'group_permission' => [
                 ['permission' => 'fof-anti-spam.viewBlockedRegistrations', 'group_id' => 4]
             ],
-            'blocked_registrations' => [
+            BlockedRegistration::class => [
                 ['id' => 1, 'ip' => '127.0.0.1', 'email' => 'spammer@machine.local', 'username' => 'spammer', 'attempted_at' => '2020-01-01 00:00:00']
             ]
         ]);
@@ -73,21 +73,19 @@ class BlockedRegistrationsTest extends TestCase
 
         $this->assertEquals(200, $response->getStatusCode());
 
-        $body = json_decode($response->getBody()->getContents());
-
-        // assert response has pagination links
-        $this->assertObjectHasProperty('links', $body);
-        $this->assertObjectHasProperty('first', $body->links);
+        $body = json_decode($response->getBody()->getContents(), true);
 
         // assert response has data
-        $this->assertObjectHasProperty('data', $body);
-        $this->assertCount(1, $body->data);
+        $this->assertArrayHasKey('data', $body);
+        $this->assertCount(1, $body['data']);
 
-        $data = $body->data[0];
+        $data = $body['data'][0];
 
-        $this->assertEquals(1, $data->id);
-        $this->assertEquals('127.0.0.1', $data->attributes->ip);
-        $this->assertEquals('spammer@machine.local', $data->attributes->email);
+        $this->assertEquals('1', $data['id']);
+        $this->assertEquals('blocked-registrations', $data['type']);
+        $this->assertEquals('127.0.0.1', $data['attributes']['ip']);
+        $this->assertEquals('spammer@machine.local', $data['attributes']['email']);
+        $this->assertEquals('spammer', $data['attributes']['username']);
     }
 
     #[Test]

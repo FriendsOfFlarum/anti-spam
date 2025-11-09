@@ -37,6 +37,7 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
             Endpoint\Delete::make()
                 ->can('delete'),
             Endpoint\Index::make()
+                ->can('fof-anti-spam.viewBlockedRegistrations')
                 ->paginate(),
         ];
     }
@@ -44,27 +45,23 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
     public function fields(): array
     {
         return [
-
-            /**
-             * @todo migrate logic from old serializer and controllers to this API Resource.
-             * @see https://docs.flarum.org/2.x/extend/api#api-resources
-             */
-
-            // Example:
-            Schema\Str::make('name')
-                ->requiredOnCreate()
-                ->minLength(3)
-                ->maxLength(255)
-                ->writable(),
-
-
+            Schema\Date::make('createdAt')
+                ->property('attempted_at'),
+            Schema\Str::make('ip'),
+            Schema\Str::make('email'),
+            Schema\Str::make('username'),
+            Schema\Str::make('sfsData')
+                ->property('data'),
+            Schema\Str::make('provider'),
+            Schema\Str::make('providerData')
+                ->property('provider_data'),
         ];
     }
 
     public function sorts(): array
     {
         return [
-            // SortColumn::make('createdAt'),
+            SortColumn::make('createdAt'),
         ];
     }
 }

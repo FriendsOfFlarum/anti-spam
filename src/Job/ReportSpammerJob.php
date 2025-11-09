@@ -22,7 +22,7 @@ class ReportSpammerJob extends AbstractJob
     {
     }
 
-    public function handle(StopForumSpam $sfs, SfsClient $client, LoggerInterface $log)
+    public function handle(StopForumSpam $sfs, SfsClient $client, LoggerInterface $log): void
     {
         if (! $sfs->isEnabled()) {
             return;

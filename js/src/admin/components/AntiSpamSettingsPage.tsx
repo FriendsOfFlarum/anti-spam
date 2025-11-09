@@ -8,6 +8,7 @@ import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import BlockedRegistration from '../../common/models/BlockedRegistration';
 import ItemList from 'flarum/common/utils/ItemList';
 import fullTime from 'flarum/common/helpers/fullTime';
+import IPAddress from 'flarum/common/components/IPAddress';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
   private static readonly ITEMS_PER_PAGE: number = 20;
@@ -182,6 +183,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_help'),
             })}
             {this.buildSettingComponent({
+              type: 'boolean',
+              setting: 'fof-anti-spam.blockTorExitNodes',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_help'),
+            })}
+            {this.buildSettingComponent({
               type: 'number',
               setting: 'fof-anti-spam.frequency',
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
@@ -263,7 +270,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       });
 
       this.blockedRegistrations = response;
-      this.totalPages = response.payload.links?.totalPages || 1;
+
+      // Calculate total pages from response
+      // If we get a full page of results, there might be more pages
+      // This is a simplified approach - you may want to use meta data from the API response if available
+      const hasNextPage = response.length === AntiSpamSettingsPage.ITEMS_PER_PAGE;
+      this.totalPages = hasNextPage ? page + 1 : page;
     } catch (error) {
       console.error(error);
       this.blockedRegistrations = [];
@@ -306,7 +318,9 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       'ip',
       <div className="BlockedRegistrations-item--details">
         <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.ip')}</span>
-        <span className="BlockedRegistrations-value">{blockedRegistration.ip()}</span>
+        <span className="BlockedRegistrations-value">
+          <IPAddress ip={blockedRegistration.ip()} />
+        </span>
       </div>,
       90
     );

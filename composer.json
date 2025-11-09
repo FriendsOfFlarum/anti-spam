@@ -68,10 +68,6 @@
             }
         }
     },
-    "replace": {
-        "fof/stopforumspam": "*",
-        "fof/spamblock": "*"
-    },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload-dev": {
@@ -100,11 +96,11 @@
     "require-dev": {
         "flarum/testing": "^2.0.0-beta",
         "flarum/phpstan": "^2.0.0-beta",
-        "flarum/suspend": "*",
-        "flarum/flags": "*",
-        "fof/user-bio": "*",
-        "flarum/approval": "*",
-        "flarum/tags": "*",
+        "flarum/suspend": "^2.0.0-beta",
+        "flarum/flags": "^2.0.0-beta",
+        "fof/user-bio": "^2.0.0-beta",
+        "flarum/approval": "^2.0.0-beta",
+        "flarum/tags": "^2.0.0-beta",
         "fof/oauth": "*"
     }
 }

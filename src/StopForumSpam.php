@@ -35,7 +35,7 @@ class StopForumSpam
      *
      * @return bool
      */
-    public function shouldPreventLogin(?string $ip, ?string $email, ?string $username, ?string $provider = null, ?array $providerData = null): bool
+    public function shouldPreventRegistration(?string $ip, ?string $email, ?string $username, ?string $provider = null, ?array $providerData = null): bool
     {
         // If we don't have sfs lookup enabled, we return false early.
         if (! (bool) $this->settings->get('fof-anti-spam.sfs-lookup')) {
@@ -45,32 +45,56 @@ class StopForumSpam
         $sfsResponse = $this->client->check($ip, $email, $username);
 
         if ($sfsResponse->success) {
+            // Get frequency threshold (combined total across all enabled fields)
+            // Default to 5 if not set or invalid
             $requiredFrequency = (int) $this->settings->get('fof-anti-spam.frequency');
-            if ($requiredFrequency === 0) {
-                $requiredFrequency = 1;
+            if ($requiredFrequency <= 0) {
+                $requiredFrequency = 5;
             }
-            $requiredConfidence = (float) $this->settings->get('fof-anti-spam.confidence');
-            if ($requiredConfidence === 0.0) {
-                $requiredConfidence = 1.0;
-            }
-            $frequency = 0;
-            $confidence = 0.0;
-            $blacklisted = false;
 
-            foreach (['ip' => $sfsResponse->ip, 'email' => $sfsResponse->email, 'username' => $sfsResponse->username] as $key => $value) {
+            // Get confidence threshold (percentage: 0-100)
+            // Default to 50.0 if not set or invalid
+            $requiredConfidence = (float) $this->settings->get('fof-anti-spam.confidence');
+            if ($requiredConfidence <= 0.0) {
+                $requiredConfidence = 50.0;
+            }
+            // Initialize tracking variables for spam indicators
+            $frequency = 0;      // Total reports across all enabled fields (cumulative)
+            $confidence = 0.0;   // Highest confidence score across all fields (not cumulative)
+            $blacklisted = false;
+            $isTorExit = false;
+
+            /** @var array<string, \FoF\AntiSpam\Api\BasicFieldData|null> $fieldsToCheck */
+            $fieldsToCheck = ['ip' => $sfsResponse->ip, 'email' => $sfsResponse->email, 'username' => $sfsResponse->username];
+
+            // Check each enabled field and accumulate spam indicators
+            foreach ($fieldsToCheck as $key => $value) {
                 if ($value === null || ! (bool) $this->settings->get("fof-anti-spam.$key")) {
                     continue;
                 }
 
-                if (isset($value->blacklisted) && $value->blacklisted) {
+                if ($value->blacklisted) {
                     $blacklisted = true;
                 }
 
+                // Frequency: sum across fields (e.g., IP:50 + email:50 = total:100)
                 $frequency += $value->frequency ?? 0;
-                $confidence += $value->confidence ?? 0.0;
+
+                // Confidence: use max, not sum (if ANY field has high confidence, that's significant)
+                $confidence = max($confidence, $value->confidence ?? 0.0);
             }
 
-            if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency || $blacklisted) {
+            // Check for Tor exit node if enabled and IP data exists
+            if ($sfsResponse->ip !== null && (bool) $this->settings->get('fof-anti-spam.blockTorExitNodes')) {
+                $isTorExit = $sfsResponse->ip->torexit ?? false;
+            }
+
+            // Block registration if ANY of these conditions are met (OR logic):
+            // 1. Confidence score meets/exceeds threshold (highest confidence from any field)
+            // 2. Frequency count meets/exceeds threshold (cumulative across all fields)
+            // 3. Any field is blacklisted (absolute block)
+            // 4. IP is a Tor exit node (absolute block if feature enabled)
+            if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency || $blacklisted || $isTorExit) {
                 $this->buildAndDispatchEvents(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData);
 
                 return true;
@@ -87,7 +111,9 @@ class StopForumSpam
         $username = Arr::get($data, 'username') ?? 'unknown';
 
         // If there's a password in the provider data, we remove it from the data we send to the event.
-        Arr::pull($providerData, 'password');
+        if ($providerData !== null) {
+            Arr::pull($providerData, 'password');
+        }
 
         $this->bus->dispatch(new Event\RegistrationWasBlocked(
             Model\BlockedRegistration::create(
@@ -98,16 +124,6 @@ class StopForumSpam
                 $provider,
                 $providerData
             )
-        ));
-
-        // Kept for backwards compatibility, remove for Flarum 2.0
-        $this->bus->dispatch(new Event\RegistrationBlocked(
-            $username,
-            $ip,
-            $email,
-            $data,
-            $provider,
-            $providerData
         ));
     }
 }
