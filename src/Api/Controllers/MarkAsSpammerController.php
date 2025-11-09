@@ -24,23 +24,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class MarkAsSpammerController implements RequestHandlerInterface
 {
-    /**
-     * @var Dispatcher
-     */
-    protected $bus;
-
-    /**
-     * @var UrlGenerator
-     */
-    protected $url;
-
-    /**
-     * @param Dispatcher       $bus
-     */
-    public function __construct(Dispatcher $bus, UrlGenerator $url)
+    public function __construct(protected Dispatcher $bus, protected UrlGenerator $url)
     {
-        $this->bus = $bus;
-        $this->url = $url;
     }
 
     /**

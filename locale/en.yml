@@ -47,6 +47,9 @@ fof-anti-spam:
         email_hash_label: Use hashed email address
         email_hash_help: Pass a MD5 hash of the email address should you wish to not pass the email address itself. This method bypasses all blacklists, normalisation and obfuscation bypass checks.
 
+        block_tor_exit_nodes_label: Block Tor exit nodes
+        block_tor_exit_nodes_help: When enabled, registrations from known Tor exit nodes will be automatically blocked. This can help prevent anonymous spam registrations, but may also prevent legitimate users who use Tor for privacy.
+
         sfs_lookup_label: Lookup registrations
         sfs_lookup_help: If enabled, we will check the StopForumSpam database when a new user registers on your forum. If the user is found (username, IP address, email) and that data point is enabled along with the SFS confidence level reaching your defined level, they will be prevented from completing their registration.
 

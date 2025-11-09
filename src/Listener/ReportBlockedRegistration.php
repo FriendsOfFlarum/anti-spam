@@ -19,15 +19,8 @@ use Illuminate\Contracts\Queue\Queue;
 
 class ReportBlockedRegistration
 {
-    protected $settings;
-    protected $sfs;
-    protected $queue;
-
-    public function __construct(SettingsRepositoryInterface $settings, StopForumSpam $sfs, Queue $queue)
+    public function __construct(protected SettingsRepositoryInterface $settings, protected StopForumSpam $sfs, protected Queue $queue)
     {
-        $this->settings = $settings;
-        $this->sfs = $sfs;
-        $this->queue = $queue;
     }
 
     public function handle(RegistrationWasBlocked $event): void

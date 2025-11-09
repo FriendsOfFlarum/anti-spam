@@ -14,6 +14,7 @@ namespace FoF\AntiSpam\Tests\integration\forum;
 use Flarum\Extend;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
+use PHPUnit\Framework\Attributes\Test;
 
 class RegistrationTest extends TestCase
 {
@@ -28,9 +29,7 @@ class RegistrationTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_can_register_a_new_user()
     {
         $response = $this->send(
@@ -53,9 +52,7 @@ class RegistrationTest extends TestCase
         $this->assertEquals('test@flarum.org', $user->email);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_can_register_a_new_user_when_hash_is_on()
     {
         $this->setting('fof-anti-spam.emailhash', true);
@@ -63,9 +60,7 @@ class RegistrationTest extends TestCase
         $this->it_can_register_a_new_user();
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_rejects_registration_from_a_known_spammer()
     {
         $response = $this->send(
@@ -84,9 +79,7 @@ class RegistrationTest extends TestCase
         $this->assertEquals('/data/attributes/username', $body['errors'][0]['source']['pointer']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_rejects_registration_from_a_known_spammer_when_hash_is_on()
     {
         $this->setting('fof-anti-spam.emailhash', true);

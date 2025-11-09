@@ -15,25 +15,10 @@ use Illuminate\Support\Arr;
 
 class SfsResponse
 {
-    /**
-     * @var bool
-     */
-    public $success;
-
-    /**
-     * @var IpFieldData|null
-     */
-    public $ip;
-
-    /**
-     * @var BasicFieldData|null
-     */
-    public $username;
-
-    /**
-     * @var BasicFieldData|null
-     */
-    public $email;
+    public bool $success;
+    public ?IpFieldData $ip;
+    public ?BasicFieldData $username;
+    public ?BasicFieldData $email;
 
     public function __construct(array $data)
     {
@@ -46,39 +31,16 @@ class SfsResponse
 
 class BasicFieldData
 {
-    /**
-     * @var string
-     */
-    public $value;
-
-    /**
-     * @var bool
-     */
-    public $appears;
-
-    /**
-     * @var int|null
-     */
-    public $frequency = null;
-
-    /**
-     * @var string|null
-     */
-    public $lastseen = null;
-
-    /**
-     * @var float|null
-     */
-    public $confidence = null;
-
-    /**
-     * @var bool|null
-     */
-    public $blacklisted;
+    public string $value;
+    public bool $appears;
+    public ?int $frequency;
+    public ?string $lastseen;
+    public ?float $confidence;
+    public bool $blacklisted;
 
     public function __construct(array $fieldData)
     {
-        $this->value = Arr::get($fieldData, 'value');
+        $this->value = (string) Arr::get($fieldData, 'value', '');
         $this->appears = Arr::get($fieldData, 'appears') !== null ? (bool) Arr::get($fieldData, 'appears') : false;
         $this->frequency = Arr::get($fieldData, 'frequency') !== null ? (int) Arr::get($fieldData, 'frequency') : null;
         $this->lastseen = Arr::get($fieldData, 'lastseen');
@@ -89,20 +51,17 @@ class BasicFieldData
 
 class IpFieldData extends BasicFieldData
 {
-    /**
-     * @var int|null
-     */
-    public $asn = null;
-
-    /**
-     * @var string|null
-     */
-    public $country = null;
+    public ?int $asn;
+    public ?string $country;
+    public ?bool $torexit;
+    public ?string $delegated;
 
     public function __construct(array $fieldData)
     {
         parent::__construct($fieldData);
         $this->asn = Arr::get($fieldData, 'asn') !== null ? (int) Arr::get($fieldData, 'asn') : null;
         $this->country = Arr::get($fieldData, 'country');
+        $this->torexit = Arr::get($fieldData, 'torexit') !== null ? (bool) Arr::get($fieldData, 'torexit') : null;
+        $this->delegated = Arr::get($fieldData, 'delegated');
     }
 }
