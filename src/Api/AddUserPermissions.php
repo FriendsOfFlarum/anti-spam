@@ -11,19 +11,15 @@
 
 namespace FoF\AntiSpam\Api;
 
-use Flarum\Api\Context;
-use Flarum\Api\Schema;
+use Flarum\Api\Serializer\UserSerializer;
 use Flarum\User\User;
 
 class AddUserPermissions
 {
-    public function __invoke(): array
+    public function __invoke(UserSerializer $serializer, User $user, array $attributes): array
     {
-        return [
-            Schema\Boolean::make('canSpamblock')
-                ->get(function (User $user, Context $context) {
-                    return $context->getActor()->can('spamblock', $user);
-                }),
-        ];
+        $attributes['canSpamblock'] = $serializer->getActor()->can('spamblock', $user);
+
+        return $attributes;
     }
 }

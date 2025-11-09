@@ -12,12 +12,18 @@
 namespace FoF\AntiSpam\Command;
 
 use Carbon\Carbon;
+use Flarum\Discussion\Command\EditDiscussion;
 use Flarum\Extension\ExtensionManager;
+use Flarum\Flags\Command\DeleteFlags;
+use Flarum\Post\Command\EditPost;
 use Flarum\Settings\SettingsRepositoryInterface;
+use Flarum\User\Command\DeleteUser;
+use Flarum\User\Command\EditUser;
 use Flarum\User\Guest;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 use FoF\AntiSpam\Job\ReportSpammerJob;
+use Illuminate\Contracts\Bus\Dispatcher as Bus;
 use Illuminate\Contracts\Events\Dispatcher as Events;
 use Illuminate\Contracts\Queue\Queue;
 use Illuminate\Support\Arr;
@@ -25,6 +31,18 @@ use Psr\Log\LoggerInterface;
 
 class MarkUserAsSpammerHandler
 {
+    public $extensions;
+
+    public $bus;
+
+    public $events;
+
+    public $settings;
+
+    public $queue;
+
+    public $log;
+
     /**
      * @var bool
      */
@@ -52,13 +70,14 @@ class MarkUserAsSpammerHandler
 
     const settings_prefix = 'fof-anti-spam.actions.';
 
-    public function __construct(
-        public ExtensionManager $extensions,
-        public Events $events,
-        public SettingsRepositoryInterface $settings,
-        public Queue $queue,
-        public LoggerInterface $log
-    ) {
+    public function __construct(ExtensionManager $extensions, Bus $bus, Events $events, SettingsRepositoryInterface $settings, Queue $queue, LoggerInterface $log)
+    {
+        $this->extensions = $extensions;
+        $this->bus = $bus;
+        $this->events = $events;
+        $this->settings = $settings;
+        $this->queue = $queue;
+        $this->log = $log;
     }
 
     public function handle(MarkUserAsSpammer $command): User
@@ -73,7 +92,7 @@ class MarkUserAsSpammerHandler
         $this->handleDiscussions($user, $actor);
 
         $this->handlePosts($user, $actor);
-        $this->handleUser($user);
+        $this->handleUser($user, $actor);
 
         $this->events->dispatch(
             new MarkedUserAsSpammer($user, $actor)
@@ -107,23 +126,27 @@ class MarkUserAsSpammerHandler
      * Takes the defined actions on the User.
      *
      * @param User $user
+     * @param User $actor
      * @return void
      */
-    protected function handleUser(User $user): void
+    protected function handleUser(User $user, User $actor): void
     {
         if ($this->deleteUser) {
-            // Direct deletion - events fire via Eloquent model
-            $user->delete();
-        } elseif ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
-            // Direct property update - events fire when model is saved
-            $user->suspended_until = Carbon::now()->addYears(20);
-            $user->save();
+            $this->bus->dispatch(
+                new DeleteUser($user->id, $actor)
+            );
+        }
+        /** @phpstan-ignore-next-line */
+        elseif ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
+            $this->bus->dispatch(
+                new EditUser($user->id, $actor, [
+                    'attributes' => ['suspendedUntil' => Carbon::now()->addYears(20)],
+                ])
+            );
         }
 
-        if (! $this->deleteUser) {
-            $user->refreshDiscussionCount();
-            $user->refreshCommentCount();
-        }
+        $user->refreshDiscussionCount();
+        $user->refreshCommentCount();
     }
 
     /**
@@ -136,20 +159,23 @@ class MarkUserAsSpammerHandler
     protected function handlePosts(User $user, User $actor): void
     {
         if ($this->deletePosts) {
-            // Bulk deletion: use direct Eloquent for performance, events still fire on model
             $user->posts()->delete();
         } else {
-            // Bulk hide: use model methods which fire Hidden events
             $flagsEnabled = $this->flagsEnabled();
 
-            $user->posts()->where('hidden_at', null)->get()->each(function ($post) use ($actor, $flagsEnabled) {
-                /** @var \Flarum\Post\CommentPost $post */
-                $post->hide($actor);
-                $post->save();
+            $user->posts()->where('hidden_at', null)->chunk(50, function ($posts) use ($actor, $flagsEnabled) {
+                foreach ($posts as $post) {
+                    $this->bus->dispatch(
+                        new EditPost($post->id, $actor, [
+                            'attributes' => ['isHidden' => true],
+                        ])
+                    );
 
-                if ($flagsEnabled) {
-                    // Flags are deleted via the post relationship
-                    $post->flags()->delete();
+                    if ($flagsEnabled) {
+                        $this->bus->dispatch(
+                            new DeleteFlags($post->id, $actor)
+                        );
+                    }
                 }
             });
         }
@@ -165,22 +191,25 @@ class MarkUserAsSpammerHandler
     protected function handleDiscussions(User $user, User $actor): void
     {
         if ($this->deleteDiscussions) {
-            // Bulk deletion: use direct Eloquent for performance
             $user->discussions()->delete();
         } else {
-            // Bulk hide: use model methods which fire Hidden events
-            $user->discussions()->where('hidden_at', null)->get()->each(function ($discussion) use ($actor) {
-                $discussion->hide($actor);
-                $discussion->save();
+            $user->discussions()->where('hidden_at', null)->chunk(50, function ($discussions) use ($actor) {
+                foreach ($discussions as $discussion) {
+                    $this->bus->dispatch(
+                        new EditDiscussion($discussion->id, $actor, [
+                            'attributes' => ['isHidden' => true],
+                        ])
+                    );
+                }
             });
 
             if ($this->moveDiscussionsToQuarantine) {
-                $this->moveUserDiscussionsToQuarantine($user);
+                $this->moveUserDiscussionsToQuarantine($user, $actor);
             }
         }
     }
 
-    protected function moveUserDiscussionsToQuarantine(User $user): void
+    protected function moveUserDiscussionsToQuarantine(User $user, User $actor): void
     {
         if (! $this->moveDiscussionsToQuarantine) {
             return;
@@ -191,15 +220,30 @@ class MarkUserAsSpammerHandler
 
         $tags = json_decode($quarantineTagsString);
 
-        if (! $tags || ! is_array($tags)) {
+        if (! $tags) {
             return;
         }
 
-        // Use Eloquent relationship sync which fires tag events
+        $data = [];
+
+        foreach ($tags as $tag) {
+            $data[] = [
+                'type' => 'tags',
+                'id' => $tag,
+            ];
+        }
+
         foreach ($discussions as $discussion) {
-            /** @phpstan-ignore-next-line - tags() relationship is added by flarum/tags extension */
-            $discussion->tags()->sync($tags);
-            $discussion->unsetRelation('tags');
+            $this->bus->dispatch(
+                new EditDiscussion($discussion->id, $actor, [
+                    'attributes' => [],
+                    'relationships' => [
+                        'tags' => [
+                            'data' => $data,
+                        ],
+                    ],
+                ])
+            );
         }
     }
 
@@ -211,12 +255,12 @@ class MarkUserAsSpammerHandler
 
         $post = $user->posts()->first();
 
-        // Only report if we have a valid public IP address
-        // Don't fall back to a fake IP as it would report an innocent address
-        if (! $post || ! filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
-            return;
+        $ipAddress = '8.8.8.8';
+
+        if ($post && filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
+            $ipAddress = $post->ip_address;
         }
 
-        $this->queue->push(new ReportSpammerJob($user->username, $user->email, $post->ip_address));
+        $this->queue->push(new ReportSpammerJob($user->username, $user->email, $ipAddress));
     }
 }

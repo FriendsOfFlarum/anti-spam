@@ -7,10 +7,10 @@
   }
 
   &--settings {
-    background: var(--control-bg); // Use control background for coherence
+    background: @control-bg; // Use control background for coherence
     padding: 20px;
-    border-radius: var(--border-radius); // Consistent border radius
-    box-shadow: 0 2px 4px var(--shadow-color); // Subtle shadow for depth
+    border-radius: @border-radius; // Consistent border radius
+    box-shadow: 0 2px 4px @shadow-color; // Subtle shadow for depth
     //max-width: 720px;
     margin: 0 auto; // Center align for better presentation
 
@@ -19,30 +19,30 @@
     }
 
     .Section {
-      background: var(--body-bg); // Contrast with the section background
-      border-radius: var(--border-radius);
-      box-shadow: 0 1px 3px var(--shadow-color);
+      background: @body-bg; // Contrast with the section background
+      border-radius: @border-radius;
+      box-shadow: 0 1px 3px @shadow-color;
       padding: 15px;
       margin-bottom: 20px;
 
       h3 {
-        color: var(--primary-color); // Primary color for headings
+        color: @primary-color; // Primary color for headings
         margin-bottom: 10px;
       }
     }
 
     .Form {
       .control {
-        background: var(--body-bg);
-        border: 1px solid var(--muted-color); // Defines the input fields
-        color: var(--text-color);
+        background: @body-bg;
+        border: 1px solid @muted-color; // Defines the input fields
+        color: @text-color;
         padding: 6px 12px;
-        border-radius: var(--border-radius);
+        border-radius: @border-radius;
       }
 
       .Button {
-        background: var(--primary-color); // Button with primary color
-        color: var(--body-bg);
+        background: @primary-color; // Button with primary color
+        color: @body-bg;
 
         &:hover {
           background: darken(@primary-color, 5%);
@@ -52,17 +52,17 @@
   }
 
   &--blockedRegistrations {
-    background: var(--control-bg); // Use control background for coherence
+    background: @control-bg; // Use control background for coherence
     padding: 20px;
-    border-radius: var(--border-radius); // Consistent border radius
-    box-shadow: 0 2px 4px var(--shadow-color); // Subtle shadow for depth
+    border-radius: @border-radius; // Consistent border radius
+    box-shadow: 0 2px 4px @shadow-color; // Subtle shadow for depth
 
     .Form {
       margin-bottom: 20px;
     }
 
     h3 {
-      color: var(--primary-color); // Primary color for headings
+      color: @primary-color; // Primary color for headings
       margin-bottom: 10px;
     }
 
@@ -72,15 +72,15 @@
         grid-template-columns: auto 1fr auto;
         gap: 10px;
         align-items: center;
-        background: var(--body-bg);
-        border-radius: var(--border-radius);
-        box-shadow: 0 1px 3px var(--shadow-color);
+        background: @body-bg;
+        border-radius: @border-radius;
+        box-shadow: 0 1px 3px @shadow-color;
         margin-bottom: 10px;
         padding: 10px;
         transition: box-shadow 0.3s;
 
         &:hover {
-          box-shadow: 0 2px 5px var(--shadow-color);
+          box-shadow: 0 2px 5px @shadow-color;
         }
 
         .BlockedRegistrations-item--details {

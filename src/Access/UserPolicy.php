@@ -16,12 +16,10 @@ use Flarum\User\User;
 
 class UserPolicy extends AbstractPolicy
 {
-    public function spamblock(User $actor, User $user): ?string
+    public function spamblock(User $actor, User $user)
     {
         if ($actor->id === $user->id || $user->can('user.spamblock')) {
             return $this->deny();
         }
-
-        return null;
     }
 }

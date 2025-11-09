@@ -15,7 +15,19 @@ use Flarum\User\User;
 
 class MarkedUserAsSpammer
 {
-    public function __construct(public User $user, public ?User $actor = null)
+    /**
+     * @var User
+     */
+    public $user;
+
+    /**
+     * @var User|null
+     */
+    public $actor;
+
+    public function __construct(User $user, ?User $actor = null)
     {
+        $this->user = $user;
+        $this->actor = $actor;
     }
 }

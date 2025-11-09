@@ -12,22 +12,15 @@
 namespace FoF\AntiSpam\Providers;
 
 use Flarum\Foundation\AbstractServiceProvider;
-use Flarum\Settings\SettingsRepositoryInterface;
 use FoF\AntiSpam\Api\SfsClient;
-use Illuminate\Contracts\Cache\Store;
 use Illuminate\Contracts\Container\Container;
-use Psr\Log\LoggerInterface;
 
 class SfsProvider extends AbstractServiceProvider
 {
     public function register()
     {
         $this->container->singleton(SfsClient::class, function (Container $container) {
-            return new SfsClient(
-                $container->make(SettingsRepositoryInterface::class),
-                $container->make(Store::class),
-                $container->make(LoggerInterface::class)
-            );
+            return new SfsClient($container->make('flarum.settings'));
         });
     }
 }

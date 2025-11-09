@@ -15,7 +15,10 @@ use FoF\AntiSpam\Model\BlockedRegistration;
 
 class RegistrationWasBlocked
 {
-    public function __construct(public BlockedRegistration $blocked)
+    public $blocked;
+
+    public function __construct(BlockedRegistration $blocked)
     {
+        $this->blocked = $blocked;
     }
 }

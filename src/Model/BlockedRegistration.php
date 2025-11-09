@@ -13,7 +13,6 @@ namespace FoF\AntiSpam\Model;
 
 use Carbon\Carbon;
 use Flarum\Database\AbstractModel;
-use Flarum\Database\ScopeVisibilityTrait;
 
 /**
  * @property int    $id
@@ -27,8 +26,6 @@ use Flarum\Database\ScopeVisibilityTrait;
  */
 class BlockedRegistration extends AbstractModel
 {
-    use ScopeVisibilityTrait;
-
     public $table = 'blocked_registrations';
 
     public $casts = [

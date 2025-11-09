@@ -1,4 +1,3 @@
-import Form from 'flarum/common/components/Form';
 import Button from 'flarum/common/components/Button';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import User from 'flarum/common/models/User';
@@ -23,8 +22,7 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
 
     this.user = this.attrs.user;
 
-    const antiSpamData = app.forum.attribute('fof-anti-spam') as Record<string, any>;
-    const defaultActions = antiSpamData['default-options'] as Record<string, any>;
+    const defaultActions = app.forum.attribute('fof-anti-spam')['default-options'];
     this.hardDeleteUser = defaultActions['deleteUser'];
     this.hardDeleteDiscussions = defaultActions['deleteDiscussions'];
     this.hardDeletePosts = defaultActions['deletePosts'];
@@ -44,12 +42,11 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
 
   content() {
     const tagsEnabled = app.initializers.has('flarum-tags');
-    const antiSpamData = app.forum.attribute('fof-anti-spam') as Record<string, any>;
-    const sfsEnabled = !!(antiSpamData['stopforumspam'] as Record<string, any>)?.['enabled'];
+    const sfsEnabled = !!app.forum.attribute('fof-anti-spam')['stopforumspam']['enabled'];
 
     return (
       <div className="Modal-body">
-        <Form>
+        <div className="Form">
           <p className="helpText">{app.translator.trans('fof-anti-spam.forum.spammer_modal.intro')}</p>
           <div className="Form-group">
             <Switch
@@ -116,7 +113,7 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
               {app.translator.trans('fof-anti-spam.forum.spammer_modal.process_button')}
             </Button>
           </div>
-        </Form>
+        </div>
       </div>
     );
   }

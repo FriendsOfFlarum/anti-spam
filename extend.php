@@ -11,8 +11,8 @@
 
 namespace FoF\AntiSpam;
 
-use Flarum\Api\Resource\ForumResource;
-use Flarum\Api\Resource\UserResource;
+use Flarum\Api\Serializer\ForumSerializer;
+use Flarum\Api\Serializer\UserSerializer;
 use Flarum\Extend;
 use Flarum\User\User;
 
@@ -28,19 +28,21 @@ return [
     new Extend\Locales(__DIR__.'/locale'),
 
     (new Extend\Routes('api'))
-        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class),
+        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
+        ->get('/blocked-registrations', 'fof-anti-spam.blocked-registrations.index', Api\Controllers\ListBlockedRegistrationsController::class)
+        ->delete('/blocked-registrations/{id}', 'fof-anti-spam.blocked-registrations.delete', Api\Controllers\DeleteBlockedRegistrationController::class),
 
-    (new Extend\ApiResource(ForumResource::class))
-        ->fields(Api\AddForumFields::class),
+    (new Extend\ApiSerializer(ForumSerializer::class))
+        ->attributes(Api\AddForumAttributes::class),
 
-    (new Extend\ApiResource(UserResource::class))
-        ->fields(Api\AddUserPermissions::class),
+    (new Extend\ApiSerializer(UserSerializer::class))
+        ->attributes(Api\AddUserPermissions::class),
 
     (new Extend\Policy())
         ->modelPolicy(User::class, Access\UserPolicy::class),
 
     (new Extend\Middleware('forum'))
-        ->add(Middleware\CheckRegistrationMiddleware::class),
+        ->add(Middleware\CheckLoginMiddleware::class),
 
     (new Extend\Settings())
         ->default('fof-anti-spam.regionalEndpoint', 'closest')
@@ -59,6 +61,4 @@ return [
 
     (new Extend\ServiceProvider())
         ->register(Providers\SfsProvider::class),
-
-    new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
 ];

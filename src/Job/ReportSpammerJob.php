@@ -18,11 +18,18 @@ use Psr\Log\LoggerInterface;
 
 class ReportSpammerJob extends AbstractJob
 {
-    public function __construct(public string $username, public string $email, public string $ipAddress)
+    public $username;
+    public $email;
+    public $ipAddress;
+
+    public function __construct(string $username, string $email, string $ipAddress)
     {
+        $this->username = $username;
+        $this->email = $email;
+        $this->ipAddress = $ipAddress;
     }
 
-    public function handle(StopForumSpam $sfs, SfsClient $client, LoggerInterface $log): void
+    public function handle(StopForumSpam $sfs, SfsClient $client, LoggerInterface $log)
     {
         if (! $sfs->isEnabled()) {
             return;

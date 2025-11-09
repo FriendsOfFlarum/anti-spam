@@ -24,7 +24,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-class CheckRegistrationMiddleware implements MiddlewareInterface
+class CheckLoginMiddleware implements MiddlewareInterface
 {
     /**
      * @var string
@@ -36,8 +36,20 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
      */
     private $providerData = [];
 
-    public function __construct(private StopForumSpam $sfs, private UrlGenerator $url)
+    /**
+     * @var StopForumSpam
+     */
+    private $sfs;
+
+    /**
+     * @var UrlGenerator
+     */
+    private $url;
+
+    public function __construct(StopForumSpam $sfs, UrlGenerator $url)
     {
+        $this->sfs = $sfs;
+        $this->url = $url;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -47,27 +59,14 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
         if ($request->getUri()->getPath() === $registerPath) {
             $data = $request->getParsedBody();
 
-            // Ensure data is an array and has required fields
-            if (! is_array($data)) {
-                return $handler->handle($request);
-            }
-
-            $email = Arr::get($data, 'email');
-            $username = Arr::get($data, 'username');
-
-            // Skip spam check if essential data is missing (let normal validation handle it)
-            if (empty($email) && empty($username)) {
-                return $handler->handle($request);
-            }
-
             if (! $this->isOAuthRegistration($data)) {
                 $this->providerData = $data;
             }
 
-            $shouldPrevent = $this->sfs->shouldPreventRegistration(
+            $shouldPrevent = $this->sfs->shouldPreventLogin(
                 $this->getIpAddress($request),
-                $email,
-                $username,
+                $data['email'],
+                $data['username'],
                 $this->provider,
                 $this->providerData
             );
@@ -91,28 +90,10 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
     {
         $serverParams = $request->getServerParams();
 
-        // Priority order: CF (trusted CDN) > X-Forwarded-For > Client-IP > Remote
-        $ip = Arr::get($serverParams, 'HTTP_CF_CONNECTING_IP')
-            ?? Arr::get($serverParams, 'HTTP_CLIENT_IP')
+        return Arr::get($serverParams, 'HTTP_CLIENT_IP')
+            ?? Arr::get($serverParams, 'HTTP_CF_CONNECTING_IP')
             ?? Arr::get($serverParams, 'HTTP_X_FORWARDED_FOR')
             ?? Arr::get($serverParams, 'REMOTE_ADDR');
-
-        if ($ip === null) {
-            return null;
-        }
-
-        // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
-        // We want the first (original client) IP only
-        if (str_contains($ip, ',')) {
-            $ip = trim(explode(',', $ip)[0]);
-        }
-
-        // Validate IP address format
-        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
-            return null;
-        }
-
-        return $ip;
     }
 
     protected function isOAuthRegistration(array $data): bool
