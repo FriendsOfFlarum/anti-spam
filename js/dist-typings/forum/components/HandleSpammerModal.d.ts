@@ -1,4 +1,3 @@
-/// <reference types="flarum/@types/translator-icu-rich" />
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import User from 'flarum/common/models/User';
 import type Mithril from 'mithril';
@@ -14,7 +13,7 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
     reportToSfs: boolean;
     oninit(vnode: Mithril.Vnode<HandleSpammerModalAttrs>): void;
     className(): string;
-    title(): import("@askvortsov/rich-icu-message-formatter").NestedStringArray;
+    title(): any[];
     content(): JSX.Element;
     submitData(): void;
 }
