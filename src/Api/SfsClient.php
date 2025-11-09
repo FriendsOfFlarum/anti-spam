@@ -22,7 +22,7 @@ class SfsClient
     public const KEY = 'fof-anti-spam.api_key';
 
     /**
-     * Cache TTL in seconds (1 hour)
+     * Cache TTL in seconds (1 hour).
      */
     private const CACHE_TTL = 3600;
 
@@ -61,7 +61,7 @@ class SfsClient
     public function check(?string $ip, ?string $email, ?string $username): SfsResponse
     {
         // Generate cache key based on checked fields
-        $cacheKey = 'sfs_check_' . md5(($ip ?? '') . '|' . ($email ?? '') . '|' . ($username ?? ''));
+        $cacheKey = 'sfs_check_'.md5(($ip ?? '').'|'.($email ?? '').'|'.($username ?? ''));
 
         // Try to get from cache first
         $cachedResponse = $this->cache->get($cacheKey);

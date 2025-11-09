@@ -11,16 +11,10 @@
 
 namespace FoF\AntiSpam;
 
-use Flarum\Api\Serializer\ForumSerializer;
-use Flarum\Api\Serializer\UserSerializer;
-use Flarum\Extend;
-use Flarum\User\User;
-use Flarum\Api\Context;
-use Flarum\Api\Endpoint;
-use Flarum\Api\Resource;
 use Flarum\Api\Resource\ForumResource;
 use Flarum\Api\Resource\UserResource;
-use Flarum\Api\Schema;
+use Flarum\Extend;
+use Flarum\User\User;
 
 return [
     (new Extend\Frontend('forum'))

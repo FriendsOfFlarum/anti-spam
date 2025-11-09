@@ -13,9 +13,9 @@ namespace FoF\AntiSpam\Tests\integration\api;
 
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
+use Flarum\User\User;
 use FoF\AntiSpam\Model\BlockedRegistration;
 use PHPUnit\Framework\Attributes\Test;
-use Flarum\User\User;
 
 class BlockedRegistrationsTest extends TestCase
 {

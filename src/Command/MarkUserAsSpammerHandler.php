@@ -120,7 +120,7 @@ class MarkUserAsSpammerHandler
             $user->save();
         }
 
-        if (!$this->deleteUser) {
+        if (! $this->deleteUser) {
             $user->refreshDiscussionCount();
             $user->refreshCommentCount();
         }
@@ -213,7 +213,7 @@ class MarkUserAsSpammerHandler
 
         // Only report if we have a valid public IP address
         // Don't fall back to a fake IP as it would report an innocent address
-        if (!$post || !filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
+        if (! $post || ! filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
             return;
         }
 

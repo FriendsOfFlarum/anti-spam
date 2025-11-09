@@ -28,7 +28,7 @@ use Flarum\Database\ScopeVisibilityTrait;
 class BlockedRegistration extends AbstractModel
 {
     use ScopeVisibilityTrait;
-    
+
     public $table = 'blocked_registrations';
 
     public $casts = [

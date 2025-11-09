@@ -11,8 +11,8 @@
 
 namespace FoF\AntiSpam\Api;
 
-use Flarum\Api\Schema;
 use Flarum\Api\Context;
+use Flarum\Api\Schema;
 use Flarum\User\User;
 
 class AddUserPermissions

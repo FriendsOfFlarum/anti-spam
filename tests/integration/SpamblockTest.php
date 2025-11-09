@@ -12,13 +12,13 @@
 namespace FoF\AntiSpam\Tests\integration;
 
 use Carbon\Carbon;
+use Flarum\Discussion\Discussion;
 use Flarum\Group\Group;
 use Flarum\Post\CommentPost;
+use Flarum\Post\Post;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
 use PHPUnit\Framework\Attributes\Test;
-use Flarum\Discussion\Discussion;
-use Flarum\Post\Post;
 
 class SpamblockTest extends TestCase
 {

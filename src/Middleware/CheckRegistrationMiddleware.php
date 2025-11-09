@@ -48,7 +48,7 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
             $data = $request->getParsedBody();
 
             // Ensure data is an array and has required fields
-            if (!is_array($data)) {
+            if (! is_array($data)) {
                 return $handler->handle($request);
             }
 

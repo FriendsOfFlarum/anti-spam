@@ -29,6 +29,7 @@ class StopForumSpamTest extends TestCase
     {
         $mock = $this->createMock(SfsClient::class);
         $mock->method('check')->willReturn($response);
+
         return $mock;
     }
 

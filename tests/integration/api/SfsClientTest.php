@@ -123,7 +123,7 @@ class SfsClientTest extends TestCase
 
         // Get cache to verify it was stored
         $cache = $this->app()->getContainer()->make(Store::class);
-        $cacheKey = 'sfs_check_' . md5(($testIp ?? '') . '|' . ($testEmail ?? '') . '|' . ($testUsername ?? ''));
+        $cacheKey = 'sfs_check_'.md5(($testIp ?? '').'|'.($testEmail ?? '').'|'.($testUsername ?? ''));
         $cachedData = $cache->get($cacheKey);
 
         $this->assertNotNull($cachedData, 'Response should be cached');
@@ -147,8 +147,8 @@ class SfsClientTest extends TestCase
 
         // Verify different cache keys exist
         $cache = $this->app()->getContainer()->make(Store::class);
-        $cacheKey1 = 'sfs_check_' . md5('1.2.3.4|test1@example.com|user1');
-        $cacheKey2 = 'sfs_check_' . md5('5.6.7.8|test2@example.com|user2');
+        $cacheKey1 = 'sfs_check_'.md5('1.2.3.4|test1@example.com|user1');
+        $cacheKey2 = 'sfs_check_'.md5('5.6.7.8|test2@example.com|user2');
 
         $this->assertNotEquals($cacheKey1, $cacheKey2, 'Cache keys should be different');
 
@@ -216,7 +216,7 @@ class SfsClientTest extends TestCase
         $this->assertFalse($response->success);
 
         // Verify failed response was not cached
-        $cacheKey = 'sfs_check_' . md5('1.2.3.4|test@example.com|username');
+        $cacheKey = 'sfs_check_'.md5('1.2.3.4|test@example.com|username');
         $cachedData = $cache->get($cacheKey);
 
         $this->assertNull($cachedData, 'Failed responses should not be cached');
