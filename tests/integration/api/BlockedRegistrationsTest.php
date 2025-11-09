@@ -13,7 +13,9 @@ namespace FoF\AntiSpam\Tests\integration\api;
 
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
+use Flarum\User\User;
 use FoF\AntiSpam\Model\BlockedRegistration;
+use PHPUnit\Framework\Attributes\Test;
 
 class BlockedRegistrationsTest extends TestCase
 {
@@ -24,7 +26,7 @@ class BlockedRegistrationsTest extends TestCase
         $this->extension('fof-anti-spam');
 
         $this->prepareDatabase([
-            'users' => [
+            User::class => [
                 $this->normalUser(),
                 ['id' => 3, 'username' => 'moderator', 'email' => 'moderator@machine.local', 'is_email_confirmed' => true]
             ],
@@ -34,15 +36,13 @@ class BlockedRegistrationsTest extends TestCase
             'group_permission' => [
                 ['permission' => 'fof-anti-spam.viewBlockedRegistrations', 'group_id' => 4]
             ],
-            'blocked_registrations' => [
+            BlockedRegistration::class => [
                 ['id' => 1, 'ip' => '127.0.0.1', 'email' => 'spammer@machine.local', 'username' => 'spammer', 'attempted_at' => '2020-01-01 00:00:00']
             ]
         ]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_without_permission_cannot_list_blocked_registrations()
     {
         $response = $this->send(
@@ -58,9 +58,7 @@ class BlockedRegistrationsTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_with_permission_can_list_blocked_registrations()
     {
         $response = $this->send(
@@ -75,26 +73,22 @@ class BlockedRegistrationsTest extends TestCase
 
         $this->assertEquals(200, $response->getStatusCode());
 
-        $body = json_decode($response->getBody()->getContents());
-
-        // assert response has pagination links
-        $this->assertObjectHasProperty('links', $body);
-        $this->assertObjectHasProperty('first', $body->links);
+        $body = json_decode($response->getBody()->getContents(), true);
 
         // assert response has data
-        $this->assertObjectHasProperty('data', $body);
-        $this->assertCount(1, $body->data);
+        $this->assertArrayHasKey('data', $body);
+        $this->assertCount(1, $body['data']);
 
-        $data = $body->data[0];
+        $data = $body['data'][0];
 
-        $this->assertEquals(1, $data->id);
-        $this->assertEquals('127.0.0.1', $data->attributes->ip);
-        $this->assertEquals('spammer@machine.local', $data->attributes->email);
+        $this->assertEquals('1', $data['id']);
+        $this->assertEquals('blocked-registrations', $data['type']);
+        $this->assertEquals('127.0.0.1', $data['attributes']['ip']);
+        $this->assertEquals('spammer@machine.local', $data['attributes']['email']);
+        $this->assertEquals('spammer', $data['attributes']['username']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_without_permission_cannot_delete_blocked_registrations()
     {
         $response = $this->send(
@@ -114,9 +108,7 @@ class BlockedRegistrationsTest extends TestCase
         $this->assertCount(1, $blocked);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function user_with_permission_can_delete_blocked_registrations()
     {
         $response = $this->send(

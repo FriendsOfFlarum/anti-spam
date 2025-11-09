@@ -9,7 +9,6 @@ import HandleSpammerModal from '../components/HandleSpammerModal';
 
 export default function addSpamblockControls() {
   extend(UserControls, 'moderationControls', function (items: ItemList<Mithril.Children>, user: User) {
-    /** @ts-ignore */
     user.canSpamblock() &&
       items.add(
         'spammer',
