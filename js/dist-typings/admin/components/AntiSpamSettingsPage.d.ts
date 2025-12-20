@@ -9,6 +9,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     blockedRegistrations: BlockedRegistration[] | null | undefined;
     currentPage: number;
     totalPages: number;
+    static register(): void;
     oninit(vnode: any): void;
     content(): JSX.Element;
     menuButtons(): Mithril.Children;
