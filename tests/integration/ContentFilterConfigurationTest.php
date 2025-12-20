@@ -224,8 +224,8 @@ class ContentFilterConfigurationTest extends TestCase
         // Database-configured value
         $this->assertEquals(10, $config->getDatabaseValue('monitor_post_count'));
 
-        // Code-only value returns database default (70), not null since extend.php sets defaults
-        $this->assertEquals(70, $config->getDatabaseValue('spam_threshold'), 'Should return database default from extend.php');
+        // Code-only value returns database default (50), not null since extend.php sets defaults
+        $this->assertEquals(50, $config->getDatabaseValue('spam_threshold'), 'Should return database default from extend.php');
     }
 
     #[Test]
@@ -312,7 +312,7 @@ class ContentFilterConfigurationTest extends TestCase
 
         // Should use defaults from extend.php settings
         $this->assertEquals(5, $config->get('monitor_post_count', 5));
-        $this->assertEquals(70, $config->get('spam_threshold', 70));
+        $this->assertEquals(50, $config->get('spam_threshold', 50));
         $this->assertTrue($config->get('detect_phones', true));
     }
 

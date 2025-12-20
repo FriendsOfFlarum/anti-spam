@@ -56,7 +56,7 @@ class EmailDetector extends AbstractDetector
         }
 
         // Found email addresses - calculate score
-        $score = min(50, $count * 30); // Cap at 50 points
+        $score = min(80, $count * 50); // 50 points per email, cap at 80
 
         $reasons = [];
         $emails = array_unique($matches[0]);

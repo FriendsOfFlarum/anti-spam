@@ -18,25 +18,17 @@ use Flarum\Post\Event\Revised;
 use Flarum\Post\Event\Saving;
 use Flarum\Post\Post;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
-use FoF\AntiSpam\ContentFilter\Analyzer;
 use Illuminate\Contracts\Events\Dispatcher;
-use Psr\Log\LoggerInterface;
 
 /**
  * Checks post content for spam when created or edited.
  */
-class CheckPostContent
+class CheckPostContent extends AbstractContentCheck
 {
     /**
      * @var array<int, AnalysisResult>
      */
     private array $pendingAnalysis = [];
-
-    public function __construct(
-        private Analyzer $analyzer,
-        private LoggerInterface $log
-    ) {
-    }
 
     public function subscribe(Dispatcher $events): void
     {
@@ -61,14 +53,14 @@ class CheckPostContent
         }
 
         // Don't check if actor is staff
-        if ($actor->isAdmin() || $actor->can('discussion.hide')) {
+        if ($this->isStaff($actor)) {
             return;
         }
 
         // Get the post content
         $content = $post->content ?? '';
 
-        if (empty($content)) {
+        if ($this->shouldSkipAnalysis($content)) {
             return;
         }
 
@@ -80,27 +72,19 @@ class CheckPostContent
         ]);
 
         // No spam indicators detected at all
-        if ($result->getTotalScore() === 0) {
+        if (! $this->shouldProcessResult($result)) {
             return;
         }
 
         // Log spam detection
-        $this->log->info(
-            "[FoF Anti Spam] Spam indicators detected in post by user {$actor->username} (ID: {$actor->id})",
-            [
-                'spam_score' => $result->getTotalScore(),
-                'reasons' => $result->getAllReasons(),
-                'will_flag' => $result->shouldFlag(),
-                'will_unapprove' => $result->shouldUnapprove(),
-            ]
-        );
+        $this->logSpamDetection($actor, $result, 'post');
 
         // Store analysis for after save (needed for flagging)
         $this->pendingAnalysis[spl_object_id($post)] = $result;
 
         // Take approval action immediately (before save)
         if ($result->shouldUnapprove()) {
-            $this->unapprovePost($post);
+            $this->unapprove($post);
         }
     }
 
@@ -124,43 +108,14 @@ class CheckPostContent
     }
 
     /**
-     * Unapprove the post.
-     */
-    private function unapprovePost(Post $post): void
-    {
-        $post->is_approved = false;
-
-        $this->log->info(
-            "[FoF Anti Spam] Unapproved post ID {$post->id} by user {$post->user_id}"
-        );
-    }
-
-    /**
      * Create a moderation flag.
      */
-    private function flagPost(Post $post, \FoF\AntiSpam\ContentFilter\AnalysisResult $result): void
+    private function flagPost(Post $post, AnalysisResult $result): void
     {
-        // Check if already flagged
-        $existingFlag = Flag::where('post_id', $post->id)
-            ->where('type', 'spam')
-            ->whereNull('hidden_at')
-            ->first();
-
-        if ($existingFlag) {
-            return; // Already flagged
+        if ($this->isAlreadyFlaggedForSpam($post->id)) {
+            return;
         }
 
-        // Create flag
-        $flag = new Flag();
-        $flag->post_id = $post->id;
-        $flag->type = 'spam';
-        $flag->reason = "Automatic spam detection (score: {$result->getTotalScore()})";
-        $flag->reason_detail = implode("\n", $result->getAllReasons());
-        $flag->created_at = Carbon::now();
-        $flag->save();
-
-        $this->log->info(
-            "[FoF Anti Spam] Created spam flag for post ID {$post->id}"
-        );
+        $this->createSpamFlag($post, $result);
     }
 }

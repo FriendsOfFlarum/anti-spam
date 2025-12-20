@@ -63,7 +63,7 @@ return [
         ->default('fof-anti-spam.content-filter.detect_phones', true)
         ->default('fof-anti-spam.content-filter.detect_emails', true)
         ->default('fof-anti-spam.content-filter.detect_urls', true)
-        ->default('fof-anti-spam.content-filter.spam_threshold', 70)
+        ->default('fof-anti-spam.content-filter.spam_threshold', 50)
         ->default('fof-anti-spam.content-filter.flag_threshold', 50)
         ->default('fof-anti-spam.content-filter.auto_unapprove', true)
         ->default('fof-anti-spam.content-filter.auto_flag', true),

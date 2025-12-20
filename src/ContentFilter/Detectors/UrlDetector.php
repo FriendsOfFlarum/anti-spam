@@ -87,7 +87,7 @@ class UrlDetector extends AbstractDetector
 
         // Calculate score based on number of flagged URLs
         $flaggedCount = count($flaggedUrls);
-        $score = min(60, $flaggedCount * 30); // Cap at 60 points
+        $score = min(80, $flaggedCount * 50); // 50 points per URL, cap at 80
 
         $reasons = [];
         if ($flaggedCount === 1) {

@@ -58,7 +58,7 @@ class PhoneDetector extends AbstractDetector
 
         // Found phone numbers - calculate score based on count
         // Each phone number adds to the score
-        $score = min(50, $count * 25); // Cap at 50 points (2+ phones)
+        $score = min(80, $count * 50); // 50 points per phone, cap at 80
 
         $reasons = [];
         $phoneNumbers = array_unique($matches[0]);

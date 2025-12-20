@@ -117,6 +117,9 @@ fof-anti-spam:
       delete_entry: Delete entry
 
   forum:
+    post:
+      flagged_as_spam_text: "Automatic Spam Detection - score {score}"
+
     message:
       stopforumspam:
         blocked: Details of your registration have been found in a spam prevention database, therefore your registration has been blocked.

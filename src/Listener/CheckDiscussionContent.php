@@ -11,23 +11,14 @@
 
 namespace FoF\AntiSpam\Listener;
 
-use Carbon\Carbon;
 use Flarum\Discussion\Event\Started;
-use Flarum\Flags\Flag;
-use FoF\AntiSpam\ContentFilter\Analyzer;
 use Illuminate\Contracts\Events\Dispatcher;
-use Psr\Log\LoggerInterface;
 
 /**
  * Checks discussion titles for spam when created.
  */
-class CheckDiscussionContent
+class CheckDiscussionContent extends AbstractContentCheck
 {
-    public function __construct(
-        private Analyzer $analyzer,
-        private LoggerInterface $log
-    ) {
-    }
 
     public function subscribe(Dispatcher $events): void
     {
@@ -40,13 +31,13 @@ class CheckDiscussionContent
         $actor = $event->actor;
 
         // Don't check if actor is staff
-        if ($actor->isAdmin() || $actor->can('discussion.hide')) {
+        if ($this->isStaff($actor)) {
             return;
         }
 
         $title = $discussion->title ?? '';
 
-        if (empty($title)) {
+        if ($this->shouldSkipAnalysis($title)) {
             return;
         }
 
@@ -57,25 +48,16 @@ class CheckDiscussionContent
         ]);
 
         // No spam indicators detected at all
-        if ($result->getTotalScore() === 0) {
+        if (! $this->shouldProcessResult($result)) {
             return;
         }
 
         // Log spam detection
-        $this->log->info(
-            "[FoF Anti Spam] Spam indicators detected in discussion title by user {$actor->username} (ID: {$actor->id})",
-            [
-                'title' => $title,
-                'spam_score' => $result->getTotalScore(),
-                'reasons' => $result->getAllReasons(),
-                'will_flag' => $result->shouldFlag(),
-                'will_unapprove' => $result->shouldUnapprove(),
-            ]
-        );
+        $this->logSpamDetection($actor, $result, 'discussion title', ['title' => $title]);
 
         // Take actions if above threshold
         if ($result->shouldUnapprove()) {
-            $this->unapproveDiscussion($discussion);
+            $this->unapprove($discussion);
         }
 
         if ($result->shouldFlag() && $discussion->first_post_id) {
@@ -84,43 +66,14 @@ class CheckDiscussionContent
     }
 
     /**
-     * Unapprove the discussion.
-     */
-    private function unapproveDiscussion(\Flarum\Discussion\Discussion $discussion): void
-    {
-        $discussion->is_approved = false;
-
-        $this->log->info(
-            "[FoF Anti Spam] Unapproved discussion ID {$discussion->id} by user {$discussion->user_id}"
-        );
-    }
-
-    /**
      * Create a moderation flag on first post.
      */
     private function flagFirstPost(\Flarum\Discussion\Discussion $discussion, \FoF\AntiSpam\ContentFilter\AnalysisResult $result): void
     {
-        // Check if already flagged
-        $existingFlag = Flag::where('post_id', $discussion->first_post_id)
-            ->where('type', 'spam')
-            ->whereNull('hidden_at')
-            ->first();
-
-        if ($existingFlag) {
-            return; // Already flagged
+        if ($this->isAlreadyFlaggedForSpam($discussion->first_post_id)) {
+            return;
         }
 
-        // Create flag
-        $flag = new Flag();
-        $flag->post_id = $discussion->first_post_id;
-        $flag->type = 'spam';
-        $flag->reason = "Automatic spam detection in discussion title (score: {$result->getTotalScore()})";
-        $flag->reason_detail = implode("\n", $result->getAllReasons());
-        $flag->created_at = Carbon::now();
-        $flag->save();
-
-        $this->log->info(
-            "[FoF Anti Spam] Created spam flag for discussion ID {$discussion->id}"
-        );
+        $this->createSpamFlag($discussion->firstPost, $result, 'in discussion title');
     }
 }

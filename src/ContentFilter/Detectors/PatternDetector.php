@@ -74,8 +74,8 @@ class PatternDetector extends AbstractDetector
                         'description' => $description,
                     ];
 
-                    // Each pattern match adds 20 points
-                    $totalScore += 20;
+                    // Each pattern match adds 50 points
+                    $totalScore += 50;
 
                     $reasons[] = $description ?: "Matched pattern: {$pattern}";
                 }
@@ -93,8 +93,8 @@ class PatternDetector extends AbstractDetector
             return new SpamScore();
         }
 
-        // Cap total score at 80
-        $totalScore = min(80, $totalScore);
+        // Cap total score at 100
+        $totalScore = min(100, $totalScore);
 
         return new SpamScore(
             score: $totalScore,
