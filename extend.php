@@ -57,6 +57,7 @@ return [
         ->default('fof-anti-spam.reportToStopForumSpam', true)
         ->default('fof-anti-spam.report_blocked_registrations', true)
         // Content filter defaults
+        ->default('fof-anti-spam.moderation.system_user_id', 1)
         ->default('fof-anti-spam.content-filter.enabled', true)
         ->default('fof-anti-spam.content-filter.monitor_post_count', 5)
         ->default('fof-anti-spam.content-filter.monitor_hours_old', 24)

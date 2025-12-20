@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Flags\Flag;
 use Flarum\Post\Post;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
 use FoF\AntiSpam\ContentFilter\Analyzer;
@@ -25,7 +26,8 @@ abstract class AbstractContentCheck
 {
     public function __construct(
         protected Analyzer $analyzer,
-        protected LoggerInterface $log
+        protected LoggerInterface $log,
+        protected SettingsRepositoryInterface $settings
     ) {
     }
 
@@ -152,15 +154,11 @@ abstract class AbstractContentCheck
 
     /**
      * Get the system actor to use for automatic flags.
-     *
-     * Returns the first admin user, or null if no admin exists.
-     * TODO: Make this configurable via settings to use a specific user ID.
      */
     protected function getSystemActor(): ?User
     {
-        // Try configured user ID first, then fallback to user ID 1 (default admin)
-        return User::where('id', 148)->first()
-            ?? User::where('id', 1)->first()
-            ?? null;
+        $actorId = $this->settings->get('fof-anti-spam.moderation.system_user_id');
+
+        return User::where('id', $actorId)->first() ?? null;
     }
 }

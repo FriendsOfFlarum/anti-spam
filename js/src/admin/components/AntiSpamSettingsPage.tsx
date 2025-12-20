@@ -87,6 +87,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
         help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
       })
       .registerSetting({
+        type: 'number',
+        setting: 'fof-anti-spam.moderation.system_user_id',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_help'),
+      })
+      .registerSetting({
         type: 'switch',
         setting: 'fof-anti-spam.sfs-lookup',
         label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_label'),
@@ -248,6 +254,16 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                 setting: 'fof-anti-spam.content-filter.auto_flag',
                 label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_label'),
                 help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
+              })}
+
+            {flagsEnabled &&
+              this.buildSettingComponent({
+                type: 'number',
+                setting: 'fof-anti-spam.moderation.system_user_id',
+                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_label'),
+                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_help'),
+                placeholder: '1',
+                min: 1,
               })}
 
             {!approvalEnabled && !flagsEnabled && (
