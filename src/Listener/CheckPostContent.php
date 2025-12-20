@@ -128,7 +128,6 @@ class CheckPostContent
      */
     private function unapprovePost(Post $post): void
     {
-        /** @phpstan-ignore-next-line - is_approved added by flarum/approval */
         $post->is_approved = false;
 
         $this->log->info(

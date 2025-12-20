@@ -88,7 +88,6 @@ class CheckDiscussionContent
      */
     private function unapproveDiscussion(\Flarum\Discussion\Discussion $discussion): void
     {
-        /** @phpstan-ignore-next-line - is_approved added by flarum/approval */
         $discussion->is_approved = false;
 
         $this->log->info(
