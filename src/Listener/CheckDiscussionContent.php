@@ -19,7 +19,6 @@ use Illuminate\Contracts\Events\Dispatcher;
  */
 class CheckDiscussionContent extends AbstractContentCheck
 {
-
     public function subscribe(Dispatcher $events): void
     {
         $events->listen(Started::class, [$this, 'checkDiscussion']);

@@ -11,7 +11,6 @@
 
 namespace FoF\AntiSpam\Listener;
 
-use Carbon\Carbon;
 use Flarum\Flags\Flag;
 use Flarum\Post\Event\Posted;
 use Flarum\Post\Event\Revised;

@@ -112,7 +112,7 @@ abstract class AbstractContentCheck
 
         $reasonDetail = implode("\n", $result->getAllReasons());
         if ($reasonPrefix) {
-            $reasonDetail = "Detected {$reasonPrefix}:\n\n" . $reasonDetail;
+            $reasonDetail = "Detected {$reasonPrefix}:\n\n".$reasonDetail;
         }
 
         $this->flag(
