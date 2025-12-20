@@ -19,7 +19,9 @@
         }
     ],
     "require": {
-        "flarum/core": "^2.0.0-beta"
+        "flarum/core": "^2.0.0",
+        "flarum/approval": "^2.0.0",
+        "flarum/flags": "^2.0.0"
     },
     "authors": [
         {
@@ -44,8 +46,6 @@
             },
             "optional-dependencies": [
                 "flarum/suspend",
-                "flarum/flags",
-                "flarum/approval",
                 "flarum/tags"
             ]
         },
@@ -68,7 +68,7 @@
             }
         }
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "beta",
     "prefer-stable": true,
     "autoload-dev": {
         "psr-4": {
@@ -94,13 +94,11 @@
         "analyse:phpstan": "Run static analysis"
     },
     "require-dev": {
-        "flarum/testing": "^2.0.0-beta",
-        "flarum/phpstan": "^2.0.0-beta",
-        "flarum/suspend": "^2.0.0-beta",
-        "flarum/flags": "^2.0.0-beta",
-        "fof/user-bio": "^2.0.0-beta",
-        "flarum/approval": "^2.0.0-beta",
-        "flarum/tags": "^2.0.0-beta",
-        "fof/oauth": "*"
+        "flarum/testing": "^2.0.0",
+        "flarum/phpstan": "^2.0.0",
+        "flarum/suspend": "^2.0.0",
+        "fof/user-bio": "^2.0.0",
+        "flarum/tags": "^2.0.0",
+        "fof/oauth": "^2.0.0"
     }
 }

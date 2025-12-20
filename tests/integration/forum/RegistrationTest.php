@@ -22,7 +22,7 @@ class RegistrationTest extends TestCase
     {
         parent::setUp();
 
-        $this->extension('fof-anti-spam');
+        $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
 
         $this->extend(
             (new Extend\Csrf)->exemptRoute('register')

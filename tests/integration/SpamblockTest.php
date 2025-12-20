@@ -26,7 +26,7 @@ class SpamblockTest extends TestCase
     {
         parent::setup();
 
-        $this->extension('fof-anti-spam');
+        $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
 
         $this->prepareDatabase([
             User::class => [

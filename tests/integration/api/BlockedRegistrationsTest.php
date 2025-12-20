@@ -23,7 +23,7 @@ class BlockedRegistrationsTest extends TestCase
 
     public function setUp(): void
     {
-        $this->extension('fof-anti-spam');
+        $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
 
         $this->prepareDatabase([
             User::class => [
