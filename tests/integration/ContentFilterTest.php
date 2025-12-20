@@ -65,7 +65,7 @@ class ContentFilterTest extends TestCase
         // Check if post was flagged
         $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
         $this->assertNotNull($flag, 'Post should be flagged as spam');
-        $this->assertStringContainsString('phone', strtolower($flag->reason), 'Flag reason should mention phone');
+        $this->assertStringContainsString('phone', strtolower($flag->reason_detail), 'Flag reason should mention phone');
 
         // Check if post was unapproved
         if (isset($post->is_approved)) {
@@ -104,7 +104,7 @@ class ContentFilterTest extends TestCase
         // Check if post was flagged
         $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
         $this->assertNotNull($flag, 'Post should be flagged as spam');
-        $this->assertStringContainsString('email', strtolower($flag->reason), 'Flag reason should mention email');
+        $this->assertStringContainsString('email', strtolower($flag->reason_detail), 'Flag reason should mention email');
     }
 
     #[Test]
@@ -138,7 +138,7 @@ class ContentFilterTest extends TestCase
         // Check if post was flagged
         $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
         $this->assertNotNull($flag, 'Post should be flagged as spam');
-        $this->assertStringContainsString('url', strtolower($flag->reason), 'Flag reason should mention URL');
+        $this->assertStringContainsString('url', strtolower($flag->reason_detail), 'Flag reason should mention URL');
     }
 
     #[Test]
@@ -324,7 +324,7 @@ class ContentFilterTest extends TestCase
         $this->assertNotNull($flag, 'Spam detection should be recorded');
 
         // Check that the flag reason contains multiple indicators
-        $reason = strtolower($flag->reason);
+        $reason = strtolower($flag->reason_detail);
         $indicators = 0;
         if (str_contains($reason, 'phone')) {
             $indicators++;

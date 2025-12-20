@@ -84,10 +84,11 @@ class CheckDiscussionContent
     }
 
     /**
-     * Unapprove the discussion (requires flarum/approval).
+     * Unapprove the discussion.
      */
     private function unapproveDiscussion(\Flarum\Discussion\Discussion $discussion): void
     {
+        /** @phpstan-ignore-next-line - is_approved added by flarum/approval */
         $discussion->is_approved = false;
 
         $this->log->info(
@@ -96,7 +97,7 @@ class CheckDiscussionContent
     }
 
     /**
-     * Create a moderation flag on first post (requires flarum/flags).
+     * Create a moderation flag on first post.
      */
     private function flagFirstPost(\Flarum\Discussion\Discussion $discussion, \FoF\AntiSpam\ContentFilter\AnalysisResult $result): void
     {
@@ -114,8 +115,8 @@ class CheckDiscussionContent
         $flag = new Flag();
         $flag->post_id = $discussion->first_post_id;
         $flag->type = 'spam';
-        $flag->reason = "Automatic spam detection in discussion title (score: {$result->getTotalScore()})\n\n"
-            .implode("\n", $result->getAllReasons());
+        $flag->reason = "Automatic spam detection in discussion title (score: {$result->getTotalScore()})";
+        $flag->reason_detail = implode("\n", $result->getAllReasons());
         $flag->created_at = Carbon::now();
         $flag->save();
 

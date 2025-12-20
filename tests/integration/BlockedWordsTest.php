@@ -65,7 +65,7 @@ class BlockedWordsTest extends TestCase
 
         $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
         $this->assertNotNull($flag, 'Post should be flagged for blocked word');
-        $this->assertStringContainsString('viagra', strtolower($flag->reason));
+        $this->assertStringContainsString('viagra', strtolower($flag->reason_detail));
     }
 
     #[Test]
@@ -97,7 +97,7 @@ class BlockedWordsTest extends TestCase
 
         $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
         $this->assertNotNull($flag, 'Post should be flagged for blocked phrase');
-        $this->assertStringContainsString('crypto pump', strtolower($flag->reason));
+        $this->assertStringContainsString('crypto pump', strtolower($flag->reason_detail));
     }
 
     #[Test]

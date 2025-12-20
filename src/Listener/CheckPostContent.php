@@ -128,6 +128,7 @@ class CheckPostContent
      */
     private function unapprovePost(Post $post): void
     {
+        /** @phpstan-ignore-next-line - is_approved added by flarum/approval */
         $post->is_approved = false;
 
         $this->log->info(
@@ -136,7 +137,7 @@ class CheckPostContent
     }
 
     /**
-     * Create a moderation flag (requires flarum/flags).
+     * Create a moderation flag.
      */
     private function flagPost(Post $post, \FoF\AntiSpam\ContentFilter\AnalysisResult $result): void
     {
@@ -154,8 +155,8 @@ class CheckPostContent
         $flag = new Flag();
         $flag->post_id = $post->id;
         $flag->type = 'spam';
-        $flag->reason = "Automatic spam detection (score: {$result->getTotalScore()})\n\n"
-            .implode("\n", $result->getAllReasons());
+        $flag->reason = "Automatic spam detection (score: {$result->getTotalScore()})";
+        $flag->reason_detail = implode("\n", $result->getAllReasons());
         $flag->created_at = Carbon::now();
         $flag->save();
 
