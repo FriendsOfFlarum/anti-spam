@@ -22,7 +22,7 @@ class StopForumSpamTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->extension('fof-anti-spam');
+        $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
     }
 
     private function createMockSfsClient(SfsResponse $response): SfsClient

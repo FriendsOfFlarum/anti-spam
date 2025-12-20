@@ -14,6 +14,7 @@ namespace FoF\AntiSpam;
 use Flarum\Api\Resource\ForumResource;
 use Flarum\Api\Resource\UserResource;
 use Flarum\Extend;
+use Flarum\Search\Database\DatabaseSearchDriver;
 use Flarum\User\User;
 
 return [
@@ -55,10 +56,26 @@ return [
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)
         ->default('fof-anti-spam.reportToStopForumSpam', true)
-        ->default('fof-anti-spam.report_blocked_registrations', true),
+        ->default('fof-anti-spam.report_blocked_registrations', true)
+        // Content filter defaults
+        ->default('fof-anti-spam.content-filter.enabled', true)
+        ->default('fof-anti-spam.content-filter.monitor_post_count', 5)
+        ->default('fof-anti-spam.content-filter.monitor_hours_old', 24)
+        ->default('fof-anti-spam.content-filter.detect_phones', true)
+        ->default('fof-anti-spam.content-filter.detect_emails', true)
+        ->default('fof-anti-spam.content-filter.detect_urls', true)
+        ->default('fof-anti-spam.content-filter.spam_threshold', 70)
+        ->default('fof-anti-spam.content-filter.flag_threshold', 50)
+        ->default('fof-anti-spam.content-filter.auto_unapprove', true)
+        ->default('fof-anti-spam.content-filter.auto_flag', true),
 
     (new Extend\ServiceProvider())
-        ->register(Providers\SfsProvider::class),
+        ->register(Providers\SfsProvider::class)
+        ->register(Providers\ContentFilterProvider::class),
+
+    (new Extend\Event())
+        ->subscribe(Listener\CheckPostContent::class)
+        ->subscribe(Listener\CheckDiscussionContent::class),
 
     new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
 ];

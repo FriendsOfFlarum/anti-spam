@@ -6,6 +6,7 @@ parameters:
   paths:
     - vendor/flarum/suspend/extend.php
     - vendor/flarum/flags/extend.php
+    - vendor/flarum/approval/extend.php
     - extend.php
     - src
   excludePaths:

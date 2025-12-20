@@ -20,6 +20,92 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   currentPage: number = 1;
   totalPages: number = 1;
 
+  static register() {
+    app.registry.for('fof-anti-spam');
+
+    // For search: Register settings with minimal info (label + help)
+    // These are used by GeneralSearchSource for search indexing
+    app.registry
+      .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.content-filter.enabled',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_help'),
+      })
+      .registerSetting({
+        type: 'number',
+        setting: 'fof-anti-spam.content-filter.monitor_post_count',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help'),
+      })
+      .registerSetting({
+        type: 'number',
+        setting: 'fof-anti-spam.content-filter.monitor_hours_old',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help'),
+      })
+      .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.content-filter.detect_phones',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_help'),
+      })
+      .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.content-filter.detect_emails',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help'),
+      })
+      .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.content-filter.detect_urls',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help'),
+      })
+      .registerSetting({
+        type: 'number',
+        setting: 'fof-anti-spam.content-filter.flag_threshold',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_help'),
+      })
+      .registerSetting({
+        type: 'number',
+        setting: 'fof-anti-spam.content-filter.spam_threshold',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_help'),
+      })
+      .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.content-filter.auto_unapprove',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_help'),
+      })
+      .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.content-filter.auto_flag',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
+      })
+      .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.sfs-lookup',
+        label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_help'),
+      })
+      .registerSetting({
+        type: 'number',
+        setting: 'fof-anti-spam.frequency',
+        label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_help'),
+      })
+      .registerSetting({
+        type: 'number',
+        setting: 'fof-anti-spam.confidence',
+        label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_help'),
+      });
+  }
+
   oninit(vnode: any) {
     super.oninit(vnode);
 
@@ -68,10 +154,136 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   settingsContent(): Mithril.Children {
     const apiRegions = ['closest', 'europe', 'us'];
     const tagsEnabled = app.initializers.has('flarum-tags');
+    const approvalEnabled = app.initializers.has('flarum-approval');
+    const flagsEnabled = app.initializers.has('flarum-flags');
 
     return (
       <div className="FoFAntiSpamSettings--settings">
         <Form>
+          <div className="Section Section--contentFilter">
+            <h3>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.heading')}</h3>
+            <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.introduction')}</p>
+
+            {this.buildSettingComponent({
+              type: 'boolean',
+              setting: 'fof-anti-spam.content-filter.enabled',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_help'),
+            })}
+
+            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.user_targeting_heading')}</h4>
+            {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.content-filter.monitor_post_count',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help'),
+              placeholder: '5',
+              min: 0,
+            })}
+
+            {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.content-filter.monitor_hours_old',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help'),
+              placeholder: '24',
+              min: 0,
+            })}
+
+            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.detectors_heading')}</h4>
+            {this.buildSettingComponent({
+              type: 'boolean',
+              setting: 'fof-anti-spam.content-filter.detect_phones',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_help'),
+            })}
+
+            {this.buildSettingComponent({
+              type: 'boolean',
+              setting: 'fof-anti-spam.content-filter.detect_emails',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help'),
+            })}
+
+            {this.buildSettingComponent({
+              type: 'boolean',
+              setting: 'fof-anti-spam.content-filter.detect_urls',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help'),
+            })}
+
+            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.thresholds_heading')}</h4>
+            {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.content-filter.flag_threshold',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_help'),
+              placeholder: '50',
+              min: 0,
+              max: 100,
+            })}
+
+            {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.content-filter.spam_threshold',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_help'),
+              placeholder: '70',
+              min: 0,
+              max: 100,
+            })}
+
+            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.actions_heading')}</h4>
+            {approvalEnabled &&
+              this.buildSettingComponent({
+                type: 'boolean',
+                setting: 'fof-anti-spam.content-filter.auto_unapprove',
+                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_label'),
+                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_help'),
+              })}
+
+            {flagsEnabled &&
+              this.buildSettingComponent({
+                type: 'boolean',
+                setting: 'fof-anti-spam.content-filter.auto_flag',
+                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_label'),
+                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
+              })}
+
+            {!approvalEnabled && !flagsEnabled && (
+              <p className="helpText Alert">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.no_action_extensions')}</p>
+            )}
+
+            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowlist_heading')}</h4>
+            {this.buildSettingComponent({
+              type: 'textarea',
+              setting: 'fof-anti-spam.content-filter.allowed_domains',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_help'),
+              placeholder: 'example.com\nyoutube.com\ngithub.com',
+              rows: 5,
+            })}
+
+            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_heading')}</h4>
+            {this.buildSettingComponent({
+              type: 'textarea',
+              setting: 'fof-anti-spam.content-filter.blocked_words',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_help'),
+              placeholder: 'viagra\ncialis\ncrypto pump',
+              rows: 15,
+            })}
+
+            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_patterns_heading')}</h4>
+            {this.buildSettingComponent({
+              type: 'textarea',
+              setting: 'fof-anti-spam.content-filter.advanced_block_patterns',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_help'),
+              placeholder: '[{"pattern": "/\\\\b(viagra|cialis)\\\\b/i", "description": "Pharmaceutical spam"}]',
+              rows: 5,
+            })}
+          </div>
           <div className="Section Section--defaultActions">
             <h3>{app.translator.trans('fof-anti-spam.admin.settings.default-actions.heading')}</h3>
             <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.default-actions.introduction')}</p>
@@ -154,6 +366,24 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_help'),
             })}
             {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.frequency',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_help'),
+              placeholder: '5',
+              required: true,
+            })}
+            {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.confidence',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_help'),
+              min: 0,
+              max: 100,
+              placeholder: '50.0',
+              required: true,
+            })}
+            {this.buildSettingComponent({
               type: 'boolean',
               setting: 'fof-anti-spam.report_blocked_registrations',
 
@@ -187,24 +417,6 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               setting: 'fof-anti-spam.blockTorExitNodes',
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_label'),
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.frequency',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_help'),
-              placeholder: '5',
-              required: true,
-            })}
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.confidence',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_help'),
-              min: 0,
-              max: 100,
-              placeholder: '50.0',
-              required: true,
             })}
             <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_text')}</p>
             {this.buildSettingComponent({

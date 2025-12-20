@@ -37,7 +37,7 @@ class SfsClientTest extends TestCase
     {
         parent::setUp();
 
-        $this->extension('fof-anti-spam');
+        $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
     }
 
     protected function setUpClient(): void

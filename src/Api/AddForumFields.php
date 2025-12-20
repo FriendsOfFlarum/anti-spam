@@ -48,6 +48,8 @@ class AddForumFields
                     ];
                 }),
 
+            Schema\Boolean::make('canViewSpamDetections')
+                ->get(fn ($model, Context $context) => $context->getActor()->hasPermission('fof-anti-spam.viewSpamDetections')),
         ];
     }
 }
