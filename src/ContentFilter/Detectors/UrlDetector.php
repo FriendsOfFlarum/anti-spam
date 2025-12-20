@@ -18,14 +18,14 @@ use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\UriInterface;
 
 /**
- * Detects URLs in content with domain allowlist
+ * Detects URLs in content with domain allowlist.
  *
  * URLs from non-allowlisted domains are flagged as potential spam
  */
 class UrlDetector extends AbstractDetector
 {
     /**
-     * Regex pattern for detecting URLs
+     * Regex pattern for detecting URLs.
      */
     private const URL_PATTERN = '~(?<uri>(\w+)://(?<domain>[-\w.]+))~';
 
@@ -109,7 +109,7 @@ class UrlDetector extends AbstractDetector
     }
 
     /**
-     * Check if a URL is allowed based on domain allowlist and callbacks
+     * Check if a URL is allowed based on domain allowlist and callbacks.
      */
     private function isUrlAllowed(
         UriInterface $uri,

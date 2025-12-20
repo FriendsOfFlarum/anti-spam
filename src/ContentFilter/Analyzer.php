@@ -15,7 +15,7 @@ use Flarum\User\User;
 use Psr\Log\LoggerInterface;
 
 /**
- * Main content analyzer that coordinates all detectors
+ * Main content analyzer that coordinates all detectors.
  */
 class Analyzer
 {
@@ -31,7 +31,7 @@ class Analyzer
     }
 
     /**
-     * Register a detector
+     * Register a detector.
      */
     public function addDetector(DetectorInterface $detector): self
     {
@@ -41,7 +41,7 @@ class Analyzer
     }
 
     /**
-     * Analyze content and return combined spam score
+     * Analyze content and return combined spam score.
      *
      * @param string $content The content to analyze
      * @param User $user The user who created the content
@@ -109,7 +109,7 @@ class Analyzer
     }
 
     /**
-     * Get all registered detectors
+     * Get all registered detectors.
      *
      * @return array<DetectorInterface>
      */

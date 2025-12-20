@@ -17,7 +17,7 @@ use FoF\AntiSpam\Extend\ContentFilter;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
- * Tests for the hybrid configuration system (code + database)
+ * Tests for the hybrid configuration system (code + database).
  */
 class ContentFilterConfigurationTest extends TestCase
 {

@@ -11,13 +11,13 @@
 
 namespace FoF\AntiSpam\Extend;
 
-use Flarum\Extension\Extension;
 use Flarum\Extend\ExtenderInterface;
+use Flarum\Extension\Extension;
 use FoF\AntiSpam\ContentFilter\ConfigurationManager;
 use Illuminate\Contracts\Container\Container;
 
 /**
- * Fluent API for configuring content filtering via extend.php
+ * Fluent API for configuring content filtering via extend.php.
  *
  * Example usage:
  * ```php
@@ -37,7 +37,7 @@ class ContentFilter implements ExtenderInterface
     private array $config = [];
 
     /**
-     * Monitor users up to their first N posts
+     * Monitor users up to their first N posts.
      */
     public function monitorUsersUpToPostCount(int $count): self
     {
@@ -47,7 +47,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Monitor users up to N hours after registration
+     * Monitor users up to N hours after registration.
      */
     public function monitorUsersUpToHoursOld(int $hours): self
     {
@@ -57,7 +57,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Add a single allowed domain for URLs
+     * Add a single allowed domain for URLs.
      */
     public function allowDomain(string $domain): self
     {
@@ -71,7 +71,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Add multiple allowed domains for URLs
+     * Add multiple allowed domains for URLs.
      *
      * @param array<string> $domains
      */
@@ -85,7 +85,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Add a custom domain validation callback
+     * Add a custom domain validation callback.
      *
      * @param callable $callback Receives (\Psr\Http\Message\UriInterface $uri, \Flarum\User\User $user): bool
      */
@@ -101,7 +101,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Add a regex pattern to block (with optional description)
+     * Add a regex pattern to block (with optional description).
      */
     public function blockPattern(string $pattern, ?string $description = null): self
     {
@@ -118,7 +118,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Add multiple patterns to block
+     * Add multiple patterns to block.
      *
      * @param array<string|array{pattern: string, description?: string}> $patterns
      */
@@ -136,7 +136,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Enable/disable phone number detection
+     * Enable/disable phone number detection.
      */
     public function blockPhoneNumbers(bool $enabled = true): self
     {
@@ -146,7 +146,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Enable/disable email address detection in post content
+     * Enable/disable email address detection in post content.
      */
     public function blockEmailAddresses(bool $enabled = true): self
     {
@@ -156,7 +156,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Enable/disable URL detection
+     * Enable/disable URL detection.
      */
     public function blockUrls(bool $enabled = true): self
     {
@@ -166,7 +166,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Set spam score threshold for auto-unapproval (0-100)
+     * Set spam score threshold for auto-unapproval (0-100).
      */
     public function spamScoreThreshold(int $threshold): self
     {
@@ -176,7 +176,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Set spam score threshold for flagging only (0-100)
+     * Set spam score threshold for flagging only (0-100).
      */
     public function flagScoreThreshold(int $threshold): self
     {
@@ -186,7 +186,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Enable/disable automatic content unapproval
+     * Enable/disable automatic content unapproval.
      */
     public function enableAutoUnapprove(bool $enabled = true): self
     {
@@ -196,7 +196,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Enable/disable automatic flag creation
+     * Enable/disable automatic flag creation.
      */
     public function enableAutoFlag(bool $enabled = true): self
     {
@@ -206,7 +206,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Set which user ID should be assigned as moderator for auto-created flags
+     * Set which user ID should be assigned as moderator for auto-created flags.
      */
     public function assignFlagsToModerator(int $userId): self
     {
@@ -216,7 +216,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Disable a specific detector class
+     * Disable a specific detector class.
      *
      * @param class-string $detectorClass
      */
@@ -232,7 +232,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Enable content filtering (can be disabled entirely)
+     * Enable content filtering (can be disabled entirely).
      */
     public function enabled(bool $enabled = true): self
     {
@@ -242,7 +242,7 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Normalize domain by removing protocol and path
+     * Normalize domain by removing protocol and path.
      */
     private function normalizeDomain(string $domain): string
     {

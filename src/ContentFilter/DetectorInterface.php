@@ -14,12 +14,12 @@ namespace FoF\AntiSpam\ContentFilter;
 use Flarum\User\User;
 
 /**
- * Interface for content spam detectors
+ * Interface for content spam detectors.
  */
 interface DetectorInterface
 {
     /**
-     * Analyze content and return spam score contribution
+     * Analyze content and return spam score contribution.
      *
      * @param string $content The content to analyze
      * @param User $user The user who created the content
@@ -29,17 +29,17 @@ interface DetectorInterface
     public function analyze(string $content, User $user, array $context = []): SpamScore;
 
     /**
-     * Get the detector name for display
+     * Get the detector name for display.
      */
     public function getName(): string;
 
     /**
-     * Get the detector description
+     * Get the detector description.
      */
     public function getDescription(): string;
 
     /**
-     * Check if this detector is enabled based on configuration
+     * Check if this detector is enabled based on configuration.
      */
     public function isEnabled(): bool;
 }

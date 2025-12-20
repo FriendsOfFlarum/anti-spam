@@ -17,13 +17,13 @@ use Flarum\Post\Event\Posted;
 use Flarum\Post\Event\Revised;
 use Flarum\Post\Event\Saving;
 use Flarum\Post\Post;
-use FoF\AntiSpam\ContentFilter\Analyzer;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
+use FoF\AntiSpam\ContentFilter\Analyzer;
 use Illuminate\Contracts\Events\Dispatcher;
 use Psr\Log\LoggerInterface;
 
 /**
- * Checks post content for spam when created or edited
+ * Checks post content for spam when created or edited.
  */
 class CheckPostContent
 {
@@ -35,7 +35,8 @@ class CheckPostContent
     public function __construct(
         private Analyzer $analyzer,
         private LoggerInterface $log
-    ) {}
+    ) {
+    }
 
     public function subscribe(Dispatcher $events): void
     {
@@ -123,7 +124,7 @@ class CheckPostContent
     }
 
     /**
-     * Unapprove the post
+     * Unapprove the post.
      */
     private function unapprovePost(Post $post): void
     {
@@ -135,7 +136,7 @@ class CheckPostContent
     }
 
     /**
-     * Create a moderation flag (requires flarum/flags)
+     * Create a moderation flag (requires flarum/flags).
      */
     private function flagPost(Post $post, \FoF\AntiSpam\ContentFilter\AnalysisResult $result): void
     {
@@ -154,7 +155,7 @@ class CheckPostContent
         $flag->post_id = $post->id;
         $flag->type = 'spam';
         $flag->reason = "Automatic spam detection (score: {$result->getTotalScore()})\n\n"
-            . implode("\n", $result->getAllReasons());
+            .implode("\n", $result->getAllReasons());
         $flag->created_at = Carbon::now();
         $flag->save();
 

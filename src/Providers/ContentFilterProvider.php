@@ -20,7 +20,7 @@ use FoF\AntiSpam\ContentFilter\Detectors\PhoneDetector;
 use FoF\AntiSpam\ContentFilter\Detectors\UrlDetector;
 
 /**
- * Service provider for content filtering system
+ * Service provider for content filtering system.
  */
 class ContentFilterProvider extends AbstractServiceProvider
 {

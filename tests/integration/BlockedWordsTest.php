@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of fof/anti-spam.
+ *
+ * Copyright (c) FriendsOfFlarum.
+ *
+ * For the full copyright and license information, please view the LICENSE.md
+ * file that was distributed with this source code.
+ */
+
 namespace FoF\AntiSpam\Tests\integration;
 
 use Carbon\Carbon;
@@ -95,7 +104,7 @@ class BlockedWordsTest extends TestCase
     public function word_boundary_is_respected()
     {
         // "viagra" should match "viagra" but not "niagara"
-        $this->setting('fof-anti-spam.content-filter.blocked_words', "viagra");
+        $this->setting('fof-anti-spam.content-filter.blocked_words', 'viagra');
         $this->setting('fof-anti-spam.content-filter.flag_threshold', 15);
 
         $response = $this->send(

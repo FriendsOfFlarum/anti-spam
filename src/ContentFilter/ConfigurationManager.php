@@ -14,7 +14,7 @@ namespace FoF\AntiSpam\ContentFilter;
 use Flarum\Settings\SettingsRepositoryInterface;
 
 /**
- * Manages configuration from both code (extend.php) and database (admin UI)
+ * Manages configuration from both code (extend.php) and database (admin UI).
  *
  * Priority: Code configuration overrides database settings
  */
@@ -33,7 +33,7 @@ class ConfigurationManager
     }
 
     /**
-     * Set configuration from code (extend.php)
+     * Set configuration from code (extend.php).
      *
      * @param array<string, mixed> $config
      */
@@ -43,7 +43,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get a configuration value with priority: code > database > default
+     * Get a configuration value with priority: code > database > default.
      */
     public function get(string $key, mixed $default = null): mixed
     {
@@ -57,7 +57,7 @@ class ConfigurationManager
     }
 
     /**
-     * Check if a setting is configured via code
+     * Check if a setting is configured via code.
      */
     public function isCodeConfigured(string $key): bool
     {
@@ -65,7 +65,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get only code-configured value (or null)
+     * Get only code-configured value (or null).
      */
     public function getCodeValue(string $key): mixed
     {
@@ -73,7 +73,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get only database-configured value (or default)
+     * Get only database-configured value (or default).
      */
     public function getDatabaseValue(string $key, mixed $default = null): mixed
     {
@@ -81,7 +81,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get merged list of allowed domains (code + database)
+     * Get merged list of allowed domains (code + database).
      *
      * @return array<string>
      */
@@ -107,7 +107,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get only code-configured domains
+     * Get only code-configured domains.
      *
      * @return array<string>
      */
@@ -117,7 +117,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get only database-configured domains
+     * Get only database-configured domains.
      *
      * @return array<string>
      */
@@ -132,7 +132,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get domain validation callbacks
+     * Get domain validation callbacks.
      *
      * @return array<callable>
      */
@@ -143,7 +143,7 @@ class ConfigurationManager
 
     /**
      * Get merged list of block patterns (code + database)
-     * Includes both plain text words (converted to regex) and advanced patterns
+     * Includes both plain text words (converted to regex) and advanced patterns.
      *
      * @return array<array{pattern: string, description: ?string}>
      */
@@ -187,7 +187,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get only code-configured block patterns
+     * Get only code-configured block patterns.
      *
      * @return array<array{pattern: string, description: ?string}>
      */
@@ -197,7 +197,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get only database-configured advanced block patterns (regex)
+     * Get only database-configured advanced block patterns (regex).
      *
      * @return array<array{pattern: string, description: ?string}>
      */
@@ -212,7 +212,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get disabled detector classes
+     * Get disabled detector classes.
      *
      * @return array<class-string>
      */
@@ -222,7 +222,7 @@ class ConfigurationManager
     }
 
     /**
-     * Check if content filtering is enabled
+     * Check if content filtering is enabled.
      */
     public function isEnabled(): bool
     {
@@ -230,7 +230,7 @@ class ConfigurationManager
     }
 
     /**
-     * Check if a detector class is disabled
+     * Check if a detector class is disabled.
      *
      * @param class-string $detectorClass
      */
@@ -240,7 +240,7 @@ class ConfigurationManager
     }
 
     /**
-     * Get all configuration as array (for API exposure)
+     * Get all configuration as array (for API exposure).
      *
      * @return array<string, mixed>
      */

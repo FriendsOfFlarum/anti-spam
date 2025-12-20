@@ -326,9 +326,15 @@ class ContentFilterTest extends TestCase
         // Check that the flag reason contains multiple indicators
         $reason = strtolower($flag->reason);
         $indicators = 0;
-        if (str_contains($reason, 'phone')) $indicators++;
-        if (str_contains($reason, 'email')) $indicators++;
-        if (str_contains($reason, 'url')) $indicators++;
+        if (str_contains($reason, 'phone')) {
+            $indicators++;
+        }
+        if (str_contains($reason, 'email')) {
+            $indicators++;
+        }
+        if (str_contains($reason, 'url')) {
+            $indicators++;
+        }
 
         $this->assertGreaterThan(1, $indicators, 'Multiple detectors should have triggered');
 

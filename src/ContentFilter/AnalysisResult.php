@@ -12,7 +12,7 @@
 namespace FoF\AntiSpam\ContentFilter;
 
 /**
- * Result of content analysis
+ * Result of content analysis.
  */
 class AnalysisResult
 {
@@ -61,7 +61,7 @@ class AnalysisResult
     }
 
     /**
-     * Get all reasons from all detectors
+     * Get all reasons from all detectors.
      *
      * @return array<string>
      */
@@ -79,7 +79,7 @@ class AnalysisResult
     }
 
     /**
-     * Convert to array for JSON serialization
+     * Convert to array for JSON serialization.
      *
      * @return array{totalScore: int, isSpam: bool, shouldFlag: bool, shouldUnapprove: bool, reasons: array<string>, detectors: array<string, array>}
      */

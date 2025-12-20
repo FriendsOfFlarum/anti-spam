@@ -14,7 +14,6 @@ namespace FoF\AntiSpam;
 use Flarum\Api\Resource\ForumResource;
 use Flarum\Api\Resource\UserResource;
 use Flarum\Extend;
-use Flarum\Search\Database\DatabaseSearchDriver;
 use Flarum\User\User;
 
 return [

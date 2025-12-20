@@ -16,14 +16,14 @@ use FoF\AntiSpam\ContentFilter\AbstractDetector;
 use FoF\AntiSpam\ContentFilter\SpamScore;
 
 /**
- * Detects email addresses in post content
+ * Detects email addresses in post content.
  *
  * Email addresses in posts are often spam (contact info, phishing, etc.)
  */
 class EmailDetector extends AbstractDetector
 {
     /**
-     * Regex pattern for detecting email addresses
+     * Regex pattern for detecting email addresses.
      */
     private const EMAIL_PATTERN = '~\S+@\S+\.\S+~';
 

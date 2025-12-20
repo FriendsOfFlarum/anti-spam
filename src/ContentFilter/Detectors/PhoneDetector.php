@@ -16,7 +16,7 @@ use FoF\AntiSpam\ContentFilter\AbstractDetector;
 use FoF\AntiSpam\ContentFilter\SpamScore;
 
 /**
- * Detects phone numbers in content
+ * Detects phone numbers in content.
  *
  * Matches international phone numbers with + or 00 prefix and at least 9 digits
  */

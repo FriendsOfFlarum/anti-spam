@@ -12,7 +12,7 @@
 namespace FoF\AntiSpam\ContentFilter;
 
 /**
- * Represents a spam score contribution from a detector
+ * Represents a spam score contribution from a detector.
  */
 class SpamScore
 {
@@ -31,7 +31,7 @@ class SpamScore
     }
 
     /**
-     * Get the spam score (0-100)
+     * Get the spam score (0-100).
      */
     public function getScore(): int
     {
@@ -39,7 +39,7 @@ class SpamScore
     }
 
     /**
-     * Get human-readable reasons for the score
+     * Get human-readable reasons for the score.
      *
      * @return array<string>
      */
@@ -49,7 +49,7 @@ class SpamScore
     }
 
     /**
-     * Get additional metadata
+     * Get additional metadata.
      *
      * @return array<string, mixed>
      */
@@ -59,7 +59,7 @@ class SpamScore
     }
 
     /**
-     * Check if this score indicates spam was detected
+     * Check if this score indicates spam was detected.
      */
     public function isSpam(): bool
     {
@@ -67,7 +67,7 @@ class SpamScore
     }
 
     /**
-     * Add a reason to the score
+     * Add a reason to the score.
      */
     public function addReason(string $reason): self
     {
@@ -77,7 +77,7 @@ class SpamScore
     }
 
     /**
-     * Add metadata
+     * Add metadata.
      */
     public function addMetadata(string $key, mixed $value): self
     {
@@ -87,7 +87,7 @@ class SpamScore
     }
 
     /**
-     * Merge another spam score into this one
+     * Merge another spam score into this one.
      */
     public function merge(SpamScore $other): self
     {
@@ -99,7 +99,7 @@ class SpamScore
     }
 
     /**
-     * Convert to array for JSON serialization
+     * Convert to array for JSON serialization.
      *
      * @return array{score: int, reasons: array<string>, metadata: array<string, mixed>}
      */

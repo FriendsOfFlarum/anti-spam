@@ -14,7 +14,7 @@ namespace FoF\AntiSpam\ContentFilter;
 use Flarum\User\User;
 
 /**
- * Base class for content spam detectors
+ * Base class for content spam detectors.
  */
 abstract class AbstractDetector implements DetectorInterface
 {
@@ -24,7 +24,7 @@ abstract class AbstractDetector implements DetectorInterface
     }
 
     /**
-     * Check if user should be monitored based on their account age and post count
+     * Check if user should be monitored based on their account age and post count.
      */
     protected function shouldMonitorUser(User $user): bool
     {
@@ -55,7 +55,7 @@ abstract class AbstractDetector implements DetectorInterface
     }
 
     /**
-     * Strip BBCode and HTML from content for analysis
+     * Strip BBCode and HTML from content for analysis.
      */
     protected function stripFormatting(string $content): string
     {

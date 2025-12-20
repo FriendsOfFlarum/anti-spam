@@ -18,7 +18,7 @@ use FoF\AntiSpam\ContentFilter\SpamScore;
 use Psr\Log\LoggerInterface;
 
 /**
- * Detects custom regex patterns in content
+ * Detects custom regex patterns in content.
  *
  * Patterns can be configured via admin UI or extend.php
  */

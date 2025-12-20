@@ -19,14 +19,15 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Psr\Log\LoggerInterface;
 
 /**
- * Checks discussion titles for spam when created
+ * Checks discussion titles for spam when created.
  */
 class CheckDiscussionContent
 {
     public function __construct(
         private Analyzer $analyzer,
         private LoggerInterface $log
-    ) {}
+    ) {
+    }
 
     public function subscribe(Dispatcher $events): void
     {
@@ -83,7 +84,7 @@ class CheckDiscussionContent
     }
 
     /**
-     * Unapprove the discussion (requires flarum/approval)
+     * Unapprove the discussion (requires flarum/approval).
      */
     private function unapproveDiscussion(\Flarum\Discussion\Discussion $discussion): void
     {
@@ -95,7 +96,7 @@ class CheckDiscussionContent
     }
 
     /**
-     * Create a moderation flag on first post (requires flarum/flags)
+     * Create a moderation flag on first post (requires flarum/flags).
      */
     private function flagFirstPost(\Flarum\Discussion\Discussion $discussion, \FoF\AntiSpam\ContentFilter\AnalysisResult $result): void
     {
@@ -114,7 +115,7 @@ class CheckDiscussionContent
         $flag->post_id = $discussion->first_post_id;
         $flag->type = 'spam';
         $flag->reason = "Automatic spam detection in discussion title (score: {$result->getTotalScore()})\n\n"
-            . implode("\n", $result->getAllReasons());
+            .implode("\n", $result->getAllReasons());
         $flag->created_at = Carbon::now();
         $flag->save();
 
