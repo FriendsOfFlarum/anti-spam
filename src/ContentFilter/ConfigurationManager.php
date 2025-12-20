@@ -159,9 +159,6 @@ class ConfigurationManager
         if (! empty($blockedWords)) {
             $words = array_filter(array_map('trim', explode("\n", $blockedWords)));
             foreach ($words as $word) {
-                if (empty($word)) {
-                    continue;
-                }
                 // Escape special regex characters
                 $escaped = preg_quote($word, '/');
 
