@@ -13,6 +13,7 @@ namespace FoF\AntiSpam\Command;
 
 use Carbon\Carbon;
 use Flarum\Extension\ExtensionManager;
+use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\Guest;
 use Flarum\User\User;
@@ -142,10 +143,14 @@ class MarkUserAsSpammerHandler
             // Bulk hide: use model methods which fire Hidden events
             $flagsEnabled = $this->flagsEnabled();
 
-            $user->posts()->where('hidden_at', null)->get()->each(function ($post) use ($actor, $flagsEnabled) {
-                /** @var \Flarum\Post\CommentPost $post */
-                $post->hide($actor);
-                $post->save();
+            $user->posts()->where('hidden_at', null)->get()->each(function (Post $post) use ($actor, $flagsEnabled) {
+                // Only hide posts that support the hide() method (e.g., CommentPost)
+                // Event posts like DiscussionTaggedPost don't have hide() method
+                if (method_exists($post, 'hide')) {
+                    /** @var \Flarum\Post\CommentPost $post */
+                    $post->hide($actor);
+                    $post->save();
+                }
 
                 if ($flagsEnabled) {
                     // Flags are deleted via the post relationship
