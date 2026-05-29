@@ -21,6 +21,7 @@ use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 use FoF\AntiSpam\Job\ReportSpammerJob;
 use Illuminate\Contracts\Events\Dispatcher as Events;
 use Illuminate\Contracts\Queue\Queue;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
 use Psr\Log\LoggerInterface;
 
@@ -137,8 +138,7 @@ class MarkUserAsSpammerHandler
     protected function handlePosts(User $user, User $actor): void
     {
         if ($this->deletePosts) {
-            // Bulk deletion: use direct Eloquent for performance, events still fire on model
-            $user->posts()->delete();
+            $this->deleteModels($user->posts());
         } else {
             // Bulk hide: use model methods which fire Hidden events
             $flagsEnabled = $this->flagsEnabled();
@@ -170,8 +170,7 @@ class MarkUserAsSpammerHandler
     protected function handleDiscussions(User $user, User $actor): void
     {
         if ($this->deleteDiscussions) {
-            // Bulk deletion: use direct Eloquent for performance
-            $user->discussions()->delete();
+            $this->deleteModels($user->discussions());
         } else {
             // Bulk hide: use model methods which fire Hidden events
             $user->discussions()->where('hidden_at', null)->get()->each(function ($discussion) use ($actor) {
@@ -183,6 +182,15 @@ class MarkUserAsSpammerHandler
                 $this->moveUserDiscussionsToQuarantine($user);
             }
         }
+    }
+
+    protected function deleteModels(HasMany $relation): void
+    {
+        $relation->chunkById(100, function ($models) {
+            foreach ($models as $model) {
+                $model->delete();
+            }
+        });
     }
 
     protected function moveUserDiscussionsToQuarantine(User $user): void

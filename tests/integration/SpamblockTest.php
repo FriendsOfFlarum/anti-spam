@@ -42,11 +42,11 @@ class SpamblockTest extends TestCase
             ],
             Discussion::class => [
                 // Spammer's first discussion with multiple posts
-                ['id' => 2, 'title' => 'Spam Discussion 1', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 5, 'first_post_id' => 4, 'comment_count' => 3, 'last_post_id' => 6],
+                ['id' => 2, 'title' => 'Spam Discussion 1', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'last_posted_user_id' => 5, 'user_id' => 5, 'first_post_id' => 4, 'comment_count' => 3, 'last_post_id' => 6],
                 // Spammer's second discussion
-                ['id' => 3, 'title' => 'Spam Discussion 2', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 5, 'first_post_id' => 7, 'comment_count' => 2, 'last_post_id' => 8],
+                ['id' => 3, 'title' => 'Spam Discussion 2', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'last_posted_user_id' => 5, 'user_id' => 5, 'first_post_id' => 7, 'comment_count' => 2, 'last_post_id' => 8],
                 // Regular user's discussion with spammer reply
-                ['id' => 4, 'title' => 'Normal Discussion', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 4, 'first_post_id' => 9, 'comment_count' => 2, 'last_post_id' => 10],
+                ['id' => 4, 'title' => 'Normal Discussion', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'last_posted_user_id' => 5, 'user_id' => 4, 'first_post_id' => 9, 'comment_count' => 2, 'last_post_id' => 10],
             ],
             Post::class => [
                 // Discussion 2 - spammer's posts
@@ -214,6 +214,32 @@ class SpamblockTest extends TestCase
 
         // Note: Post #5 (normal user's reply in spammer's discussion) may or may not be cascade-deleted
         // depending on database foreign key enforcement. We only verify critical post #9 remains.
+    }
+
+    #[Test]
+    public function deleting_spammer_posts_refreshes_discussion_last_post_metadata()
+    {
+        $this->setting('fof-anti-spam.actions.deletePosts', true);
+
+        $this->app();
+
+        $discussion = Discussion::find(4);
+        $this->assertEquals(10, $discussion->last_post_id, 'Fixture should start with spam reply as last post');
+        $this->assertEquals(5, $discussion->last_posted_user_id, 'Fixture should start with spammer as last poster');
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertNull(CommentPost::find(10), 'Spammer reply in normal discussion should be deleted');
+
+        $discussion->refresh();
+
+        $this->assertEquals(9, $discussion->last_post_id, 'Last post should be recalculated after deleting spammer reply');
+        $this->assertEquals(4, $discussion->last_posted_user_id, 'Last poster should be recalculated after deleting spammer reply');
     }
 
     #[Test]
