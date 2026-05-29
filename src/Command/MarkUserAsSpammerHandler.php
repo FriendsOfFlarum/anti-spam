@@ -12,6 +12,7 @@
 namespace FoF\AntiSpam\Command;
 
 use Carbon\Carbon;
+use Flarum\Discussion\Discussion;
 use Flarum\Extension\ExtensionManager;
 use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
@@ -23,6 +24,7 @@ use Illuminate\Contracts\Events\Dispatcher as Events;
 use Illuminate\Contracts\Queue\Queue;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Psr\Log\LoggerInterface;
 
 class MarkUserAsSpammerHandler
@@ -138,7 +140,10 @@ class MarkUserAsSpammerHandler
     protected function handlePosts(User $user, User $actor): void
     {
         if ($this->deletePosts) {
+            $discussionIds = $user->posts()->whereNotNull('discussion_id')->pluck('discussion_id')->unique()->values();
+
             $this->deleteModels($user->posts());
+            $this->refreshDiscussionPostMetadata($discussionIds);
         } else {
             // Bulk hide: use model methods which fire Hidden events
             $flagsEnabled = $this->flagsEnabled();
@@ -190,6 +195,31 @@ class MarkUserAsSpammerHandler
             foreach ($models as $model) {
                 $model->delete();
             }
+        });
+    }
+
+    /**
+     * @param Collection<int, int> $discussionIds
+     */
+    protected function refreshDiscussionPostMetadata(Collection $discussionIds): void
+    {
+        if ($discussionIds->isEmpty()) {
+            return;
+        }
+
+        Discussion::whereIn('id', $discussionIds)->get()->each(function (Discussion $discussion) {
+            if ($lastPost = $discussion->comments()->latest()->latest('id')->first()) {
+                $discussion->setLastPost($lastPost);
+            } else {
+                $discussion->last_posted_at = null;
+                $discussion->last_posted_user_id = null;
+                $discussion->last_post_id = null;
+                $discussion->last_post_number = null;
+            }
+
+            $discussion->refreshCommentCount();
+            $discussion->refreshParticipantCount();
+            $discussion->save();
         });
     }
 
