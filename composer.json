@@ -96,6 +96,7 @@
     "require-dev": {
         "flarum/testing": "^2.0.0",
         "flarum/phpstan": "^2.0.0",
+        "flarum/realtime": "^2.0.0",
         "flarum/suspend": "^2.0.0",
         "fof/user-bio": "^2.0.0",
         "flarum/tags": "^2.0.0",
