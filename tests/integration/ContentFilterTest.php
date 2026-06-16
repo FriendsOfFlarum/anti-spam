@@ -186,6 +186,41 @@ class ContentFilterTest extends TestCase
     }
 
     #[Test]
+    public function fresh_user_link_to_allowlisted_domain_is_not_flagged()
+    {
+        // Issue #22: the admin UI saves the allowlist newline-separated, but the backend used to
+        // json_decode it, so any UI-configured allowlist was silently ignored and every external
+        // link from a monitored user was flagged. Configure the allowlist exactly as the UI does.
+        $this->setting('fof-anti-spam.content-filter.allowed_domains', "youtube.com\nyoutu.be");
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => [
+                    'data' => [
+                        'type' => 'discussions',
+                        'attributes' => [
+                            'title' => 'My introduction',
+                            'content' => 'Check https://youtube.com/@unetouchedharmonie for my channel',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $post = Post::where('user_id', 3)->orderBy('id', 'desc')->first();
+        $this->assertNotNull($post, 'Post should be created');
+
+        $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
+        $this->assertNull($flag, 'A link to an allowlisted domain should not be flagged');
+        $this->assertNotFalse($post->is_approved, 'Post to an allowlisted domain should not be unapproved');
+    }
+
+    #[Test]
     public function old_user_with_many_posts_is_not_monitored()
     {
         $this->app();

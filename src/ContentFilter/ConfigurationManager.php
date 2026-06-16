@@ -11,6 +11,7 @@
 
 namespace FoF\AntiSpam\ContentFilter;
 
+use Flarum\Foundation\Config;
 use Flarum\Settings\SettingsRepositoryInterface;
 
 /**
@@ -28,7 +29,8 @@ class ConfigurationManager
     private array $codeConfig = [];
 
     public function __construct(
-        private SettingsRepositoryInterface $settings
+        private SettingsRepositoryInterface $settings,
+        private Config $config
     ) {
     }
 
@@ -88,19 +90,16 @@ class ConfigurationManager
     public function getAllowedDomains(): array
     {
         $codeDomains = $this->codeConfig['allowed_domains'] ?? [];
-        $dbDomains = json_decode(
-            $this->settings->get(self::PREFIX.'allowed_domains', '[]'),
-            true
-        );
+        $dbDomains = $this->getDatabaseConfiguredDomains();
 
-        // Always include the forum's own domain
-        $forumUrl = $this->settings->get('forum_url', '');
-        $forumDomain = parse_url($forumUrl, PHP_URL_HOST);
+        // Always include the forum's own domain. The base URL lives in config.php (exposed via
+        // Flarum\Foundation\Config), not the settings table.
+        $forumDomain = $this->config->url()->getHost();
 
         $allDomains = array_merge(
             $codeDomains,
-            is_array($dbDomains) ? $dbDomains : [],
-            $forumDomain ? [$forumDomain] : []
+            $dbDomains,
+            $forumDomain ? [self::normalizeDomain($forumDomain)] : []
         );
 
         return array_values(array_unique(array_filter($allDomains)));
@@ -123,12 +122,62 @@ class ConfigurationManager
      */
     public function getDatabaseConfiguredDomains(): array
     {
-        $domains = json_decode(
-            $this->settings->get(self::PREFIX.'allowed_domains', '[]'),
-            true
+        return $this->parseDomainList(
+            (string) $this->settings->get(self::PREFIX.'allowed_domains', '')
         );
+    }
 
-        return is_array($domains) ? $domains : [];
+    /**
+     * Parse a stored allowed-domains value into a normalized list of bare hostnames.
+     *
+     * The admin UI saves the textarea newline-separated (one domain per line), matching the
+     * blocked_words convention. A JSON array is also tolerated for installs that hand-wrote one
+     * to work around the historic parsing bug (see issue #22).
+     *
+     * @return array<string>
+     */
+    private function parseDomainList(string $raw): array
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return [];
+        }
+
+        // Tolerate JSON arrays (manual workarounds / legacy values).
+        if (str_starts_with($raw, '[')) {
+            $decoded = json_decode($raw, true);
+
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map(
+                    fn ($domain) => self::normalizeDomain((string) $domain),
+                    $decoded
+                )));
+            }
+        }
+
+        return array_values(array_filter(array_map(
+            fn (string $line) => self::normalizeDomain($line),
+            explode("\n", $raw)
+        )));
+    }
+
+    /**
+     * Normalize a domain entry to a bare lowercase hostname so pasted URLs and mixed case still
+     * match the URL detector's host comparison. Shared with Extend\ContentFilter.
+     */
+    public static function normalizeDomain(string $domain): string
+    {
+        // Remove protocol if present
+        $domain = preg_replace('~^https?://~i', '', $domain);
+
+        // Remove path if present
+        $domain = explode('/', $domain)[0];
+
+        // Remove port if present
+        $domain = explode(':', $domain)[0];
+
+        return strtolower(trim($domain));
     }
 
     /**

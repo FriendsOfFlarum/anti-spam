@@ -126,11 +126,8 @@ class ContentFilterConfigurationTest extends TestCase
     #[Test]
     public function domain_allowlist_merges_code_and_database()
     {
-        // Database domains
-        $this->setting('fof-anti-spam.content-filter.allowed_domains', json_encode([
-            'example.com',
-            'test.com',
-        ]));
+        // Database domains, stored newline-separated as the admin UI textarea saves them.
+        $this->setting('fof-anti-spam.content-filter.allowed_domains', "example.com\ntest.com");
 
         // Code domains
         $this->extend(
@@ -150,9 +147,44 @@ class ContentFilterConfigurationTest extends TestCase
         $this->assertContains('test.com', $allDomains, 'Should include database domain');
         $this->assertContains('youtube.com', $allDomains, 'Should include code domain');
         $this->assertContains('github.com', $allDomains, 'Should include code domain');
+    }
 
-        // Should have 4 unique domains
-        $this->assertCount(4, array_unique($allDomains));
+    #[Test]
+    public function database_allowlist_accepts_json_for_backward_compatibility()
+    {
+        // Installs that worked around the parsing bug by hand-writing JSON should keep working.
+        $this->setting('fof-anti-spam.content-filter.allowed_domains', json_encode([
+            'example.com',
+            'test.com',
+        ]));
+
+        $this->app();
+
+        /** @var ConfigurationManager $config */
+        $config = $this->app()->getContainer()->make(ConfigurationManager::class);
+
+        $domains = $config->getDatabaseConfiguredDomains();
+
+        $this->assertContains('example.com', $domains);
+        $this->assertContains('test.com', $domains);
+    }
+
+    #[Test]
+    public function database_allowlist_normalizes_pasted_values()
+    {
+        // Admins paste full URLs and mixed case; these must still match the detector's
+        // bare lowercase host comparison.
+        $this->setting('fof-anti-spam.content-filter.allowed_domains', "https://YouTube.com/\n  github.com  ");
+
+        $this->app();
+
+        /** @var ConfigurationManager $config */
+        $config = $this->app()->getContainer()->make(ConfigurationManager::class);
+
+        $domains = $config->getDatabaseConfiguredDomains();
+
+        $this->assertContains('youtube.com', $domains, 'Pasted URL should normalize to a bare lowercase host');
+        $this->assertContains('github.com', $domains, 'Surrounding whitespace should be trimmed');
     }
 
     #[Test]
@@ -319,8 +351,8 @@ class ContentFilterConfigurationTest extends TestCase
     #[Test]
     public function forum_domain_is_automatically_allowlisted()
     {
-        $this->setting('forum_url', 'https://myforum.com/forum');
-
+        // The forum's base URL lives in config.php (exposed via Flarum\Foundation\Config),
+        // not the settings table. The integration test harness boots with http://localhost.
         $this->app();
 
         /** @var ConfigurationManager $config */
@@ -328,6 +360,6 @@ class ContentFilterConfigurationTest extends TestCase
 
         $domains = $config->getAllowedDomains();
 
-        $this->assertContains('myforum.com', $domains, 'Forum domain should be automatically allowlisted');
+        $this->assertContains('localhost', $domains, 'Forum domain should be automatically allowlisted');
     }
 }

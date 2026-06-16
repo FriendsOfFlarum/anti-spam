@@ -12,6 +12,7 @@
 namespace FoF\AntiSpam\Providers;
 
 use Flarum\Foundation\AbstractServiceProvider;
+use Flarum\Foundation\Config;
 use FoF\AntiSpam\ContentFilter\Analyzer;
 use FoF\AntiSpam\ContentFilter\ConfigurationManager;
 use FoF\AntiSpam\ContentFilter\Detectors\EmailDetector;
@@ -29,7 +30,8 @@ class ContentFilterProvider extends AbstractServiceProvider
         // Register ConfigurationManager as singleton
         $this->container->singleton(ConfigurationManager::class, function ($container) {
             return new ConfigurationManager(
-                $container->make('flarum.settings')
+                $container->make('flarum.settings'),
+                $container->make(Config::class)
             );
         });
 

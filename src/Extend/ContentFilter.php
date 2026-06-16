@@ -246,16 +246,7 @@ class ContentFilter implements ExtenderInterface
      */
     private function normalizeDomain(string $domain): string
     {
-        // Remove protocol if present
-        $domain = preg_replace('~^https?://~i', '', $domain);
-
-        // Remove path if present
-        $domain = explode('/', $domain)[0];
-
-        // Remove port if present
-        $domain = explode(':', $domain)[0];
-
-        return strtolower(trim($domain));
+        return ConfigurationManager::normalizeDomain($domain);
     }
 
     public function extend(Container $container, ?Extension $extension = null): void
