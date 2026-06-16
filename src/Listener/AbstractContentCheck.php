@@ -146,10 +146,24 @@ abstract class AbstractContentCheck
 
     /**
      * Unapprove content (post or discussion).
+     *
+     * When the entity is a discussion's first post, the discussion is unapproved too — otherwise
+     * the post is held for approval but the thread stays publicly visible. This mirrors core
+     * approval's UnapproveNewContent. The post number isn't reliably set until the row is saved,
+     * so the discussion is unapproved in an afterSave hook.
      */
     protected function unapprove(Discussion|Post $entity): void
     {
         $entity->is_approved = false;
+
+        if ($entity instanceof Post) {
+            $entity->afterSave(function (Post $post) {
+                if ($post->number == 1 && $post->discussion && $post->discussion->is_approved) {
+                    $post->discussion->is_approved = false;
+                    $post->discussion->save();
+                }
+            });
+        }
     }
 
     /**
