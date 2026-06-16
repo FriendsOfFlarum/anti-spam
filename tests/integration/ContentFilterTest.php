@@ -12,6 +12,7 @@
 namespace FoF\AntiSpam\Tests\integration;
 
 use Carbon\Carbon;
+use Flarum\Discussion\Discussion;
 use Flarum\Flags\Flag;
 use Flarum\Post\Post;
 use Flarum\Testing\integration\TestCase;
@@ -139,6 +140,49 @@ class ContentFilterTest extends TestCase
         $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
         $this->assertNotNull($flag, 'Post should be flagged as spam');
         $this->assertStringContainsString('url', strtolower($flag->reason_detail), 'Flag reason should mention URL');
+    }
+
+    #[Test]
+    public function unapproving_spam_opening_post_also_unapproves_the_discussion()
+    {
+        // A spam opening post must take its discussion down with it. Otherwise the post is held
+        // for approval but the discussion stays public, so the thread (and any moderation replies)
+        // remain visible to everyone.
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => [
+                    'data' => [
+                        'type' => 'discussions',
+                        'attributes' => [
+                            'title' => 'Totally innocent title',
+                            'content' => 'Contact me at +1234567890 for details',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $post = Post::where('user_id', 3)->orderBy('id', 'desc')->first();
+        $this->assertNotNull($post, 'Post should be created');
+        $this->assertFalse((bool) $post->is_approved, 'Spam opening post should be unapproved');
+
+        $discussion = Discussion::find($post->discussion_id);
+        $this->assertNotNull($discussion);
+        $this->assertFalse((bool) $discussion->is_approved, 'Discussion started by a spam opening post should be unapproved too');
+
+        // A normal user must not be able to see the unapproved discussion.
+        $response = $this->send(
+            $this->request('GET', '/api/discussions/'.$discussion->id, [
+                'authenticatedAs' => 4,
+            ])
+        );
+        $this->assertEquals(404, $response->getStatusCode(), 'Unapproved spam discussion should not be visible to others');
     }
 
     #[Test]
