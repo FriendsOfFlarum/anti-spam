@@ -121,16 +121,25 @@ class MarkUserAsSpammerHandler
         if ($this->deleteUser) {
             // Direct deletion - events fire via Eloquent model
             $user->delete();
-        } elseif ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
+
+            return;
+        }
+
+        // Spammers often hide spam in their bio, which moderators easily miss. Clear it when
+        // fof/user-bio is enabled (the bio column it adds to the users table).
+        if ($this->extensions->isEnabled('fof-user-bio') && ! empty($user->bio)) {
+            $user->bio = null;
+            $user->save();
+        }
+
+        if ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
             // Direct property update - events fire when model is saved
             $user->suspended_until = Carbon::now()->addYears(20);
             $user->save();
         }
 
-        if (! $this->deleteUser) {
-            $user->refreshDiscussionCount();
-            $user->refreshCommentCount();
-        }
+        $user->refreshDiscussionCount();
+        $user->refreshCommentCount();
     }
 
     /**

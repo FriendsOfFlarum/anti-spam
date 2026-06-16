@@ -337,4 +337,62 @@ class SpamblockTest extends TestCase
         // Verify user is deleted
         $this->assertNull(User::find(5), 'User should be deleted');
     }
+
+    #[Test]
+    public function spammer_bio_is_cleared_when_user_bio_is_enabled()
+    {
+        $this->extension('fof-user-bio');
+
+        $this->app();
+
+        $user = User::find(5);
+        $user->bio = 'Buy cheap pills at spam.example';
+        $user->save();
+
+        $this->assertSame('Buy cheap pills at spam.example', User::find(5)->bio, 'Spammer should start with a bio');
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertNull(User::find(5)->bio, 'Spammer bio should be cleared');
+    }
+
+    #[Test]
+    public function spamblock_works_without_user_bio_extension()
+    {
+        // fof-user-bio is not enabled here; spamblock must not error.
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function deleting_spammer_with_bio_does_not_error()
+    {
+        $this->extension('fof-user-bio');
+        $this->setting('fof-anti-spam.actions.deleteUser', true);
+
+        $this->app();
+
+        $user = User::find(5);
+        $user->bio = 'Buy cheap pills at spam.example';
+        $user->save();
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertNull(User::find(5), 'User should be deleted');
+    }
 }
