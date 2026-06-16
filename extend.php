@@ -13,8 +13,11 @@ namespace FoF\AntiSpam;
 
 use Flarum\Api\Resource\ForumResource;
 use Flarum\Api\Resource\UserResource;
+use Flarum\Audit\Extend\Audit;
 use Flarum\Extend;
 use Flarum\User\User;
+use FoF\AntiSpam\Event\MarkedUserAsSpammer;
+use FoF\AntiSpam\Event\RegistrationWasBlocked;
 
 return [
     (new Extend\Frontend('forum'))
@@ -78,4 +81,17 @@ return [
         ->subscribe(Listener\CheckDiscussionContent::class),
 
     new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
+
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('flarum-audit', fn () => [
+            (new Audit())
+                ->listen(MarkedUserAsSpammer::class, 'user.marked_as_spammer', fn (MarkedUserAsSpammer $e) => [
+                    'user_id' => $e->user->id,
+                ])
+                ->listen(RegistrationWasBlocked::class, 'registration.blocked', fn (RegistrationWasBlocked $e) => [
+                    'ip' => $e->blocked->ip,
+                    'email' => $e->blocked->email,
+                    'username' => $e->blocked->username,
+                ]),
+        ]),
 ];
