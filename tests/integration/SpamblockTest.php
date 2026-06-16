@@ -247,6 +247,41 @@ class SpamblockTest extends TestCase
     }
 
     #[Test]
+    public function deleting_spammer_discussions_only_leaves_replies_in_other_discussions()
+    {
+        $this->setting('fof-anti-spam.actions.deleteDiscussions', true);
+
+        $this->app();
+
+        $deletedDiscussionIds = [];
+
+        $events = $this->app()->getContainer()->make(Dispatcher::class);
+        $events->listen(DiscussionDeleted::class, function (DiscussionDeleted $event) use (&$deletedDiscussionIds) {
+            $deletedDiscussionIds[] = $event->discussion->id;
+        });
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+
+        // The spammer's own discussions (and their posts) are deleted, firing a Deleted event each.
+        $this->assertEqualsCanonicalizing([2, 3], $deletedDiscussionIds, 'Discussion deleted events should fire for both spammer discussions');
+        $this->assertNull(Discussion::find(2), 'Spammer discussion 1 should be deleted');
+        $this->assertNull(Discussion::find(3), 'Spammer discussion 2 should be deleted');
+        $this->assertCount(0, CommentPost::whereIn('discussion_id', [2, 3])->get(), 'Posts in deleted discussions should be gone');
+
+        // The spammer's reply in another user's discussion must remain, because deletePosts is off.
+        $normalDiscussion = Discussion::find(4);
+        $this->assertNotNull($normalDiscussion, 'Normal user discussion should not be deleted');
+        $this->assertNotNull(CommentPost::find(10), 'Spammer reply in normal discussion should remain when only discussions are deleted');
+        $this->assertEquals(10, $normalDiscussion->last_post_id, 'Untouched discussion metadata should be unchanged');
+    }
+
+    #[Test]
     public function deleting_spammer_content_fires_model_events()
     {
         $this->setting('fof-anti-spam.actions.deletePosts', true);
