@@ -12,7 +12,9 @@
 namespace FoF\AntiSpam\Command;
 
 use Carbon\Carbon;
+use Flarum\Discussion\Discussion;
 use Flarum\Extension\ExtensionManager;
+use Flarum\Foundation\DispatchEventsTrait;
 use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\Guest;
@@ -21,11 +23,15 @@ use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 use FoF\AntiSpam\Job\ReportSpammerJob;
 use Illuminate\Contracts\Events\Dispatcher as Events;
 use Illuminate\Contracts\Queue\Queue;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Psr\Log\LoggerInterface;
 
 class MarkUserAsSpammerHandler
 {
+    use DispatchEventsTrait;
+
     /**
      * @var bool
      */
@@ -137,8 +143,21 @@ class MarkUserAsSpammerHandler
     protected function handlePosts(User $user, User $actor): void
     {
         if ($this->deletePosts) {
-            // Bulk deletion: use direct Eloquent for performance, events still fire on model
-            $user->posts()->delete();
+            // Remember which discussions the spammer posted in before deleting, so we can
+            // repair any that survive (e.g. a spammer reply in another user's discussion).
+            $affectedDiscussionIds = $user->posts()->pluck('discussion_id')->unique()->filter()->values();
+
+            // Delete models individually so Eloquent's `deleted` event fires for each, letting
+            // core and extensions (e.g. flarum/audit) react. A bulk query-builder delete would
+            // bypass these events and leave stale discussion metadata.
+            $this->deleteModels($user->posts(), $actor);
+
+            // On databases that honour the discussions.last_post_id foreign key (MySQL/PostgreSQL),
+            // deleting the last post sets last_post_id to NULL via ON DELETE SET NULL *before* core's
+            // DiscussionMetadataUpdater runs, so its `last_post_id == $post->id` guard never matches
+            // and the discussion is left without a last post. Recompute it for any discussion that
+            // still exists. (SQLite doesn't enforce the FK, so this is a no-op there.)
+            $this->refreshSurvivingDiscussions($affectedDiscussionIds);
         } else {
             // Bulk hide: use model methods which fire Hidden events
             $flagsEnabled = $this->flagsEnabled();
@@ -170,8 +189,9 @@ class MarkUserAsSpammerHandler
     protected function handleDiscussions(User $user, User $actor): void
     {
         if ($this->deleteDiscussions) {
-            // Bulk deletion: use direct Eloquent for performance
-            $user->discussions()->delete();
+            // Delete models individually so Eloquent's `deleted` event fires for each,
+            // allowing core and extensions (e.g. flarum/tags) to clean up cached metadata.
+            $this->deleteModels($user->discussions(), $actor);
         } else {
             // Bulk hide: use model methods which fire Hidden events
             $user->discussions()->where('hidden_at', null)->get()->each(function ($discussion) use ($actor) {
@@ -183,6 +203,51 @@ class MarkUserAsSpammerHandler
                 $this->moveUserDiscussionsToQuarantine($user);
             }
         }
+    }
+
+    /**
+     * Delete every model on a relation one at a time so Eloquent model events fire,
+     * chunking to keep memory bounded for users with large amounts of content.
+     *
+     * Deleting a model only queues its domain events (e.g. Post\Event\Deleted) via
+     * raise(); they must be released through dispatchEventsFor() to reach listeners
+     * such as core's DiscussionMetadataUpdater and flarum/audit.
+     *
+     * @template TRelated of \Illuminate\Database\Eloquent\Model
+     * @template TDeclaring of \Illuminate\Database\Eloquent\Model
+     *
+     * @param HasMany<TRelated, TDeclaring> $relation
+     */
+    protected function deleteModels(HasMany $relation, User $actor): void
+    {
+        $relation->chunkById(100, function ($models) use ($actor) {
+            foreach ($models as $model) {
+                $model->delete();
+
+                $this->dispatchEventsFor($model, $actor);
+            }
+        });
+    }
+
+    /**
+     * Recompute last-post and counts for discussions that survived post deletion.
+     *
+     * @param \Illuminate\Support\Collection<int, int> $discussionIds
+     */
+    protected function refreshSurvivingDiscussions(Collection $discussionIds): void
+    {
+        if ($discussionIds->isEmpty()) {
+            return;
+        }
+
+        Discussion::query()
+            ->whereIn('id', $discussionIds)
+            ->each(function (Discussion $discussion) {
+                $discussion->refreshLastPost();
+                $discussion->refreshCommentCount();
+                $discussion->refreshParticipantCount();
+                $discussion->save();
+            });
     }
 
     protected function moveUserDiscussionsToQuarantine(User $user): void
