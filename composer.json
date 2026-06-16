@@ -46,7 +46,8 @@
             },
             "optional-dependencies": [
                 "flarum/suspend",
-                "flarum/tags"
+                "flarum/tags",
+                "flarum/audit"
             ]
         },
         "flarum-cli": {
@@ -100,6 +101,7 @@
         "fof/user-bio": "^2.0.0",
         "flarum/tags": "^2.0.0",
         "fof/oauth": "^2.0.0",
-        "flarum/realtime": "^2.0.0"
+        "flarum/realtime": "^2.0.0",
+        "flarum/audit": "2.x-dev"
     }
 }
