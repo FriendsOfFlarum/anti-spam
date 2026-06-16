@@ -25,12 +25,12 @@ class StopForumSpamTest extends TestCase
         $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
     }
 
-    private function createMockSfsClient(SfsResponse $response): SfsClient
+    private function createStubSfsClient(SfsResponse $response): SfsClient
     {
-        $mock = $this->createMock(SfsClient::class);
-        $mock->method('check')->willReturn($response);
+        $stub = $this->createStub(SfsClient::class);
+        $stub->method('check')->willReturn($response);
 
-        return $mock;
+        return $stub;
     }
 
     private function createSfsResponse(array $data): SfsResponse
@@ -62,7 +62,7 @@ class StopForumSpamTest extends TestCase
             ],
         ]);
 
-        $client = $this->createMockSfsClient($sfsResponse);
+        $client = $this->createStubSfsClient($sfsResponse);
         $settings = $this->app()->getContainer()->make('flarum.settings');
         $dispatcher = $this->app()->getContainer()->make('events');
 
@@ -96,7 +96,7 @@ class StopForumSpamTest extends TestCase
             ],
         ]);
 
-        $client = $this->createMockSfsClient($sfsResponse);
+        $client = $this->createStubSfsClient($sfsResponse);
         $settings = $this->app()->getContainer()->make('flarum.settings');
         $dispatcher = $this->app()->getContainer()->make('events');
 
@@ -130,7 +130,7 @@ class StopForumSpamTest extends TestCase
             ],
         ]);
 
-        $client = $this->createMockSfsClient($sfsResponse);
+        $client = $this->createStubSfsClient($sfsResponse);
         $settings = $this->app()->getContainer()->make('flarum.settings');
         $dispatcher = $this->app()->getContainer()->make('events');
 
@@ -162,7 +162,7 @@ class StopForumSpamTest extends TestCase
             ],
         ]);
 
-        $client = $this->createMockSfsClient($sfsResponse);
+        $client = $this->createStubSfsClient($sfsResponse);
         $settings = $this->app()->getContainer()->make('flarum.settings');
         $dispatcher = $this->app()->getContainer()->make('events');
 
@@ -203,7 +203,7 @@ class StopForumSpamTest extends TestCase
             ],
         ]);
 
-        $client = $this->createMockSfsClient($sfsResponse);
+        $client = $this->createStubSfsClient($sfsResponse);
         $settings = $this->app()->getContainer()->make('flarum.settings');
         $dispatcher = $this->app()->getContainer()->make('events');
 

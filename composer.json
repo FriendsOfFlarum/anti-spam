@@ -99,6 +99,7 @@
         "flarum/suspend": "^2.0.0",
         "fof/user-bio": "^2.0.0",
         "flarum/tags": "^2.0.0",
-        "fof/oauth": "^2.0.0"
+        "fof/oauth": "^2.0.0",
+        "flarum/realtime": "^2.0.0"
     }
 }
