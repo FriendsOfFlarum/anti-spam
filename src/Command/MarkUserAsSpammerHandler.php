@@ -13,6 +13,7 @@ namespace FoF\AntiSpam\Command;
 
 use Carbon\Carbon;
 use Flarum\Extension\ExtensionManager;
+use Flarum\Foundation\DispatchEventsTrait;
 use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\Guest;
@@ -21,11 +22,14 @@ use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 use FoF\AntiSpam\Job\ReportSpammerJob;
 use Illuminate\Contracts\Events\Dispatcher as Events;
 use Illuminate\Contracts\Queue\Queue;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
 use Psr\Log\LoggerInterface;
 
 class MarkUserAsSpammerHandler
 {
+    use DispatchEventsTrait;
+
     /**
      * @var bool
      */
@@ -137,8 +141,11 @@ class MarkUserAsSpammerHandler
     protected function handlePosts(User $user, User $actor): void
     {
         if ($this->deletePosts) {
-            // Bulk deletion: use direct Eloquent for performance, events still fire on model
-            $user->posts()->delete();
+            // Delete models individually so Eloquent's `deleted` event fires for each.
+            // Core's DiscussionMetadataUpdater listens for Post\Event\Deleted to refresh
+            // comment_count, participant_count and last_post_* on the affected discussions.
+            // A bulk query-builder delete bypasses these events and leaves stale metadata.
+            $this->deleteModels($user->posts(), $actor);
         } else {
             // Bulk hide: use model methods which fire Hidden events
             $flagsEnabled = $this->flagsEnabled();
@@ -170,8 +177,9 @@ class MarkUserAsSpammerHandler
     protected function handleDiscussions(User $user, User $actor): void
     {
         if ($this->deleteDiscussions) {
-            // Bulk deletion: use direct Eloquent for performance
-            $user->discussions()->delete();
+            // Delete models individually so Eloquent's `deleted` event fires for each,
+            // allowing core and extensions (e.g. flarum/tags) to clean up cached metadata.
+            $this->deleteModels($user->discussions(), $actor);
         } else {
             // Bulk hide: use model methods which fire Hidden events
             $user->discussions()->where('hidden_at', null)->get()->each(function ($discussion) use ($actor) {
@@ -183,6 +191,30 @@ class MarkUserAsSpammerHandler
                 $this->moveUserDiscussionsToQuarantine($user);
             }
         }
+    }
+
+    /**
+     * Delete every model on a relation one at a time so Eloquent model events fire,
+     * chunking to keep memory bounded for users with large amounts of content.
+     *
+     * Deleting a model only queues its domain events (e.g. Post\Event\Deleted) via
+     * raise(); they must be released through dispatchEventsFor() to reach listeners
+     * such as core's DiscussionMetadataUpdater and flarum/audit.
+     *
+     * @template TRelated of \Illuminate\Database\Eloquent\Model
+     * @template TDeclaring of \Illuminate\Database\Eloquent\Model
+     *
+     * @param HasMany<TRelated, TDeclaring> $relation
+     */
+    protected function deleteModels(HasMany $relation, User $actor): void
+    {
+        $relation->chunkById(100, function ($models) use ($actor) {
+            foreach ($models as $model) {
+                $model->delete();
+
+                $this->dispatchEventsFor($model, $actor);
+            }
+        });
     }
 
     protected function moveUserDiscussionsToQuarantine(User $user): void

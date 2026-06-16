@@ -13,11 +13,14 @@ namespace FoF\AntiSpam\Tests\integration;
 
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
+use Flarum\Discussion\Event\Deleted as DiscussionDeleted;
 use Flarum\Group\Group;
 use Flarum\Post\CommentPost;
+use Flarum\Post\Event\Deleted as PostDeleted;
 use Flarum\Post\Post;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
+use Illuminate\Contracts\Events\Dispatcher;
 use PHPUnit\Framework\Attributes\Test;
 
 class SpamblockTest extends TestCase
@@ -42,11 +45,11 @@ class SpamblockTest extends TestCase
             ],
             Discussion::class => [
                 // Spammer's first discussion with multiple posts
-                ['id' => 2, 'title' => 'Spam Discussion 1', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 5, 'first_post_id' => 4, 'comment_count' => 3, 'last_post_id' => 6],
+                ['id' => 2, 'title' => 'Spam Discussion 1', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'last_posted_user_id' => 5, 'user_id' => 5, 'first_post_id' => 4, 'comment_count' => 3, 'last_post_id' => 6, 'last_post_number' => 3],
                 // Spammer's second discussion
-                ['id' => 3, 'title' => 'Spam Discussion 2', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 5, 'first_post_id' => 7, 'comment_count' => 2, 'last_post_id' => 8],
+                ['id' => 3, 'title' => 'Spam Discussion 2', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'last_posted_user_id' => 5, 'user_id' => 5, 'first_post_id' => 7, 'comment_count' => 2, 'last_post_id' => 8, 'last_post_number' => 2],
                 // Regular user's discussion with spammer reply
-                ['id' => 4, 'title' => 'Normal Discussion', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 4, 'first_post_id' => 9, 'comment_count' => 2, 'last_post_id' => 10],
+                ['id' => 4, 'title' => 'Normal Discussion', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'last_posted_user_id' => 5, 'user_id' => 4, 'first_post_id' => 9, 'comment_count' => 2, 'last_post_id' => 10, 'last_post_number' => 2],
             ],
             Post::class => [
                 // Discussion 2 - spammer's posts
@@ -214,6 +217,68 @@ class SpamblockTest extends TestCase
 
         // Note: Post #5 (normal user's reply in spammer's discussion) may or may not be cascade-deleted
         // depending on database foreign key enforcement. We only verify critical post #9 remains.
+    }
+
+    #[Test]
+    public function deleting_spammer_posts_refreshes_discussion_last_post_metadata()
+    {
+        $this->setting('fof-anti-spam.actions.deletePosts', true);
+
+        $this->app();
+
+        $discussion = Discussion::find(4);
+        $this->assertEquals(10, $discussion->last_post_id, 'Fixture should start with spam reply as last post');
+        $this->assertEquals(5, $discussion->last_posted_user_id, 'Fixture should start with spammer as last poster');
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertNull(CommentPost::find(10), 'Spammer reply in normal discussion should be deleted');
+
+        $discussion->refresh();
+
+        $this->assertEquals(9, $discussion->last_post_id, 'Last post should be recalculated after deleting spammer reply');
+        $this->assertEquals(4, $discussion->last_posted_user_id, 'Last poster should be recalculated after deleting spammer reply');
+        $this->assertEquals(1, $discussion->comment_count, 'Comment count should be recalculated after deleting spammer reply');
+    }
+
+    #[Test]
+    public function deleting_spammer_content_fires_model_events()
+    {
+        $this->setting('fof-anti-spam.actions.deletePosts', true);
+        $this->setting('fof-anti-spam.actions.deleteDiscussions', true);
+
+        $this->app();
+
+        $deletedPostIds = [];
+        $deletedDiscussionIds = [];
+
+        $events = $this->app()->getContainer()->make(Dispatcher::class);
+        $events->listen(PostDeleted::class, function (PostDeleted $event) use (&$deletedPostIds) {
+            $deletedPostIds[] = $event->post->id;
+        });
+        $events->listen(DiscussionDeleted::class, function (DiscussionDeleted $event) use (&$deletedDiscussionIds) {
+            $deletedDiscussionIds[] = $event->discussion->id;
+        });
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+
+        // Discussion deletion fires Discussion\Event\Deleted for each of the spammer's discussions.
+        $this->assertEqualsCanonicalizing([2, 3], $deletedDiscussionIds, 'Discussion deleted events should fire for both spammer discussions');
+
+        // Post deletion fires Post\Event\Deleted. The spammer's reply (post 10) lives in another
+        // user's discussion, so it must be deleted individually and fire its event.
+        $this->assertContains(10, $deletedPostIds, 'Post deleted event should fire for the spammer reply in the normal discussion');
     }
 
     #[Test]
