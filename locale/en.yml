@@ -88,3 +88,13 @@ fof-anti-spam:
       report_to_sfs_help: This will report the user's basic details (username, email, IP address) to StopForumSpam. This will help prevent the user from registering on other forums that use the StopForumSpam service.
     user_controls:
       spammer_button: Spammer
+
+# Audit log action labels, contributed to the flarum/audit namespace.
+# Rendered by flarum-audit at flarum-audit.lib.browser.<action>.
+flarum-audit:
+  lib:
+    browser:
+      user:
+        marked_as_spammer: Marked {username} as a spammer
+      registration:
+        blocked: Blocked registration for {username} ({email}) from {ip}

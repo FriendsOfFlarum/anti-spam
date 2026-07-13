@@ -46,7 +46,8 @@
                 "flarum/suspend",
                 "flarum/flags",
                 "flarum/approval",
-                "flarum/tags"
+                "flarum/tags",
+                "flarum/audit"
             ]
         },
         "flarum-cli": {
@@ -105,6 +106,7 @@
         "fof/user-bio": "*",
         "flarum/approval": "*",
         "flarum/tags": "*",
-        "fof/oauth": "*"
+        "fof/oauth": "*",
+        "flarum/audit": "*"
     }
 }
