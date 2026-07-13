@@ -75,8 +75,8 @@ return [
                     })
                     ->listen(RegistrationWasBlocked::class, 'registration.blocked', function (RegistrationWasBlocked $e) {
                         return [
-                            'ip'       => $e->blocked->ip,
-                            'email'    => $e->blocked->email,
+                            'ip' => $e->blocked->ip,
+                            'email' => $e->blocked->email,
                             'username' => $e->blocked->username,
                         ];
                     }),
