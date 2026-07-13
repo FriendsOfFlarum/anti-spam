@@ -65,15 +65,21 @@ return [
         ->register(Providers\SfsProvider::class),
 
     (new Extend\Conditional())
-        ->whenExtensionEnabled('flarum-audit', fn () => [
-            (new \Flarum\Audit\Extend\Audit())
-                ->listen(MarkedUserAsSpammer::class, 'user.marked_as_spammer', fn (MarkedUserAsSpammer $e) => [
-                    'user_id' => $e->user->id,
-                ])
-                ->listen(RegistrationWasBlocked::class, 'registration.blocked', fn (RegistrationWasBlocked $e) => [
-                    'ip' => $e->blocked->ip,
-                    'email' => $e->blocked->email,
-                    'username' => $e->blocked->username,
-                ]),
-        ]),
+        ->whenExtensionEnabled('flarum-audit', function () {
+            return [
+                (new \Flarum\Audit\Extend\Audit())
+                    ->listen(MarkedUserAsSpammer::class, 'user.marked_as_spammer', function (MarkedUserAsSpammer $e) {
+                        return [
+                            'user_id' => $e->user->id,
+                        ];
+                    })
+                    ->listen(RegistrationWasBlocked::class, 'registration.blocked', function (RegistrationWasBlocked $e) {
+                        return [
+                            'ip'       => $e->blocked->ip,
+                            'email'    => $e->blocked->email,
+                            'username' => $e->blocked->username,
+                        ];
+                    }),
+            ];
+        }),
 ];
