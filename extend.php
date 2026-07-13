@@ -15,6 +15,8 @@ use Flarum\Api\Serializer\ForumSerializer;
 use Flarum\Api\Serializer\UserSerializer;
 use Flarum\Extend;
 use Flarum\User\User;
+use FoF\AntiSpam\Event\MarkedUserAsSpammer;
+use FoF\AntiSpam\Event\RegistrationWasBlocked;
 
 return [
     (new Extend\Frontend('forum'))
@@ -61,4 +63,17 @@ return [
 
     (new Extend\ServiceProvider())
         ->register(Providers\SfsProvider::class),
+
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('flarum-audit', fn () => [
+            (new \Flarum\Audit\Extend\Audit())
+                ->listen(MarkedUserAsSpammer::class, 'user.marked_as_spammer', fn (MarkedUserAsSpammer $e) => [
+                    'user_id' => $e->user->id,
+                ])
+                ->listen(RegistrationWasBlocked::class, 'registration.blocked', fn (RegistrationWasBlocked $e) => [
+                    'ip' => $e->blocked->ip,
+                    'email' => $e->blocked->email,
+                    'username' => $e->blocked->username,
+                ]),
+        ]),
 ];
