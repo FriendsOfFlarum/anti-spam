@@ -25,6 +25,36 @@ use PHPUnit\Framework\Attributes\Test;
 
 class SpamblockTest extends TestCase
 {
+    /**
+     * The spam block acts on a spammer's content one record at a time, on
+     * purpose: hiding or deleting each post and discussion through its model so
+     * the per-model events fire (core reconciles discussion metadata, and
+     * flarum/audit logs each action). The per-record UPDATE/DELETE that follows
+     * is inherent to that design, not an accidental N+1 that grows with page
+     * size, so exempt those shapes from the repeated-query detector.
+     *
+     * Listed for both identifier-quoting styles, since CI runs every driver
+     * (MySQL uses backticks; SQLite and PostgreSQL use double quotes).
+     */
+    protected function allowedRepeatedQueries(): array
+    {
+        return [
+            // Per-post hide.
+            'update `posts` set `hidden_at`',
+            'update "posts" set "hidden_at"',
+            // Per-post delete and its cascade cleanup.
+            'delete from `posts` where `id`',
+            'delete from "posts" where "id"',
+            'delete from `flags` where `flags`.`post_id`',
+            'delete from "flags" where "flags"."post_id"',
+            'delete from `notifications` where',
+            'delete from "notifications" where',
+            // Per-user comment-count refresh during content deletion.
+            'update `users` set `comment_count`',
+            'update "users" set "comment_count"',
+        ];
+    }
+
     protected function setup(): void
     {
         parent::setup();
