@@ -160,6 +160,34 @@ class SpamblockTest extends TestCase
         $this->assertNull(CommentPost::find(9)->hidden_at, 'Normal user post should NOT be hidden');
     }
 
+    /**
+     * When a spammer's reply in someone else's discussion is hidden, that
+     * discussion's cached metadata must be reconciled — otherwise it still
+     * counts the hidden post, so comment_count and last_post_number point past
+     * what a normal reader can see and the discussion list shows a phantom
+     * unread (discuss.flarum.org d/39415). Hiding through hide() only queues
+     * the Hidden event; the handler must dispatch it so core's
+     * DiscussionMetadataUpdater runs.
+     */
+    #[Test]
+    public function hiding_a_spammer_reply_reconciles_the_discussion_metadata()
+    {
+        // Discussion 4 is a normal user's discussion: post 9 (visible) and the
+        // spammer's post 10 (hidden by the block). Before: comment_count 2,
+        // last_post_number 2, last_post_id 10 (the soon-to-be-hidden reply).
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+
+        $discussion = Discussion::find(4);
+
+        $this->assertSame(1, (int) $discussion->comment_count, 'The hidden spam reply must not be counted.');
+        $this->assertSame(1, (int) $discussion->last_post_number, 'The last post must be the last visible post, not the hidden reply.');
+        $this->assertSame(9, (int) $discussion->last_post_id, 'The last post must point at the visible post 9.');
+    }
+
     #[Test]
     public function normal_user_cannot_see_spamblocked_posts()
     {
@@ -310,11 +338,14 @@ class SpamblockTest extends TestCase
         $this->assertNull(Discussion::find(3), 'Spammer discussion 2 should be deleted');
         $this->assertCount(0, CommentPost::whereIn('discussion_id', [2, 3])->get(), 'Posts in deleted discussions should be gone');
 
-        // The spammer's reply in another user's discussion must remain, because deletePosts is off.
+        // The spammer's reply in another user's discussion is hidden (not
+        // deleted) because deletePosts is off — so the post row remains, but the
+        // discussion's metadata is reconciled to the last visible post.
         $normalDiscussion = Discussion::find(4);
         $this->assertNotNull($normalDiscussion, 'Normal user discussion should not be deleted');
         $this->assertNotNull(CommentPost::find(10), 'Spammer reply in normal discussion should remain when only discussions are deleted');
-        $this->assertEquals(10, $normalDiscussion->last_post_id, 'Untouched discussion metadata should be unchanged');
+        $this->assertNotNull(CommentPost::find(10)->hidden_at, 'Spammer reply should be hidden');
+        $this->assertEquals(9, $normalDiscussion->last_post_id, 'The last post must reconcile to the last visible post once the reply is hidden');
     }
 
     #[Test]
