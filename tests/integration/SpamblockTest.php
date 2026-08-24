@@ -38,20 +38,26 @@ class SpamblockTest extends TestCase
      */
     protected function allowedRepeatedQueries(): array
     {
+        // Matched as substrings of the query after numbers/strings are
+        // normalised to `?`. The table name is kept but its opening quote is
+        // dropped, so a configured prefix (`posts` -> `fl_posts`) is still a
+        // match while the fragment stays specific to the intended table.
         return [
             // Per-post hide.
-            'update `posts` set `hidden_at`',
-            'update "posts" set "hidden_at"',
-            // Per-post delete and its cascade cleanup.
-            'delete from `posts` where `id`',
-            'delete from "posts" where "id"',
-            'delete from `flags` where `flags`.`post_id`',
-            'delete from "flags" where "flags"."post_id"',
-            'delete from `notifications` where',
-            'delete from "notifications" where',
+            'posts` set `hidden_at` = ?, `hidden_user_id` = ? where `id` = ?',
+            'posts" set "hidden_at" = ?, "hidden_user_id" = ? where "id" = ?',
+            // Per-post delete.
+            'posts` where `id` = ?',
+            'posts" where "id" = ?',
+            // Per-post flag cleanup.
+            '`.`post_id` = ? and',
+            '"."post_id" = ? and',
+            // Per-post notification cleanup.
+            'notifications` where ? = ? and `subject_id` = ?',
+            'notifications" where ? = ? and "subject_id" = ?',
             // Per-user comment-count refresh during content deletion.
-            'update `users` set `comment_count`',
-            'update "users" set "comment_count"',
+            'users` set `comment_count` = ? where `id` = ?',
+            'users" set "comment_count" = ? where "id" = ?',
         ];
     }
 
