@@ -168,7 +168,7 @@ class MarkUserAsSpammerHandler
             // still exists. (SQLite doesn't enforce the FK, so this is a no-op there.)
             $this->refreshSurvivingDiscussions($affectedDiscussionIds);
         } else {
-            // Bulk hide: use model methods which fire Hidden events
+            // Bulk hide via the model hide() method, dispatching its events per model.
             $flagsEnabled = $this->flagsEnabled();
 
             $user->posts()->where('hidden_at', null)->get()->each(function (Post $post) use ($actor, $flagsEnabled) {
@@ -178,6 +178,12 @@ class MarkUserAsSpammerHandler
                     /** @var \Flarum\Post\CommentPost $post */
                     $post->hide($actor);
                     $post->save();
+
+                    // hide() only queues the Hidden event via raise(); release it
+                    // so core's DiscussionMetadataUpdater refreshes the comment
+                    // count and last post, otherwise the discussion is left with
+                    // metadata that still counts the hidden post.
+                    $this->dispatchEventsFor($post, $actor);
                 }
 
                 if ($flagsEnabled) {
@@ -202,10 +208,14 @@ class MarkUserAsSpammerHandler
             // allowing core and extensions (e.g. flarum/tags) to clean up cached metadata.
             $this->deleteModels($user->discussions(), $actor);
         } else {
-            // Bulk hide: use model methods which fire Hidden events
+            // Bulk hide via the model hide() method, dispatching its events per model.
             $user->discussions()->where('hidden_at', null)->get()->each(function ($discussion) use ($actor) {
                 $discussion->hide($actor);
                 $discussion->save();
+
+                // hide() only queues the Hidden event via raise(); release it so
+                // listeners (core metadata, flarum/audit) run.
+                $this->dispatchEventsFor($discussion, $actor);
             });
 
             if ($this->moveDiscussionsToQuarantine) {
