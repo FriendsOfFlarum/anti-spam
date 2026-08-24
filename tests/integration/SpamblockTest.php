@@ -25,6 +25,42 @@ use PHPUnit\Framework\Attributes\Test;
 
 class SpamblockTest extends TestCase
 {
+    /**
+     * The spam block acts on a spammer's content one record at a time, on
+     * purpose: hiding or deleting each post and discussion through its model so
+     * the per-model events fire (core reconciles discussion metadata, and
+     * flarum/audit logs each action). The per-record UPDATE/DELETE that follows
+     * is inherent to that design, not an accidental N+1 that grows with page
+     * size, so exempt those shapes from the repeated-query detector.
+     *
+     * Listed for both identifier-quoting styles, since CI runs every driver
+     * (MySQL uses backticks; SQLite and PostgreSQL use double quotes).
+     */
+    protected function allowedRepeatedQueries(): array
+    {
+        // Matched as substrings of the query after numbers/strings are
+        // normalised to `?`. The table name is kept but its opening quote is
+        // dropped, so a configured prefix (`posts` -> `fl_posts`) is still a
+        // match while the fragment stays specific to the intended table.
+        return [
+            // Per-post hide.
+            'posts` set `hidden_at` = ?, `hidden_user_id` = ? where `id` = ?',
+            'posts" set "hidden_at" = ?, "hidden_user_id" = ? where "id" = ?',
+            // Per-post delete.
+            'posts` where `id` = ?',
+            'posts" where "id" = ?',
+            // Per-post flag cleanup.
+            '`.`post_id` = ? and',
+            '"."post_id" = ? and',
+            // Per-post notification cleanup.
+            'notifications` where ? = ? and `subject_id` = ?',
+            'notifications" where ? = ? and "subject_id" = ?',
+            // Per-user comment-count refresh during content deletion.
+            'users` set `comment_count` = ? where `id` = ?',
+            'users" set "comment_count" = ? where "id" = ?',
+        ];
+    }
+
     protected function setup(): void
     {
         parent::setup();
