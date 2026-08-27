@@ -12,13 +12,11 @@
 namespace FoF\AntiSpam\Tests\integration;
 
 use Carbon\Carbon;
-use Flarum\Extend;
+use Flarum\Discussion\Discussion;
 use Flarum\Group\Group;
 use Flarum\Post\CommentPost;
-use Flarum\Discussion\Discussion;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
-use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 
 class SpamblockTest extends TestCase
 {
@@ -166,7 +164,7 @@ class SpamblockTest extends TestCase
         $response = $this->send(
             $this->request('POST', 'api/users/5/spamblock', [
                 'authenticatedAs' => 3,
-                'json'            => [
+                'json' => [
                     'options' => [
                         'deletePosts' => true,
                     ],
