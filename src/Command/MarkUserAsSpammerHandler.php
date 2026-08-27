@@ -13,9 +13,12 @@ namespace FoF\AntiSpam\Command;
 
 use Carbon\Carbon;
 use Flarum\Discussion\Command\EditDiscussion;
+use Flarum\Discussion\Event\Deleting as DiscussionDeleting;
 use Flarum\Extension\ExtensionManager;
 use Flarum\Flags\Command\DeleteFlags;
+use Flarum\Foundation\DispatchEventsTrait;
 use Flarum\Post\Command\EditPost;
+use Flarum\Post\Event\Deleting as PostDeleting;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\Command\DeleteUser;
 use Flarum\User\Command\EditUser;
@@ -31,11 +34,11 @@ use Psr\Log\LoggerInterface;
 
 class MarkUserAsSpammerHandler
 {
+    use DispatchEventsTrait;
+
     public $extensions;
 
     public $bus;
-
-    public $events;
 
     public $settings;
 
@@ -159,7 +162,15 @@ class MarkUserAsSpammerHandler
     protected function handlePosts(User $user, User $actor): void
     {
         if ($this->deletePosts) {
-            $user->posts()->delete();
+            $user->posts()->with('discussion')->chunkById(50, function ($posts) use ($actor) {
+                foreach ($posts as $post) {
+                    $this->events->dispatch(new PostDeleting($post, $actor, []));
+
+                    $post->delete();
+
+                    $this->dispatchEventsFor($post, $actor);
+                }
+            });
         } else {
             $flagsEnabled = $this->flagsEnabled();
 
@@ -191,7 +202,15 @@ class MarkUserAsSpammerHandler
     protected function handleDiscussions(User $user, User $actor): void
     {
         if ($this->deleteDiscussions) {
-            $user->discussions()->delete();
+            $user->discussions()->chunkById(50, function ($discussions) use ($actor) {
+                foreach ($discussions as $discussion) {
+                    $this->events->dispatch(new DiscussionDeleting($discussion, $actor));
+
+                    $discussion->delete();
+
+                    $this->dispatchEventsFor($discussion, $actor);
+                }
+            });
         } else {
             $user->discussions()->where('hidden_at', null)->chunk(50, function ($discussions) use ($actor) {
                 foreach ($discussions as $discussion) {
