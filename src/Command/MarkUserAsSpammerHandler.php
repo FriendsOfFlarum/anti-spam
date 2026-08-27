@@ -162,10 +162,8 @@ class MarkUserAsSpammerHandler
     protected function handlePosts(User $user, User $actor): void
     {
         if ($this->deletePosts) {
-            $user->posts()->chunkById(50, function ($posts) use ($actor) {
+            $user->posts()->with('discussion')->chunkById(50, function ($posts) use ($actor) {
                 foreach ($posts as $post) {
-                    $post->loadMissing('discussion');
-
                     $this->events->dispatch(new PostDeleting($post, $actor, []));
 
                     $post->delete();
