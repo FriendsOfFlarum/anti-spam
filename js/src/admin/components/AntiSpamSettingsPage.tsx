@@ -129,10 +129,15 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
     if (!failedAt) return null;
 
+    // Stored as an ISO 8601 string; humanTime wants a Date.
+    const when = new Date(failedAt);
+
+    if (isNaN(when.getTime())) return null;
+
     return (
       <div className="Alert Alert--error" style={{ marginBottom: '15px' }}>
         {app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.lookup_failed', {
-          when: humanTime(failedAt),
+          when: humanTime(when),
         })}
       </div>
     );
