@@ -186,6 +186,152 @@ class ContentFilterTest extends TestCase
     }
 
     #[Test]
+    public function spam_in_the_discussion_title_unapproves_the_discussion_and_its_first_post()
+    {
+        // Discussion\Event\Started is released *after* the discussion row has been written, so
+        // unapproving the model in memory was silently discarded: title spam earned a flag but
+        // stayed publicly visible. The first post goes down with it, otherwise approving the
+        // discussion later restores a post no one ever reviewed.
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => [
+                    'data' => [
+                        'type' => 'discussions',
+                        'attributes' => [
+                            'title' => 'Buy cheap stuff at http://suspicious-site.com',
+                            'content' => 'Hello everyone, nice to meet you.',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $post = Post::where('user_id', 3)->orderBy('id', 'desc')->first();
+        $this->assertNotNull($post, 'Post should be created');
+        $this->assertFalse((bool) $post->is_approved, 'First post of a spam-titled discussion should be unapproved');
+
+        $discussion = Discussion::find($post->discussion_id);
+        $this->assertNotNull($discussion);
+        $this->assertFalse((bool) $discussion->is_approved, 'Discussion with a spam title should be unapproved');
+
+        $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
+        $this->assertNotNull($flag, 'Spam title should be flagged on the first post');
+
+        // A normal user must not be able to see the unapproved discussion.
+        $response = $this->send(
+            $this->request('GET', '/api/discussions/'.$discussion->id, [
+                'authenticatedAs' => 4,
+            ])
+        );
+        $this->assertEquals(404, $response->getStatusCode(), 'Unapproved spam discussion should not be visible to others');
+    }
+
+    #[Test]
+    public function fresh_user_post_with_schemeless_url_is_detected()
+    {
+        // Dropping the scheme used to make a link invisible to the detector, which is free for a
+        // spammer and the most common way spam reaches a forum as plain text.
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => [
+                    'data' => [
+                        'type' => 'discussions',
+                        'attributes' => [
+                            'title' => 'Test Discussion',
+                            'content' => 'Great deals at www.suspicious-site.com and cheap-pills.xyz today',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $post = Post::where('user_id', 3)->orderBy('id', 'desc')->first();
+        $this->assertNotNull($post, 'Post should be created');
+        $this->assertFalse((bool) $post->is_approved, 'Schemeless spam links should be unapproved');
+
+        $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
+        $this->assertNotNull($flag, 'Schemeless URLs should be flagged as spam');
+        $this->assertStringContainsString('url', strtolower($flag->reason_detail), 'Flag reason should mention URL');
+    }
+
+    #[Test]
+    public function fresh_user_talking_about_source_files_is_not_flagged()
+    {
+        // The flip side of matching bare domains: a new user asking an ordinary question must not
+        // be held for approval because they named a file.
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => [
+                    'data' => [
+                        'type' => 'discussions',
+                        'attributes' => [
+                            'title' => 'Where do I put this?',
+                            'content' => 'I read README.md, edited extend.php and ran install.sh, but forum.js still fails.',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $post = Post::where('user_id', 3)->orderBy('id', 'desc')->first();
+        $this->assertNotNull($post, 'Post should be created');
+        $this->assertNotFalse($post->is_approved, 'Naming source files should not unapprove a post');
+
+        $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
+        $this->assertNull($flag, 'Naming source files should not be flagged as spam');
+    }
+
+    #[Test]
+    public function fresh_user_schemeless_link_to_allowlisted_domain_is_not_flagged()
+    {
+        $this->setting('fof-anti-spam.content-filter.allowed_domains', "youtube.com\nyoutu.be");
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => [
+                    'data' => [
+                        'type' => 'discussions',
+                        'attributes' => [
+                            'title' => 'My introduction',
+                            'content' => 'My channel is at www.youtube.com/@unetouchedharmonie and youtu.be/abc',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $post = Post::where('user_id', 3)->orderBy('id', 'desc')->first();
+        $this->assertNotNull($post, 'Post should be created');
+
+        $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
+        $this->assertNull($flag, 'A schemeless link to an allowlisted domain should not be flagged');
+        $this->assertNotFalse($post->is_approved, 'Post to an allowlisted domain should not be unapproved');
+    }
+
+    #[Test]
     public function fresh_user_link_to_allowlisted_domain_is_not_flagged()
     {
         // Issue #22: the admin UI saves the allowlist newline-separated, but the backend used to

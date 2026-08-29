@@ -25,9 +25,114 @@ use Psr\Http\Message\UriInterface;
 class UrlDetector extends AbstractDetector
 {
     /**
-     * Regex pattern for detecting URLs.
+     * Regex for detecting URLs. `__TLDS__` is filled in from self::TLDS by self::pattern().
+     *
+     * A scheme is not required: dropping it costs a spammer nothing, so `www.example.com`,
+     * `//example.com` and a bare `example.com` all have to count. The leading lookbehind keeps a
+     * match from starting mid-token, which is also what stops an email address from being counted
+     * here as well as by the EmailDetector.
      */
-    private const URL_PATTERN = '~(?<uri>(\w+)://(?<domain>[-\w.]+))~';
+    private const URL_PATTERN = '~
+        (?<! [\w@.\-] )
+        (?:
+            [a-z][a-z0-9+.\-]* :// [-\w]+ (?: \. [-\w]+ )*      # scheme://host
+          | // [-\w]+ (?: \. [-\w]+ )*                          # protocol-relative //host
+          | www \. [-\w]+ (?: \. [-\w]+ )*                      # www.host
+          | (?: [a-z0-9] [-a-z0-9]* \. )+ (?: __TLDS__ ) (?! [-\w] )   # bare host.tld
+        )
+    ~ixu';
+
+    /**
+     * TLDs a bare, schemeless hostname is allowed to end in.
+     *
+     * A generic `[a-z]{2,}` rule would read `README.md`, `extend.php` or `main.rs` as links and
+     * hold an ordinary question for approval, so bare hostnames are matched against a list
+     * instead. Deliberately left out:
+     *
+     *  - TLDs that collide with source-file extensions (`md`, `sh`, `py`, `rs`, `so`, `zip`,
+     *    `mov`). They are real, but on a forum about software `README.md` and `install.sh` come up
+     *    constantly and spam almost never uses them.
+     *  - New gTLDs that are ordinary English words (`app`, `info`, `name`, `link`, `click`,
+     *    `style`, `support`, `news`, …). Each one turns a property access or a method call —
+     *    `this.app`, `user.name`, `el.style`, `logger.info(…)` — into a "spam link".
+     *
+     * What is left is the classic gTLDs, the ccTLDs, and the new gTLDs spam actually leans on,
+     * which between them cover the overwhelming majority of real spam domains. A false positive
+     * costs a legitimate user far more than a missed bare hostname costs us.
+     *
+     * None of this limits detection of an explicit link: a URL carrying a scheme, `//` or `www.`
+     * is matched whatever it ends in.
+     *
+     * @var array<string>
+     */
+    private const TLDS = [
+        // Classic gTLDs
+        'com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'biz', 'mobi', 'asia', 'travel', 'jobs',
+        'coop', 'aero', 'museum', 'xxx',
+
+        // New gTLDs disproportionately used by spam
+        'top', 'xyz', 'icu', 'vip', 'buzz', 'cyou', 'sbs', 'cfd', 'bond', 'gdn', 'wtf', 'lol',
+        'mom', 'monster', 'quest', 'online', 'site', 'website', 'space', 'store', 'shop', 'club',
+        'cloud',
+
+        // ccTLDs
+        'ac', 'ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'ao', 'ar', 'as', 'at', 'au', 'aw', 'ax',
+        'az', 'ba', 'bb', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bm', 'bn', 'bo', 'br', 'bs',
+        'bt', 'bw', 'by', 'bz', 'ca', 'cd', 'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co',
+        'cr', 'cu', 'cv', 'cw', 'cy', 'cz', 'de', 'dj', 'dk', 'dm', 'do', 'dz', 'ec', 'ee', 'eg',
+        'es', 'et', 'eu', 'fi', 'fj', 'fk', 'fm', 'fo', 'fr', 'ga', 'gd', 'ge', 'gf', 'gg', 'gh',
+        'gi', 'gl', 'gm', 'gn', 'gp', 'gq', 'gr', 'gs', 'gt', 'gu', 'gw', 'gy', 'hk', 'hn', 'hr',
+        'ht', 'hu', 'id', 'ie', 'il', 'im', 'in', 'io', 'iq', 'ir', 'is', 'it', 'je', 'jm', 'jo',
+        'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kr', 'kw', 'ky', 'kz', 'la', 'lb', 'lc', 'li',
+        'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'me', 'mg', 'mh', 'mk', 'ml', 'mm',
+        'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz', 'na', 'nc',
+        'ne', 'nf', 'ng', 'ni', 'nl', 'no', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg',
+        'ph', 'pk', 'pl', 'pm', 'pn', 'pr', 'ps', 'pt', 'pw', 'qa', 're', 'ro', 'ru', 'rw', 'sa',
+        'sb', 'sc', 'sd', 'se', 'sg', 'si', 'sk', 'sl', 'sm', 'sn', 'sr', 'st', 'su', 'sv', 'sx',
+        'sy', 'sz', 'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tr', 'tt',
+        'tv', 'tw', 'tz', 'ua', 'ug', 'uk', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn',
+        'vu', 'wf', 'ws', 'ye', 'yt', 'za', 'zm', 'zw',
+    ];
+
+    private static ?string $pattern = null;
+
+    /**
+     * Build the URL regex, once per process.
+     */
+    private static function pattern(): string
+    {
+        return self::$pattern ??= str_replace('__TLDS__', implode('|', self::TLDS), self::URL_PATTERN);
+    }
+
+    /**
+     * Extract every URL-shaped token from content that has already had its formatting stripped.
+     *
+     * @return array<string> The matched tokens, in the order they appear.
+     */
+    public static function extractUrls(string $content): array
+    {
+        if (! preg_match_all(self::pattern(), $content, $matches)) {
+            return [];
+        }
+
+        return $matches[0];
+    }
+
+    /**
+     * Give a matched token a scheme so it can be parsed as a URI.
+     */
+    private static function normalizeUrl(string $url): string
+    {
+        if (str_starts_with($url, '//')) {
+            return 'http:'.$url;
+        }
+
+        if (preg_match('~^[a-z][a-z0-9+.\-]*://~i', $url)) {
+            return $url;
+        }
+
+        return 'http://'.$url;
+    }
 
     public function analyze(string $content, User $user, array $context = []): SpamScore
     {
@@ -50,10 +155,10 @@ class UrlDetector extends AbstractDetector
         $cleanContent = $this->stripFormatting($content);
 
         // Detect URLs
-        $matches = [];
-        $count = preg_match_all(self::URL_PATTERN, $cleanContent, $matches);
+        $urls = self::extractUrls($cleanContent);
+        $count = count($urls);
 
-        if ($count === false || $count === 0) {
+        if ($count === 0) {
             return new SpamScore();
         }
 
@@ -65,9 +170,9 @@ class UrlDetector extends AbstractDetector
         $flaggedUrls = [];
         $allowedUrls = [];
 
-        foreach ($matches['uri'] as $url) {
+        foreach ($urls as $url) {
             try {
-                $uri = new Uri($url);
+                $uri = new Uri(self::normalizeUrl($url));
 
                 if ($this->isUrlAllowed($uri, $user, $allowedDomains, $domainCallbacks)) {
                     $allowedUrls[] = $url;
