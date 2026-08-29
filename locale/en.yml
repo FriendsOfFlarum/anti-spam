@@ -123,6 +123,9 @@ fof-anti-spam:
       flagged_as_spam_text: "Automatic Spam Detection - score {score}"
 
     message:
+      profile:
+        blocked: This looks like spam, so it has not been saved. Please remove any links or contact details and try again.
+
       stopforumspam:
         blocked: Details of your registration have been found in a spam prevention database, therefore your registration has been blocked.
 

@@ -15,6 +15,7 @@ use Flarum\Api\Resource\ForumResource;
 use Flarum\Api\Resource\UserResource;
 use Flarum\Audit\Extend\Audit;
 use Flarum\Extend;
+use Flarum\User\Event\Saving as UserSaving;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 use FoF\AntiSpam\Event\RegistrationWasBlocked;
@@ -86,9 +87,23 @@ return [
 
     (new Extend\Event())
         ->subscribe(Listener\CheckPostContent::class)
-        ->subscribe(Listener\CheckDiscussionContent::class),
+        ->subscribe(Listener\CheckDiscussionContent::class)
+        ->listen(UserSaving::class, Listener\CheckUsernameContent::class),
 
     new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
+
+    // The display name a spammer picks follows them onto every post they make.
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('flarum-nicknames', fn () => [
+            (new Extend\Event())
+                ->listen(UserSaving::class, Listener\CheckNicknameContent::class),
+        ]),
+
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('fof-user-bio', fn () => [
+            (new Extend\Event())
+                ->listen(UserSaving::class, Listener\CheckBioContent::class),
+        ]),
 
     (new Extend\Conditional())
         ->whenExtensionEnabled('flarum-audit', fn () => [
