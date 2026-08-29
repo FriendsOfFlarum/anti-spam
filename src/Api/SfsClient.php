@@ -11,6 +11,7 @@
 
 namespace FoF\AntiSpam\Api;
 
+use Carbon\Carbon;
 use Flarum\Settings\SettingsRepositoryInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -21,6 +22,16 @@ use Psr\Log\LoggerInterface;
 class SfsClient
 {
     public const KEY = 'fof-anti-spam.api_key';
+
+    /**
+     * Records when a lookup last failed, so an admin can be told that registrations are currently
+     * going unchecked. A failed lookup deliberately lets the registration through, and that must
+     * not happen silently.
+     *
+     * Deliberately free of underscores: the settings repository deletes by SQL LIKE, where `_`
+     * is a single-character wildcard.
+     */
+    public const FAILURE_KEY = 'fof-anti-spam.lookupFailedAt';
 
     /**
      * Cache TTL in seconds (1 hour).
@@ -48,12 +59,26 @@ class SfsClient
         protected LoggerInterface $log,
         ?ClientInterface $client = null
     ) {
-        $this->client = $client ?? new Client([
+        $this->client = $client ?? new Client($this->clientConfig());
+    }
+
+    /**
+     * Guzzle options for the real client.
+     *
+     * StopForumSpam's docs only call for certificate verification to be turned off where the
+     * client cannot do SNI, which PHP has managed for well over a decade. Leaving it off matters
+     * because report() sends the forum's API key over this same connection.
+     *
+     * @return array<string, mixed>
+     */
+    protected function clientConfig(): array
+    {
+        return [
             'base_uri' => $this->endpoint(),
-            'verify' => false,
+            'verify' => true,
             'timeout' => 5,
             'connect_timeout' => 3,
-        ]);
+        ];
     }
 
     private function endpoint(): string
@@ -80,13 +105,32 @@ class SfsClient
             // Cache the successful response
             $this->cache->put($cacheKey, json_encode($sfsResponse), self::CACHE_TTL);
 
+            $this->recordLookupRecovered();
+
             return $sfsResponse;
         } catch (\Throwable $e) {
             // Log the error but don't block registration on API failure
             $this->log->warning("[FoF Anti Spam] SFS API check failed: {$e->getMessage()}");
 
+            $this->recordLookupFailed();
+
             // Return unsuccessful response (will not trigger spam blocking)
             return new SfsResponse(['success' => false]);
+        }
+    }
+
+    /**
+     * Written only on the transition into failure, so an ordinary registration costs no write.
+     */
+    private function recordLookupFailed(): void
+    {
+        $this->settings->set(self::FAILURE_KEY, Carbon::now()->toIso8601String());
+    }
+
+    private function recordLookupRecovered(): void
+    {
+        if ($this->settings->get(self::FAILURE_KEY) !== null) {
+            $this->settings->delete(self::FAILURE_KEY);
         }
     }
 

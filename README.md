@@ -6,14 +6,14 @@ A [Flarum](http://flarum.org) extension. Effective tools to manage spammers on y
 
 ## Features
 
-### Content Filtering (New!)
+### Content Filtering
 
-Automatically detect and prevent spam content from new users before it becomes visible:
+Automatically detect and hold spam content from new users before it becomes visible:
 
-- **Automatic Detection**: Monitors posts and discussions from recently registered users for common spam indicators
+- **Automatic Detection**: Monitors posts and discussion titles from recently registered users for common spam indicators
   - Phone numbers in international format
   - Email addresses
-  - Suspicious URLs not on your allowlist
+  - URLs not on your allowlist, whether or not they carry a scheme
   - Custom blocked words and phrases
   - Advanced regex pattern matching
 
@@ -21,12 +21,27 @@ Automatically detect and prevent spam content from new users before it becomes v
 
 - **Flexible Actions**:
   - Automatically flag suspicious content for moderator review (requires `flarum/flags`)
-  - Send suspicious content to approval queue (requires `flarum/approval`)
-  - Configurable spam score thresholds (0-100)
+  - Send suspicious content to the approval queue (requires `flarum/approval`)
+  - Separate thresholds for flagging and for hiding, so borderline content can be reviewed without disappearing
 
 - **Custom Flag Type**: Uses a dedicated `spam` flag type with prominent score display to distinguish automatic detections from user reports
 
-- **Configurable via Admin UI or Code**: Full configuration through admin panel, or use `extend.php` for advanced customization
+- **Configurable via Admin UI or Code**: Full configuration through the admin panel, or use `extend.php` for advanced customization
+
+### Profile Fields
+
+The same detectors run over the parts of a profile a spammer can write into. A profile field has no
+approval queue to sit in, so the save is refused rather than hidden — the value is never stored, and
+never has a window in which it is publicly visible.
+
+- **Username** — always checked
+- **Nickname** — when `flarum/nicknames` is enabled. A nickname is the display name that follows the
+  user onto every post they make
+- **Bio** — when `fof/user-bio` is enabled
+
+Only fields a request actually changes are examined, so a user carrying an older value is not locked
+out of editing the rest of their profile. Staff are exempt, and so are users past the monitoring
+window.
 
 ### User Management
 
@@ -34,14 +49,40 @@ Automatically detect and prevent spam content from new users before it becomes v
 - Select either "delete" or "suspend" for users
 - Select "delete", "hide" or "move to tag" for spam discussions
 - Select either "delete" or "hide" for spam replies
+- Clears the user's bio when `fof/user-bio` is enabled
+- Records actions to `flarum/audit` when that extension is enabled
 
 ### StopForumSpam Integration
 
-- Option to submit spammer details to the [StopForumSpam database](https://www.stopforumspam.com/)
-- Check new registrations against the [StopForumSpam database](https://www.stopforumspam.com/) to block spammers before they can register on your forum
-- Supports OAuth registrations (`fof/oauth`, `fof/passport`)
+Checks new registrations against the [StopForumSpam database](https://www.stopforumspam.com/) before
+the account is created. The check is synchronous — it is not queued — so an account cannot be created
+and used in the seconds before a background job would have run.
+
+- **No API key is required to check registrations.** A key is only needed to submit spammers back to
+  the database. Without one you still get listings, blacklists, the toxic domain, username and
+  network wildcards, Tor exit node detection and confidence scoring
+- Covers both registration routes, including OAuth (`fof/oauth`, `fof/passport`), because both reach
+  the same API endpoint
 - Configurable confidence and frequency thresholds
+- Optionally ignore listings older than a given number of days — a sighting from years ago says
+  little about who is registering today. Blacklisted domains and networks are always honoured
+- Optionally refuse Tor exit nodes
+- Optionally refuse whole networks by ASN. StopForumSpam returns the network number on every lookup,
+  including for addresses it has never seen, and almost nobody browses a forum from a hosting
+  provider
 - Regional endpoint selection for compliance
+- Blocked attempts are recorded, with the API's verdict, and listed in the admin panel
+- If StopForumSpam cannot be reached the registration is allowed through, and the admin panel says
+  so rather than leaving you to guess
+
+### Registration Rate Limiting
+
+Flarum limits how often somebody can post, but not how often they can create accounts. This
+extension adds a minimum interval between registrations from the same address, covering both
+registration routes. Admins creating accounts by hand are exempt.
+
+Bear in mind that offices, schools and mobile networks put many people behind one address. Set the
+interval to `0` to switch it off.
 
 ## Configuration
 
@@ -59,7 +100,8 @@ All settings can be configured through the admin panel:
 
 ### Advanced Configuration (extend.php)
 
-For programmatic configuration or version-controlled settings, you can configure the extension in your forum's `extend.php`:
+For programmatic configuration or version-controlled settings, you can configure the extension in
+your forum's `extend.php`:
 
 ```php
 use FoF\AntiSpam\Extend\ContentFilter;
@@ -100,15 +142,14 @@ return [
 
         // Spam score thresholds (0-100)
         // Each detector awards 50 points per match
-        // Default: 50 for both (single detection triggers actions)
-        ->spamScoreThreshold(50)  // Auto-unapprove threshold
-        ->flagScoreThreshold(50)   // Auto-flag threshold
+        ->spamScoreThreshold(50)  // At or above this, content is hidden
+        ->flagScoreThreshold(30)  // At or above this, content is flagged for review
 
         // Enable automatic actions
         ->enableAutoUnapprove(true)  // Requires flarum/approval
         ->enableAutoFlag(true)        // Requires flarum/flags
 
-        // System user for automatic flags
+        // Which account raises automatic flags
         ->assignFlagsToModerator(1)  // User ID (defaults to 1)
 
         // Disable specific detectors if needed
@@ -116,7 +157,12 @@ return [
 ];
 ```
 
-Configuration set via `extend.php` will override admin UI settings and be displayed as read-only in the admin panel.
+Configuration set via `extend.php` takes precedence over the same setting in the database. Note that
+the admin panel does not currently mark those settings as read-only: the field will still be
+editable and will still save, but the value from `extend.php` is the one that applies.
+
+Settings that are not part of the content filter — the StopForumSpam options, the registration
+interval, spamblock defaults — are configured through the admin panel only.
 
 ## How Content Filtering Works
 
@@ -124,11 +170,19 @@ Configuration set via `extend.php` will override admin UI settings and be displa
 
 The content filtering system uses a point-based spam scoring mechanism:
 
-- Each detector awards **50 points** per match (capped at 80-100 points per detector)
-- Multiple detections stack up to create a cumulative score
-- Default thresholds are set to **50 points** (meaning a single detection triggers actions)
+- Each detector awards **50 points** per match (capped at 80 points per detector, or 100 for the
+  pattern detector)
+- Multiple detections stack up to create a cumulative score, capped at 100
+- Two thresholds, both configurable:
+  - **Flag threshold** (default **30**) — at or above this, content is flagged for moderator review
+  - **Spam threshold** (default **50**) — at or above this, content is also hidden pending approval
 
-**Example**: A post containing both a phone number and an email address would score 100 points, triggering both flagging and unapproval (if enabled).
+Flagging deliberately starts below hiding, so a weak signal can be put in front of a moderator
+without taking the content down.
+
+**Example**: A post containing both a phone number and an email address scores 100 points, which is
+flagged and hidden. A single indicator scores 50, which is also both. A future detector worth 30–40
+points on its own would be flagged only.
 
 ### Custom Flag Type
 
@@ -151,28 +205,40 @@ This extension uses a custom `spam` flag type for automatic detections:
 - Example: `spam@example.com`
 
 **URL Detector**
-- Matches HTTP/HTTPS URLs
-- Checks against allowlist (your forum domain is auto-allowlisted)
-- Example: `http://suspicious-site.com`
+- Matches URLs with a scheme (`http://suspicious-site.com`), protocol-relative URLs
+  (`//suspicious-site.com`), `www.` prefixed hosts (`www.suspicious-site.com`) and bare hostnames
+  (`suspicious-site.com`). Dropping the scheme costs a spammer nothing, so it earns them nothing
+- Checks the host against your allowlist; your forum's own domain is always allowed
+- A bare hostname must end in a recognised TLD before it counts, so `README.md`, `extend.php` and
+  `main.rs` are not mistaken for links
 
 **Pattern Detector (Blocked Words)**
 - Case-insensitive matching
-- Whole word boundary matching (e.g., "viagra" matches "viagra" but not "niagara")
-- Supports multi-word phrases (e.g., "crypto pump")
-- Advanced: Custom regex patterns via `extend.php`
+- Whole word boundary matching (e.g. "viagra" matches "viagra" but not "niagara"). Note that `_` is a
+  word character, so `cheap_viagra` will not match either
+- Supports multi-word phrases (e.g. "crypto pump")
+- Advanced: Custom regex patterns via the admin panel or `extend.php`
+
+## Deployment note: client IP addresses
+
+Registration checks, the blocked-registration log, the recorded registration address and the
+registration interval all identify a visitor by `REMOTE_ADDR`. Forwarding headers such as
+`X-Forwarded-For` and `CF-Connecting-IP` are deliberately ignored, because anyone who can reach your
+site directly can set them, and honouring them would let a spammer choose the address you check and
+rate limit against.
+
+If your forum sits behind Cloudflare, a load balancer or a reverse proxy, configure that layer to
+put the real client address into `REMOTE_ADDR` — for example Cloudflare's `mod_remoteip` for Apache,
+or nginx's `real_ip` module. Without it every visitor looks to this extension like your proxy.
 
 ## Requirements
 
 - Flarum 2.0+
-- PHP 8.2+
+- PHP 8.3+
 
 ## More integrations
 
-Future integrations with extensions such as:
-- `fof/user-bio`
-- `fof/upload`
-
-and more, are planned soon.
+Future integrations with extensions such as `fof/upload`, and more, are planned soon.
 
 ## Installation
 

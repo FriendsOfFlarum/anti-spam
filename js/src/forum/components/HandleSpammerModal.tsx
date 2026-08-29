@@ -45,7 +45,9 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
   content() {
     const tagsEnabled = app.initializers.has('flarum-tags');
     const antiSpamData = app.forum.attribute('fof-anti-spam') as Record<string, any>;
-    const sfsEnabled = !!(antiSpamData['stopforumspam'] as Record<string, any>)?.['enabled'];
+    const sfs = antiSpamData['stopforumspam'] as Record<string, any> | undefined;
+    // Reporting is what needs an API key; looking spammers up never did.
+    const sfsEnabled = !!(sfs?.['canReport'] ?? sfs?.['enabled']);
 
     return (
       <div className="Modal-body">

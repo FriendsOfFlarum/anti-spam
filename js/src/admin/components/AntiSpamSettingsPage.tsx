@@ -8,6 +8,7 @@ import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import BlockedRegistration from '../../common/models/BlockedRegistration';
 import ItemList from 'flarum/common/utils/ItemList';
 import fullTime from 'flarum/common/helpers/fullTime';
+import humanTime from 'flarum/common/helpers/humanTime';
 import IPAddress from 'flarum/common/components/IPAddress';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
@@ -116,6 +117,30 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     super.oninit(vnode);
 
     this.page = 'settings';
+  }
+
+  /**
+   * A lookup that cannot reach StopForumSpam lets the registration through. That is the right
+   * call — better an open door than a forum nobody can join — but it must not happen quietly, or
+   * an admin cannot tell a working forum from one that has been checking nothing for a week.
+   */
+  lookupFailureWarning() {
+    const failedAt = app.data.settings['fof-anti-spam.lookupFailedAt'];
+
+    if (!failedAt) return null;
+
+    // Stored as an ISO 8601 string; humanTime wants a Date.
+    const when = new Date(failedAt);
+
+    if (isNaN(when.getTime())) return null;
+
+    return (
+      <div className="Alert Alert--error" style={{ marginBottom: '15px' }}>
+        {app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.lookup_failed', {
+          when: humanTime(when),
+        })}
+      </div>
+    );
   }
 
   content() {
@@ -354,6 +379,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                 })}
               </p>
             </div>
+            {this.lookupFailureWarning()}
             {this.buildSettingComponent({
               type: 'select',
               setting: 'fof-anti-spam.regionalEndpoint',
@@ -426,6 +452,26 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               setting: 'fof-anti-spam.emailhash',
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_label'),
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_help'),
+            })}
+            {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.maxListingAgeDays',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_help'),
+              min: 0,
+            })}
+            {this.buildSettingComponent({
+              type: 'textarea',
+              setting: 'fof-anti-spam.blockedAsns',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_help'),
+            })}
+            {this.buildSettingComponent({
+              type: 'number',
+              setting: 'fof-anti-spam.registrationThrottleSeconds',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.registration_throttle_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.registration_throttle_help'),
+              min: 0,
             })}
             {this.buildSettingComponent({
               type: 'boolean',

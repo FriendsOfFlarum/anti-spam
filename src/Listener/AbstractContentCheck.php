@@ -19,6 +19,7 @@ use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
 use FoF\AntiSpam\ContentFilter\Analyzer;
+use FoF\AntiSpam\ContentFilter\ConfigurationManager;
 use Illuminate\Contracts\Events\Dispatcher;
 use Psr\Log\LoggerInterface;
 
@@ -27,7 +28,8 @@ abstract class AbstractContentCheck
     public function __construct(
         protected Analyzer $analyzer,
         protected LoggerInterface $log,
-        protected SettingsRepositoryInterface $settings
+        protected SettingsRepositoryInterface $settings,
+        protected ConfigurationManager $config
     ) {
     }
 
@@ -190,10 +192,15 @@ abstract class AbstractContentCheck
 
     /**
      * Get the system actor to use for automatic flags.
+     *
+     * Code configuration wins, as it does everywhere else: assignFlagsToModerator() in extend.php
+     * takes precedence over the admin setting. The two use different keys for historical reasons —
+     * the admin one predates the content filter's own configuration prefix.
      */
     protected function getSystemActor(): ?User
     {
-        $actorId = $this->settings->get('fof-anti-spam.moderation.system_user_id');
+        $actorId = $this->config->getCodeValue('flag_moderator_id')
+            ?? $this->settings->get('fof-anti-spam.moderation.system_user_id');
 
         return User::where('id', $actorId)->first() ?? null;
     }
