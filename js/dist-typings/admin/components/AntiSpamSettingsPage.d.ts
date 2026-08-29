@@ -11,6 +11,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     totalPages: number;
     static register(): void;
     oninit(vnode: any): void;
+    /**
+     * A lookup that cannot reach StopForumSpam lets the registration through. That is the right
+     * call — better an open door than a forum nobody can join — but it must not happen quietly, or
+     * an admin cannot tell a working forum from one that has been checking nothing for a week.
+     */
+    lookupFailureWarning(): JSX.Element | null;
     content(): JSX.Element;
     menuButtons(): Mithril.Children;
     setPage(page: string): void;
