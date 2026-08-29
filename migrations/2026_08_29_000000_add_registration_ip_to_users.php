@@ -10,7 +10,6 @@
  */
 
 use Flarum\Database\Migration;
-use Illuminate\Database\Schema\Blueprint;
 
 // 45 characters holds an IPv4-mapped IPv6 address in full notation, which is the longest form the
 // StopForumSpam API accepts and therefore the longest we can be handed.

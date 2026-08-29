@@ -334,5 +334,4 @@ class CheckRegistrationMiddlewareTest extends TestCase
         // Should let normal validation handle empty strings
         $this->assertEquals(422, $response->getStatusCode());
     }
-
 }
