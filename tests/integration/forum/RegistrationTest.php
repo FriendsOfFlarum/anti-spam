@@ -74,7 +74,7 @@ class RegistrationTest extends TestCase
         );
         $this->assertEquals(422, $response->getStatusCode());
 
-        $body = json_decode($response->getBody()->getContents(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertEquals('validation_error', $body['errors'][0]['code']);
         $this->assertEquals('/data/attributes/username', $body['errors'][0]['source']['pointer']);
     }

@@ -13,7 +13,11 @@ namespace FoF\AntiSpam\Tests\integration\middleware;
 
 use Flarum\Extend;
 use Flarum\Testing\integration\TestCase;
+use Flarum\User\RegistrationToken;
+use Flarum\User\User;
+use FoF\AntiSpam\Model\BlockedRegistration;
 use PHPUnit\Framework\Attributes\Test;
+use Psr\Http\Message\ResponseInterface;
 
 class CheckRegistrationMiddlewareTest extends TestCase
 {
@@ -24,8 +28,145 @@ class CheckRegistrationMiddlewareTest extends TestCase
         $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
 
         $this->extend(
-            (new Extend\Csrf)->exemptRoute('register')
+            (new Extend\Csrf)->exemptRoute('register')->exemptRoute('users.create')
         );
+    }
+
+    /**
+     * Register straight against the JSON:API resource, the way a script does.
+     *
+     * @param array<string, string> $attributes
+     */
+    private function registerViaApi(array $attributes): ResponseInterface
+    {
+        return $this->send(
+            $this->request('POST', '/api/users', [
+                'json' => [
+                    'data' => [
+                        'type' => 'users',
+                        'attributes' => $attributes,
+                    ],
+                ],
+            ])
+        );
+    }
+
+    #[Test]
+    public function it_blocks_registration_via_the_api_users_endpoint()
+    {
+        // /register is only a wrapper that proxies to this endpoint, so matching on the forum path
+        // left the API wide open: anyone scripting POST /api/users skipped the lookup entirely.
+        $response = $this->registerViaApi([
+            'username' => 'xrumer',
+            'password' => 'too-obscure',
+            'email' => 'testing@xrumer.ru',
+        ]);
+
+        $this->assertEquals(422, $response->getStatusCode());
+
+        $body = json_decode((string) $response->getBody(), true);
+        $this->assertEquals('validation_error', $body['errors'][0]['code']);
+        $this->assertEquals('/data/attributes/username', $body['errors'][0]['source']['pointer']);
+
+        $this->assertNull(User::where('username', 'xrumer')->first(), 'Blocked spammer should not be created');
+    }
+
+    #[Test]
+    public function it_records_a_blocked_registration_made_via_the_api()
+    {
+        $this->registerViaApi([
+            'username' => 'xrumer',
+            'password' => 'too-obscure',
+            'email' => 'testing@xrumer.ru',
+        ]);
+
+        $blocked = BlockedRegistration::where('username', 'xrumer')->first();
+
+        $this->assertNotNull($blocked, 'Blocking via the API should be recorded like blocking via /register');
+        $this->assertEquals('testing@xrumer.ru', $blocked->email);
+    }
+
+    #[Test]
+    public function it_allows_clean_registration_via_the_api_users_endpoint()
+    {
+        $response = $this->registerViaApi([
+            'username' => 'cleanapiuser',
+            'password' => 'too-obscure',
+            'email' => 'cleanapi@example.com',
+        ]);
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertNotNull(User::where('username', 'cleanapiuser')->first());
+    }
+
+    #[Test]
+    public function it_does_not_block_an_admin_creating_an_account()
+    {
+        // POST /api/users is also how an admin adds a user by hand. That is a deliberate act, not
+        // a registration attempt, so StopForumSpam recognising the address must not stop it.
+        $response = $this->send(
+            $this->request('POST', '/api/users', [
+                'authenticatedAs' => 1,
+                'json' => [
+                    'data' => [
+                        'type' => 'users',
+                        'attributes' => [
+                            'username' => 'xrumer',
+                            'password' => 'too-obscure',
+                            'email' => 'testing@xrumer.ru',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertNotNull(User::where('username', 'xrumer')->first());
+    }
+
+    #[Test]
+    public function it_attributes_a_blocked_oauth_registration_to_its_provider()
+    {
+        // The OAuth token used to be read off a flat request body; it now arrives nested under
+        // data.attributes, and losing it would silently record the block as a plain sign-up.
+        $this->app();
+
+        $token = RegistrationToken::generate('github', '1234', [
+            'username' => 'xrumer',
+            'email' => 'testing@xrumer.ru',
+        ], ['username' => 'xrumer', 'email' => 'testing@xrumer.ru']);
+        $token->save();
+
+        $response = $this->send(
+            $this->request('POST', '/register', [
+                'json' => [
+                    'token' => $token->token,
+                    'username' => 'xrumer',
+                    'email' => 'testing@xrumer.ru',
+                ],
+            ])
+        );
+
+        $this->assertEquals(422, $response->getStatusCode());
+
+        $blocked = BlockedRegistration::where('username', 'xrumer')->first();
+
+        $this->assertNotNull($blocked);
+        $this->assertEquals('github', $blocked->provider, 'Blocked OAuth registration should keep its provider');
+    }
+
+    #[Test]
+    public function it_skips_the_api_spam_check_when_sfs_lookup_disabled()
+    {
+        $this->setting('fof-anti-spam.sfs-lookup', false);
+
+        $response = $this->registerViaApi([
+            'username' => 'xrumer',
+            'password' => 'too-obscure',
+            'email' => 'testing@xrumer.ru',
+        ]);
+
+        $this->assertEquals(201, $response->getStatusCode());
     }
 
     #[Test]
@@ -44,7 +185,7 @@ class CheckRegistrationMiddlewareTest extends TestCase
 
         $this->assertEquals(422, $response->getStatusCode());
 
-        $body = json_decode($response->getBody()->getContents(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertEquals('validation_error', $body['errors'][0]['code']);
         $this->assertEquals('/data/attributes/username', $body['errors'][0]['source']['pointer']);
     }
