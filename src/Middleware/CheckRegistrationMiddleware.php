@@ -14,11 +14,9 @@ namespace FoF\AntiSpam\Middleware;
 use Flarum\Foundation\ErrorHandling\JsonApiFormatter;
 use Flarum\Foundation\ErrorHandling\Registry;
 use Flarum\Foundation\ValidationException;
-use Flarum\Http\UrlGenerator;
 use Flarum\User\RegistrationToken;
 use FoF\AntiSpam\StopForumSpam;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -26,6 +24,17 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class CheckRegistrationMiddleware implements MiddlewareInterface
 {
+    /**
+     * The name of the JSON:API endpoint that creates a user.
+     *
+     * Registration is checked here rather than at the forum's `/register` path because that route
+     * is only a wrapper: RegisterController proxies to this endpoint and additionally logs the new
+     * user in. Matching the path left `POST /api/users` — open to guests whenever sign-up is
+     * enabled — completely unchecked. Both routes reach this endpoint, so both are covered, and
+     * neither is checked twice.
+     */
+    private const REGISTER_ROUTE = 'users.create';
+
     /**
      * @var string
      */
@@ -36,32 +45,31 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
      */
     private $providerData = [];
 
-    public function __construct(private StopForumSpam $sfs, private UrlGenerator $url)
+    public function __construct(private StopForumSpam $sfs)
     {
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $registerPath = Str::replaceFirst($this->url->to('forum')->base(), '', $this->url->to('forum')->path('register'));
+        if ($request->getAttribute('routeName') === self::REGISTER_ROUTE && ! $this->actorIsAdmin($request)) {
+            // The body is JSON:API shaped on both routes: RegisterController wraps the form fields
+            // into `data.attributes` before handing them on.
+            $attributes = Arr::get($request->getParsedBody() ?? [], 'data.attributes');
 
-        if ($request->getUri()->getPath() === $registerPath) {
-            $data = $request->getParsedBody();
-
-            // Ensure data is an array and has required fields
-            if (! is_array($data)) {
+            if (! is_array($attributes)) {
                 return $handler->handle($request);
             }
 
-            $email = Arr::get($data, 'email');
-            $username = Arr::get($data, 'username');
+            $email = Arr::get($attributes, 'email');
+            $username = Arr::get($attributes, 'username');
 
             // Skip spam check if essential data is missing (let normal validation handle it)
             if (empty($email) && empty($username)) {
                 return $handler->handle($request);
             }
 
-            if (! $this->isOAuthRegistration($data)) {
-                $this->providerData = $data;
+            if (! $this->isOAuthRegistration($attributes)) {
+                $this->providerData = $attributes;
             }
 
             $shouldPrevent = $this->sfs->shouldPreventRegistration(
@@ -87,6 +95,17 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
         return $handler->handle($request);
     }
 
+    /**
+     * An admin deliberately creating an account is not a registration attempt, and must not be
+     * turned away because StopForumSpam recognises the address.
+     */
+    protected function actorIsAdmin(ServerRequestInterface $request): bool
+    {
+        $actor = $request->getAttribute('actorReference')?->getActor();
+
+        return $actor !== null && $actor->isAdmin();
+    }
+
     protected function getIpAddress(ServerRequestInterface $request): ?string
     {
         $serverParams = $request->getServerParams();
@@ -95,9 +114,13 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
         $ip = Arr::get($serverParams, 'HTTP_CF_CONNECTING_IP')
             ?? Arr::get($serverParams, 'HTTP_CLIENT_IP')
             ?? Arr::get($serverParams, 'HTTP_X_FORWARDED_FOR')
-            ?? Arr::get($serverParams, 'REMOTE_ADDR');
+            ?? Arr::get($serverParams, 'REMOTE_ADDR')
+            // Registering through /register reaches this endpoint as an internal API request,
+            // which carries the address core resolved as an attribute rather than in its own
+            // server params.
+            ?? $request->getAttribute('ipAddress');
 
-        if ($ip === null) {
+        if (! is_string($ip)) {
             return null;
         }
 

@@ -42,7 +42,9 @@ return [
     (new Extend\Policy())
         ->modelPolicy(User::class, Access\UserPolicy::class),
 
-    (new Extend\Middleware('forum'))
+    // Registration is checked on the API stack: the forum's /register route only proxies to the
+    // users.create endpoint, so hooking the API covers both it and direct API registration.
+    (new Extend\Middleware('api'))
         ->add(Middleware\CheckRegistrationMiddleware::class),
 
     (new Extend\Settings())
