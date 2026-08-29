@@ -92,12 +92,12 @@ class Analyzer
         $totalScore = min(100, $totalScore);
 
         // Determine actions based on thresholds
-        $spamThreshold = (int) $this->config->get('spam_threshold', 70);
-        $flagThreshold = (int) $this->config->get('flag_threshold', 50);
+        $spamThreshold = (int) $this->config->get('spam_threshold');
+        $flagThreshold = (int) $this->config->get('flag_threshold');
 
         $isSpam = $totalScore >= $flagThreshold;
-        $shouldFlag = $isSpam && (bool) $this->config->get('auto_flag', true);
-        $shouldUnapprove = $totalScore >= $spamThreshold && (bool) $this->config->get('auto_unapprove', true);
+        $shouldFlag = $isSpam && (bool) $this->config->get('auto_flag');
+        $shouldUnapprove = $totalScore >= $spamThreshold && (bool) $this->config->get('auto_unapprove');
 
         return new AnalysisResult(
             totalScore: $totalScore,

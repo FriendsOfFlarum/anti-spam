@@ -45,14 +45,59 @@ class SfsClientTest extends TestCase
         $this->sfsClient = $this->app()->getContainer()->make(SfsClient::class);
     }
 
+    /**
+     * The shape api.stopforumspam.org returns for a known spammer.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function spammerPayload(string $ip, string $email, string $username, bool $hashed = false): array
+    {
+        $field = fn (string $value) => [
+            'value' => $value, 'appears' => 1, 'frequency' => 255,
+            'lastseen' => '2026-01-01 00:00:00', 'confidence' => 99.9, 'blacklisted' => 1,
+        ];
+
+        return [
+            'success' => 1,
+            'ip' => $field($ip) + ['asn' => 12345, 'country' => 'ru', 'torexit' => 0, 'delegated' => 'ru'],
+            ($hashed ? 'emailhash' : 'email') => $field($email),
+            'username' => $field($username),
+        ];
+    }
+
+    /**
+     * Build an SfsClient whose HTTP layer is canned, so no test reaches the network.
+     *
+     * @param array<int, mixed> $queue Responses/exceptions for Guzzle's MockHandler.
+     */
+    protected function clientReturning(array $queue): SfsClient
+    {
+        $container = $this->app()->getContainer();
+
+        return new SfsClient(
+            $container->make('flarum.settings'),
+            $container->make(Store::class),
+            $container->make(LoggerInterface::class),
+            new Client(['handler' => HandlerStack::create(new MockHandler($queue))])
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    protected function clientReturningJson(array $payload): SfsClient
+    {
+        return $this->clientReturning([new Response(200, ['Content-Type' => 'application/json'], json_encode($payload))]);
+    }
+
     #[Test]
     public function it_can_check_data_and_parse_it()
     {
-        $this->setUpClient();
-
         $testIp = '109.104.183.88';
         $testEmail = 'testing@xrumer.ru';
         $testUsername = 'xrumer';
+
+        $this->sfsClient = $this->clientReturningJson(self::spammerPayload($testIp, $testEmail, $testUsername));
 
         $response = $this->sfsClient->check(
             $testIp,
@@ -89,11 +134,13 @@ class SfsClientTest extends TestCase
     {
         $this->setting('fof-anti-spam.emailhash', true);
 
-        $this->setUpClient();
-
         $testIp = '109.104.183.88';
         $testEmail = 'testing@xrumer.ru';
         $testUsername = 'xrumer';
+
+        $this->sfsClient = $this->clientReturningJson(
+            self::spammerPayload($testIp, $testEmail, $testUsername, hashed: true)
+        );
 
         $response = $this->sfsClient->check(
             $testIp,
@@ -111,11 +158,13 @@ class SfsClientTest extends TestCase
     #[Test]
     public function caching_works_correctly()
     {
-        $this->setUpClient();
-
         $testIp = '109.104.183.88';
         $testEmail = 'testing@xrumer.ru';
         $testUsername = 'xrumer';
+
+        // Exactly one canned response is queued: if the second call went to the API instead of the
+        // cache, MockHandler would throw for want of a queued response.
+        $this->sfsClient = $this->clientReturningJson(self::spammerPayload($testIp, $testEmail, $testUsername));
 
         // First call - should hit API
         $response1 = $this->sfsClient->check($testIp, $testEmail, $testUsername);
@@ -137,7 +186,10 @@ class SfsClientTest extends TestCase
     #[Test]
     public function different_parameters_use_different_cache_keys()
     {
-        $this->setUpClient();
+        $this->sfsClient = $this->clientReturning([
+            new Response(200, [], json_encode(self::spammerPayload('1.2.3.4', 'test1@example.com', 'user1'))),
+            new Response(200, [], json_encode(self::spammerPayload('5.6.7.8', 'test2@example.com', 'user2'))),
+        ]);
 
         // Check first set of parameters
         $this->sfsClient->check('1.2.3.4', 'test1@example.com', 'user1');
@@ -161,24 +213,9 @@ class SfsClientTest extends TestCase
     public function api_failure_returns_unsuccessful_response()
     {
         // Create a mock handler that throws an exception
-        $mock = new MockHandler([
-            new ConnectException('Connection timeout', new Request('POST', 'api'))
+        $sfsClient = $this->clientReturning([
+            new ConnectException('Connection timeout', new Request('POST', 'api')),
         ]);
-        $handlerStack = HandlerStack::create($mock);
-        $mockClient = new Client(['handler' => $handlerStack]);
-
-        // Create SfsClient with mocked Guzzle client
-        $settings = $this->app()->getContainer()->make('flarum.settings');
-        $cache = $this->app()->getContainer()->make(Store::class);
-        $log = $this->app()->getContainer()->make(LoggerInterface::class);
-
-        $sfsClient = new SfsClient($settings, $cache, $log);
-
-        // Use reflection to inject mock client
-        $reflection = new \ReflectionClass($sfsClient);
-        $clientProperty = $reflection->getProperty('client');
-        $clientProperty->setAccessible(true);
-        $clientProperty->setValue($sfsClient, $mockClient);
 
         // Should return unsuccessful response without throwing
         $response = $sfsClient->check('1.2.3.4', 'test@example.com', 'username');
@@ -192,24 +229,11 @@ class SfsClientTest extends TestCase
     #[Test]
     public function api_failure_does_not_cache_failed_response()
     {
-        // Create a mock handler that throws an exception
-        $mock = new MockHandler([
-            new ConnectException('Connection timeout', new Request('POST', 'api'))
-        ]);
-        $handlerStack = HandlerStack::create($mock);
-        $mockClient = new Client(['handler' => $handlerStack]);
-
-        $settings = $this->app()->getContainer()->make('flarum.settings');
         $cache = $this->app()->getContainer()->make(Store::class);
-        $log = $this->app()->getContainer()->make(LoggerInterface::class);
 
-        $sfsClient = new SfsClient($settings, $cache, $log);
-
-        // Use reflection to inject mock client
-        $reflection = new \ReflectionClass($sfsClient);
-        $clientProperty = $reflection->getProperty('client');
-        $clientProperty->setAccessible(true);
-        $clientProperty->setValue($sfsClient, $mockClient);
+        $sfsClient = $this->clientReturning([
+            new ConnectException('Connection timeout', new Request('POST', 'api')),
+        ]);
 
         // Make failed request
         $response = $sfsClient->check('1.2.3.4', 'test@example.com', 'username');

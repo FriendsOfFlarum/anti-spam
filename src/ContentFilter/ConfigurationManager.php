@@ -123,7 +123,7 @@ class ConfigurationManager
     public function getDatabaseConfiguredDomains(): array
     {
         return $this->parseDomainList(
-            (string) $this->settings->get(self::PREFIX.'allowed_domains', '')
+            (string) $this->settings->get(self::PREFIX.'allowed_domains')
         );
     }
 
@@ -204,7 +204,7 @@ class ConfigurationManager
         $patterns = array_merge($patterns, $this->codeConfig['block_patterns'] ?? []);
 
         // Add plain text blocked words (convert to regex)
-        $blockedWords = $this->settings->get(self::PREFIX.'blocked_words', '');
+        $blockedWords = $this->settings->get(self::PREFIX.'blocked_words');
         if (! empty($blockedWords)) {
             $words = array_filter(array_map('trim', explode("\n", $blockedWords)));
             foreach ($words as $word) {
@@ -224,7 +224,7 @@ class ConfigurationManager
 
         // Add advanced regex patterns from database
         $dbPatterns = json_decode(
-            $this->settings->get(self::PREFIX.'advanced_block_patterns', '[]'),
+            $this->settings->get(self::PREFIX.'advanced_block_patterns'),
             true
         );
         $patterns = array_merge($patterns, is_array($dbPatterns) ? $dbPatterns : []);
@@ -250,7 +250,7 @@ class ConfigurationManager
     public function getDatabaseConfiguredPatterns(): array
     {
         $patterns = json_decode(
-            $this->settings->get(self::PREFIX.'advanced_block_patterns', '[]'),
+            $this->settings->get(self::PREFIX.'advanced_block_patterns'),
             true
         );
 
@@ -272,7 +272,7 @@ class ConfigurationManager
      */
     public function isEnabled(): bool
     {
-        return (bool) $this->get('enabled', true);
+        return (bool) $this->get('enabled');
     }
 
     /**
@@ -298,39 +298,39 @@ class ConfigurationManager
                 'isCodeConfigured' => $this->isCodeConfigured('enabled'),
             ],
             'monitorPostCount' => [
-                'value' => $this->get('monitor_post_count', 5),
+                'value' => $this->get('monitor_post_count'),
                 'isCodeConfigured' => $this->isCodeConfigured('monitor_post_count'),
             ],
             'monitorHoursOld' => [
-                'value' => $this->get('monitor_hours_old', 24),
+                'value' => $this->get('monitor_hours_old'),
                 'isCodeConfigured' => $this->isCodeConfigured('monitor_hours_old'),
             ],
             'detectPhones' => [
-                'value' => $this->get('detect_phones', true),
+                'value' => $this->get('detect_phones'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_phones'),
             ],
             'detectEmails' => [
-                'value' => $this->get('detect_emails', true),
+                'value' => $this->get('detect_emails'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_emails'),
             ],
             'detectUrls' => [
-                'value' => $this->get('detect_urls', true),
+                'value' => $this->get('detect_urls'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_urls'),
             ],
             'spamThreshold' => [
-                'value' => $this->get('spam_threshold', 70),
+                'value' => $this->get('spam_threshold'),
                 'isCodeConfigured' => $this->isCodeConfigured('spam_threshold'),
             ],
             'flagThreshold' => [
-                'value' => $this->get('flag_threshold', 50),
+                'value' => $this->get('flag_threshold'),
                 'isCodeConfigured' => $this->isCodeConfigured('flag_threshold'),
             ],
             'autoUnapprove' => [
-                'value' => $this->get('auto_unapprove', true),
+                'value' => $this->get('auto_unapprove'),
                 'isCodeConfigured' => $this->isCodeConfigured('auto_unapprove'),
             ],
             'autoFlag' => [
-                'value' => $this->get('auto_flag', true),
+                'value' => $this->get('auto_flag'),
                 'isCodeConfigured' => $this->isCodeConfigured('auto_flag'),
             ],
             'flagModeratorId' => [

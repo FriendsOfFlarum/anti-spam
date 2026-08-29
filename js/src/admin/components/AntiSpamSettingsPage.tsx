@@ -373,7 +373,6 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_label'),
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_help'),
-              default: 'closest',
             })}
             {this.buildSettingComponent({
               type: 'boolean',

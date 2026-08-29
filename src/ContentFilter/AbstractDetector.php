@@ -38,8 +38,8 @@ abstract class AbstractDetector implements DetectorInterface
             return true;
         }
 
-        $monitorPostCount = $this->config->get('monitor_post_count', 5);
-        $monitorHoursOld = $this->config->get('monitor_hours_old', 24);
+        $monitorPostCount = $this->config->get('monitor_post_count');
+        $monitorHoursOld = $this->config->get('monitor_hours_old');
 
         // Check post count threshold
         if ($user->comment_count <= $monitorPostCount) {
@@ -55,12 +55,23 @@ abstract class AbstractDetector implements DetectorInterface
     }
 
     /**
+     * Markup tags: `<r>`, `</p>`, `<br/>`, `<URL url="…">`, `<UPL-IMAGE-PREVIEW …>`.
+     *
+     * The tag name must start with a letter and run straight into whitespace, `/` or `>`. That is
+     * what separates a tag from a CommonMark autolink — `<https://spam.com>` breaks at the `:`,
+     * `<www.spam.com>` and `<spam.com>` at the `.`, `<user@spam.com>` at the `@` — so none of them
+     * match. A blanket `<[^>]+>` swallowed all of those, which deleted the payload before any
+     * detector saw it and let a live link through with a score of zero.
+     */
+    private const MARKUP_TAG = '~</?[A-Za-z][A-Za-z0-9_-]*(?:\s[^<>]*)?/?>~';
+
+    /**
      * Strip BBCode and HTML from content for analysis.
      */
     protected function stripFormatting(string $content): string
     {
         // Remove TextFormatter XML tags like <r>, <t>, <s>, etc.
-        $content = preg_replace('/<[^>]+>/', ' ', $content);
+        $content = preg_replace(self::MARKUP_TAG, ' ', $content);
 
         // Decode HTML entities
         $content = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');

@@ -16,14 +16,20 @@ use Flarum\Testing\integration\TestCase;
 use Flarum\User\RegistrationToken;
 use Flarum\User\User;
 use FoF\AntiSpam\Model\BlockedRegistration;
+use FoF\AntiSpam\Tests\integration\FakesStopForumSpam;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\ResponseInterface;
 
 class CheckRegistrationMiddlewareTest extends TestCase
 {
+    use FakesStopForumSpam;
+
     public function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeStopForumSpam();
+        $this->knownSpammer('xrumer');
 
         $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
 
@@ -49,6 +55,25 @@ class CheckRegistrationMiddlewareTest extends TestCase
                 ],
             ])
         );
+    }
+
+    #[Test]
+    public function the_lookup_is_faked_and_no_test_here_reaches_the_real_api()
+    {
+        $this->assertSfsClientIsFaked();
+
+        // A name StopForumSpam has certainly never heard of. If it is turned away, the verdict came
+        // from the fake — a live lookup would wave it straight through.
+        $this->knownSpammer('quietbadger_4f2b');
+
+        $response = $this->registerViaApi([
+            'username' => 'quietbadger_4f2b',
+            'password' => 'too-obscure',
+            'email' => 'quietbadger@example.com',
+        ]);
+
+        $this->assertEquals(422, $response->getStatusCode());
+        $this->assertNotEmpty($this->sfsLookups(), 'The extension should have consulted the lookup');
     }
 
     #[Test]
