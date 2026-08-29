@@ -143,11 +143,22 @@ class SfsClient
             'confidence' => true,  // Request confidence scores from API
         ];
 
-        if ((bool) $this->settings->get('fof-anti-spam.emailhash')) {
-            $data['emailhash'] = md5($email);
+        if ($email === null || $email === '') {
+            return $data;
         }
 
-        $data['email'] = $email;
+        // One or the other, never both. The setting exists so a forum need not hand a third party
+        // its members' addresses; sending the address alongside its hash gave it away regardless
+        // and made the setting worse than useless, because it looked like it was doing something.
+        //
+        // StopForumSpam notes that a hashed lookup skips its blacklists, normalisation and
+        // obfuscation checks, so this is a real trade of detection for privacy — which is the
+        // admin's call to make, and only a real call if it is honoured.
+        if ((bool) $this->settings->get('fof-anti-spam.emailhash')) {
+            $data['emailhash'] = md5($email);
+        } else {
+            $data['email'] = $email;
+        }
 
         return $data;
     }
