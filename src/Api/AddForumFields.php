@@ -43,7 +43,14 @@ class AddForumFields
                             'reportToSfs' => (bool) $this->settings->get('fof-anti-spam.reportToStopForumSpam'),
                         ],
                         'stopforumspam' => [
-                            'enabled' => $this->stopForumSpam->isEnabled(),
+                            // Reporting needs an API key; checking never did. They are reported
+                            // separately so an admin can tell a quiet forum from a broken one.
+                            'canReport' => $this->stopForumSpam->canReport(),
+                            'lookupEnabled' => (bool) $this->settings->get('fof-anti-spam.sfs-lookup'),
+                            'lookupFailedAt' => $this->settings->get(SfsClient::FAILURE_KEY),
+
+                            // Kept for frontends written against the old payload.
+                            'enabled' => $this->stopForumSpam->canReport(),
                         ]
                     ];
                 }),

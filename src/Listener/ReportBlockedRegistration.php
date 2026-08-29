@@ -25,7 +25,7 @@ class ReportBlockedRegistration
 
     public function handle(RegistrationWasBlocked $event): void
     {
-        if ($this->settings->get('fof-anti-spam.report_blocked_registrations') && $this->sfs->isEnabled()) {
+        if ($this->settings->get('fof-anti-spam.report_blocked_registrations') && $this->sfs->canReport()) {
             $blocked = $event->blocked;
             $this->queue->push(
                 new ReportSpammerJob(

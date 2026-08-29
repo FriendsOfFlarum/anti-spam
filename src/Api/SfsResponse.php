@@ -32,6 +32,16 @@ class SfsResponse
 class BasicFieldData
 {
     public string $value;
+
+    /**
+     * The canonical form of an email address, when StopForumSpam had to normalise it.
+     *
+     * Plus addressing and Gmail's dot-insensitivity let one mailbox produce endless distinct
+     * looking addresses; `w.a.spigi+25@gmail.com` comes back normalised to `waspigi@gmail.com`.
+     * Absent when no normalisation was needed.
+     */
+    public ?string $normalized;
+
     public bool $appears;
     public ?int $frequency;
     public ?string $lastseen;
@@ -41,6 +51,7 @@ class BasicFieldData
     public function __construct(array $fieldData)
     {
         $this->value = (string) Arr::get($fieldData, 'value', '');
+        $this->normalized = Arr::get($fieldData, 'normalized');
         $this->appears = Arr::get($fieldData, 'appears') !== null ? (bool) Arr::get($fieldData, 'appears') : false;
         $this->frequency = Arr::get($fieldData, 'frequency') !== null ? (int) Arr::get($fieldData, 'frequency') : null;
         $this->lastseen = Arr::get($fieldData, 'lastseen');

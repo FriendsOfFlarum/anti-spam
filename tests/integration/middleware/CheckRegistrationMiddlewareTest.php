@@ -216,6 +216,24 @@ class CheckRegistrationMiddlewareTest extends TestCase
     }
 
     #[Test]
+    public function the_lookup_uses_the_remote_address_and_not_a_forwarding_header()
+    {
+        // Forwarding headers are the client's to set. If one decided which address we looked up,
+        // a spammer could have us check a clean address every time. Getting the true client
+        // address into REMOTE_ADDR is the reverse proxy's job.
+        $this->send(
+            $this->request('POST', '/register', [
+                'json' => ['username' => 'headeruser', 'password' => 'too-obscure', 'email' => 'header@example.com'],
+            ])->withHeader('X-Forwarded-For', '203.0.113.9')
+        );
+
+        $lookups = $this->sfsLookups();
+
+        $this->assertNotEmpty($lookups);
+        $this->assertNotEquals('203.0.113.9', $lookups[0]['ip'], 'A forged header must not choose the address we check');
+    }
+
+    #[Test]
     public function it_allows_registration_with_clean_credentials()
     {
         $response = $this->send(
@@ -317,39 +335,4 @@ class CheckRegistrationMiddlewareTest extends TestCase
         $this->assertEquals(422, $response->getStatusCode());
     }
 
-    #[Test]
-    public function it_extracts_ip_from_x_forwarded_for_header()
-    {
-        // This is harder to test directly, but we can verify the registration works
-        // with X-Forwarded-For header present
-        $response = $this->send(
-            $this->request('POST', '/register', [
-                'json' => [
-                    'username' => 'testxforwarduser',
-                    'password' => 'too-obscure',
-                    'email' => 'testxforward@example.com',
-                ]
-            ])->withHeader('X-Forwarded-For', '1.2.3.4, 5.6.7.8')
-        );
-
-        // Should succeed with valid credentials even with proxy header
-        $this->assertEquals(201, $response->getStatusCode());
-    }
-
-    #[Test]
-    public function it_handles_cloudflare_connecting_ip_header()
-    {
-        $response = $this->send(
-            $this->request('POST', '/register', [
-                'json' => [
-                    'username' => 'testcfuser',
-                    'password' => 'too-obscure',
-                    'email' => 'testcf@example.com',
-                ]
-            ])->withHeader('CF-Connecting-IP', '8.8.8.8')
-        );
-
-        // Should succeed with valid credentials and CF header
-        $this->assertEquals(201, $response->getStatusCode());
-    }
 }

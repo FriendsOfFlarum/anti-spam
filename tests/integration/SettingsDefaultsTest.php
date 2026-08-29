@@ -50,6 +50,9 @@ class SettingsDefaultsTest extends TestCase
             'fof-anti-spam.frequency',
             'fof-anti-spam.confidence',
             'fof-anti-spam.blockTorExitNodes',
+            'fof-anti-spam.blockedAsns',
+            'fof-anti-spam.maxListingAgeDays',
+            'fof-anti-spam.registrationThrottleSeconds',
             'fof-anti-spam.reportToStopForumSpam',
             'fof-anti-spam.report_blocked_registrations',
 

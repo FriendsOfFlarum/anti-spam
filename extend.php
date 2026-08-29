@@ -38,13 +38,18 @@ return [
         ->fields(Api\AddForumFields::class),
 
     (new Extend\ApiResource(UserResource::class))
-        ->fields(Api\AddUserPermissions::class),
+        ->fields(Api\AddUserPermissions::class)
+        ->fields(Api\AddUserRegistrationIp::class),
 
     (new Extend\Policy())
         ->modelPolicy(User::class, Access\UserPolicy::class),
 
     // Registration is checked on the API stack: the forum's /register route only proxies to the
     // users.create endpoint, so hooking the API covers both it and direct API registration.
+    // Core throttles posting but not account creation.
+    (new Extend\ThrottleApi())
+        ->set('fofAntiSpamRegistration', Throttler\RegistrationThrottler::class),
+
     (new Extend\Middleware('api'))
         ->add(Middleware\CheckRegistrationMiddleware::class),
 
@@ -58,6 +63,12 @@ return [
         ->default('fof-anti-spam.frequency', 5)
         ->default('fof-anti-spam.confidence', 70.0)
         ->default('fof-anti-spam.blockTorExitNodes', false)
+        // Opt in. Empty means ASN is recorded but never acted on.
+        ->default('fof-anti-spam.blockedAsns', '')
+        // 0 means no limit, which is the behaviour that shipped.
+        ->default('fof-anti-spam.maxListingAgeDays', 0)
+        // Seconds between account creations from one address. 0 disables it.
+        ->default('fof-anti-spam.registrationThrottleSeconds', 30)
         ->default('fof-anti-spam.actions.deleteUser', false)
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)
@@ -92,20 +103,16 @@ return [
 
     new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
 
-    // The display name a spammer picks follows them onto every post they make.
     (new Extend\Conditional())
+        // The display name a spammer picks follows them onto every post they make.
         ->whenExtensionEnabled('flarum-nicknames', fn () => [
             (new Extend\Event())
                 ->listen(UserSaving::class, Listener\CheckNicknameContent::class),
-        ]),
-
-    (new Extend\Conditional())
+        ])
         ->whenExtensionEnabled('fof-user-bio', fn () => [
             (new Extend\Event())
                 ->listen(UserSaving::class, Listener\CheckBioContent::class),
-        ]),
-
-    (new Extend\Conditional())
+        ])
         ->whenExtensionEnabled('flarum-audit', fn () => [
             (new Audit())
                 ->listen(MarkedUserAsSpammer::class, 'user.marked_as_spammer', fn (MarkedUserAsSpammer $e) => [

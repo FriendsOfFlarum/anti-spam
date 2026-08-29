@@ -11,7 +11,9 @@
 
 namespace FoF\AntiSpam;
 
+use Carbon\Carbon;
 use Flarum\Settings\SettingsRepositoryInterface;
+use FoF\AntiSpam\Api\BasicFieldData;
 use FoF\AntiSpam\Api\SfsClient;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
@@ -22,11 +24,27 @@ class StopForumSpam
     {
     }
 
-    public function isEnabled(): bool
+    /**
+     * Whether this forum can submit spammers back to StopForumSpam.
+     *
+     * Only submissions need an API key. Lookups — listings, blacklists, toxic domain and network
+     * wildcards, Tor detection, confidence scoring — all work without one, and are governed by the
+     * separate `sfs-lookup` setting. A forum with no key is still fully protected; it just cannot
+     * give anything back.
+     */
+    public function canReport(): bool
     {
         $key = $this->settings->get(SfsClient::KEY);
 
         return $key !== null && ! empty($key);
+    }
+
+    /**
+     * @deprecated Misleading name — it never meant "StopForumSpam is switched on". Use canReport().
+     */
+    public function isEnabled(): bool
+    {
+        return $this->canReport();
     }
 
     /**
@@ -63,6 +81,7 @@ class StopForumSpam
             $confidence = 0.0;   // Highest confidence score across all fields (not cumulative)
             $blacklisted = false;
             $isTorExit = false;
+            $maxListingAgeDays = (int) $this->settings->get('fof-anti-spam.maxListingAgeDays');
 
             /** @var array<string, \FoF\AntiSpam\Api\BasicFieldData|null> $fieldsToCheck */
             $fieldsToCheck = ['ip' => $sfsResponse->ip, 'email' => $sfsResponse->email, 'username' => $sfsResponse->username];
@@ -77,6 +96,13 @@ class StopForumSpam
                     $blacklisted = true;
                 }
 
+                // A sighting from years ago says little about whoever is registering today. A
+                // blacklisting is exempt: it describes a domain, username or network that only
+                // ever exists to abuse, and StopForumSpam restamps those with the current time.
+                if (! $value->blacklisted && $this->listingIsStale($value, $maxListingAgeDays)) {
+                    continue;
+                }
+
                 // Frequency: sum across fields (e.g., IP:50 + email:50 = total:100)
                 $frequency += $value->frequency ?? 0;
 
@@ -89,14 +115,72 @@ class StopForumSpam
                 $isTorExit = $sfsResponse->ip->torexit ?? false;
             }
 
+            // The ASN comes back on every lookup, including for addresses the database has never
+            // seen, so it says something about traffic no amount of reporting would catch: almost
+            // nobody browses a forum from a hosting provider's network.
+            $isDeniedAsn = $sfsResponse->ip !== null && $this->asnIsDenied($sfsResponse->ip->asn);
+
             // Block registration if ANY of these conditions are met (OR logic):
             // 1. Confidence score meets/exceeds threshold (highest confidence from any field)
             // 2. Frequency count meets/exceeds threshold (cumulative across all fields)
             // 3. Any field is blacklisted (absolute block)
             // 4. IP is a Tor exit node (absolute block if feature enabled)
-            if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency || $blacklisted || $isTorExit) {
+            // 5. IP sits on an ASN the admin has denied (absolute block, opt in)
+            if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency || $blacklisted || $isTorExit || $isDeniedAsn) {
                 $this->buildAndDispatchEvents(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData);
 
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether a field was last reported longer ago than the admin is willing to act on.
+     */
+    private function listingIsStale(BasicFieldData $value, int $maxListingAgeDays): bool
+    {
+        if ($maxListingAgeDays <= 0 || $value->lastseen === null) {
+            return false;
+        }
+
+        try {
+            $lastSeen = Carbon::parse($value->lastseen);
+        } catch (\Throwable $e) {
+            // An unparseable date is not grounds to discard a listing.
+            return false;
+        }
+
+        return $lastSeen->lt(Carbon::now()->subDays($maxListingAgeDays));
+    }
+
+    /**
+     * Whether the address sits on an ASN the admin has denied.
+     *
+     * Accepts the two ways operators write them, `31272` and `AS31272`, separated by commas,
+     * newlines or spaces.
+     */
+    private function asnIsDenied(?int $asn): bool
+    {
+        if ($asn === null) {
+            return false;
+        }
+
+        $configured = (string) $this->settings->get('fof-anti-spam.blockedAsns');
+
+        if (trim($configured) === '') {
+            return false;
+        }
+
+        foreach (preg_split('/[\s,]+/', $configured) ?: [] as $entry) {
+            $entry = ltrim(trim($entry), 'ASas');
+
+            if ($entry === '' || ! ctype_digit($entry)) {
+                continue;
+            }
+
+            if ((int) $entry === $asn) {
                 return true;
             }
         }

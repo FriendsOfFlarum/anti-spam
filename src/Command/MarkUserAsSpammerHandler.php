@@ -298,14 +298,22 @@ class MarkUserAsSpammerHandler
             return;
         }
 
-        $post = $user->posts()->first();
+        // Prefer where they actually posted from; fall back to where they registered from, which
+        // is the only address available for an account caught before it posted anything.
+        $candidates = [
+            $user->posts()->first()?->ip_address,
+            /** @phpstan-ignore-next-line - registration_ip column is added by this extension's migration */
+            $user->registration_ip,
+        ];
 
-        // Only report if we have a valid public IP address
-        // Don't fall back to a fake IP as it would report an innocent address
-        if (! $post || ! filter_var($post->ip_address, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
-            return;
+        foreach ($candidates as $ip) {
+            // Only report a valid public address. Never invent one: reporting the wrong address
+            // gets an innocent party listed.
+            if (filter_var($ip, FILTER_VALIDATE_IP, [FILTER_FLAG_NO_PRIV_RANGE])) {
+                $this->queue->push(new ReportSpammerJob($user->username, $user->email, $ip));
+
+                return;
+            }
         }
-
-        $this->queue->push(new ReportSpammerJob($user->username, $user->email, $post->ip_address));
     }
 }

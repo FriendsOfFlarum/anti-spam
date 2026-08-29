@@ -15,6 +15,7 @@ use Flarum\Foundation\ErrorHandling\JsonApiFormatter;
 use Flarum\Foundation\ErrorHandling\Registry;
 use Flarum\Foundation\ValidationException;
 use Flarum\User\RegistrationToken;
+use FoF\AntiSpam\Http\ClientIp;
 use FoF\AntiSpam\StopForumSpam;
 use Illuminate\Support\Arr;
 use Psr\Http\Message\ResponseInterface;
@@ -108,34 +109,7 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
 
     protected function getIpAddress(ServerRequestInterface $request): ?string
     {
-        $serverParams = $request->getServerParams();
-
-        // Priority order: CF (trusted CDN) > X-Forwarded-For > Client-IP > Remote
-        $ip = Arr::get($serverParams, 'HTTP_CF_CONNECTING_IP')
-            ?? Arr::get($serverParams, 'HTTP_CLIENT_IP')
-            ?? Arr::get($serverParams, 'HTTP_X_FORWARDED_FOR')
-            ?? Arr::get($serverParams, 'REMOTE_ADDR')
-            // Registering through /register reaches this endpoint as an internal API request,
-            // which carries the address core resolved as an attribute rather than in its own
-            // server params.
-            ?? $request->getAttribute('ipAddress');
-
-        if (! is_string($ip)) {
-            return null;
-        }
-
-        // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
-        // We want the first (original client) IP only
-        if (str_contains($ip, ',')) {
-            $ip = trim(explode(',', $ip)[0]);
-        }
-
-        // Validate IP address format
-        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
-            return null;
-        }
-
-        return $ip;
+        return ClientIp::fromRequest($request);
     }
 
     protected function isOAuthRegistration(array $data): bool
