@@ -13,6 +13,7 @@ namespace FoF\AntiSpam\Api;
 
 use Flarum\Settings\SettingsRepositoryInterface;
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use Illuminate\Contracts\Cache\Store;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
@@ -35,17 +36,19 @@ class SfsClient
         'us' => 'https://us.stopforumspam.org/'
     ];
 
-    /**
-     * @var Client
-     */
-    protected $client;
+    protected ClientInterface $client;
 
+    /**
+     * @param ClientInterface|null $client Injectable so tests can drive the API without a network
+     *                                     call; the provider leaves it null for the real thing.
+     */
     public function __construct(
         protected SettingsRepositoryInterface $settings,
         protected Store $cache,
-        protected LoggerInterface $log
+        protected LoggerInterface $log,
+        ?ClientInterface $client = null
     ) {
-        $this->client = new Client([
+        $this->client = $client ?? new Client([
             'base_uri' => $this->endpoint(),
             'verify' => false,
             'timeout' => 5,
@@ -121,7 +124,7 @@ class SfsClient
 
     private function call(string $url, array $data): ResponseInterface
     {
-        return $this->client->post($url, [
+        return $this->client->request('POST', $url, [
             'form_params' => $data,
         ]);
     }

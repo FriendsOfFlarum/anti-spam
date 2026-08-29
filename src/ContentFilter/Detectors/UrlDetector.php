@@ -142,7 +142,7 @@ class UrlDetector extends AbstractDetector
         }
 
         // Skip if this setting is disabled
-        if (! $this->config->get('detect_urls', true)) {
+        if (! $this->config->get('detect_urls')) {
             return new SpamScore();
         }
 

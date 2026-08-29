@@ -56,6 +56,7 @@ return [
         ->default('fof-anti-spam.emailhash', false)
         ->default('fof-anti-spam.frequency', 5)
         ->default('fof-anti-spam.confidence', 70.0)
+        ->default('fof-anti-spam.blockTorExitNodes', false)
         ->default('fof-anti-spam.actions.deleteUser', false)
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)
@@ -70,9 +71,14 @@ return [
         ->default('fof-anti-spam.content-filter.detect_emails', true)
         ->default('fof-anti-spam.content-filter.detect_urls', true)
         ->default('fof-anti-spam.content-filter.spam_threshold', 50)
-        ->default('fof-anti-spam.content-filter.flag_threshold', 50)
+        // Deliberately below spam_threshold: scores in between are flagged for a moderator to
+        // look at without being hidden, which is the only way a weak signal can be useful.
+        ->default('fof-anti-spam.content-filter.flag_threshold', 30)
         ->default('fof-anti-spam.content-filter.auto_unapprove', true)
-        ->default('fof-anti-spam.content-filter.auto_flag', true),
+        ->default('fof-anti-spam.content-filter.auto_flag', true)
+        ->default('fof-anti-spam.content-filter.allowed_domains', '')
+        ->default('fof-anti-spam.content-filter.blocked_words', '')
+        ->default('fof-anti-spam.content-filter.advanced_block_patterns', '[]'),
 
     (new Extend\ServiceProvider())
         ->register(Providers\SfsProvider::class)

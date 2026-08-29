@@ -14,13 +14,19 @@ namespace FoF\AntiSpam\Tests\integration\forum;
 use Flarum\Extend;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
+use FoF\AntiSpam\Tests\integration\FakesStopForumSpam;
 use PHPUnit\Framework\Attributes\Test;
 
 class RegistrationTest extends TestCase
 {
+    use FakesStopForumSpam;
+
     public function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeStopForumSpam();
+        $this->knownSpammer('xrumer');
 
         $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam');
 

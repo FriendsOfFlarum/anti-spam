@@ -36,7 +36,7 @@ class PhoneDetector extends AbstractDetector
         }
 
         // Skip if this setting is disabled
-        if (! $this->config->get('detect_phones', true)) {
+        if (! $this->config->get('detect_phones')) {
             return new SpamScore();
         }
 

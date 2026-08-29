@@ -35,7 +35,7 @@ class EmailDetector extends AbstractDetector
         }
 
         // Skip if this setting is disabled
-        if (! $this->config->get('detect_emails', true)) {
+        if (! $this->config->get('detect_emails')) {
             return new SpamScore();
         }
 
