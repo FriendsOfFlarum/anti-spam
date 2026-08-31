@@ -11,6 +11,14 @@ fof-anti-spam:
         enabled_help: When enabled, posts and discussions from new users will be analyzed for spam indicators.
 
         user_targeting_heading: User Targeting
+        monitor_all_users_label: Monitor all users
+        monitor_all_users_help: >
+          Check every post, not just those from new accounts. Without this, an account is never
+          examined again once it passes the limits below — which is exactly the case for a
+          member whose account is compromised, or one that waits the limits out before posting
+          spam. Administrators, and anyone whose group can hide discussions, are never monitored
+          either way. Expect more false positives from established members, so review your
+          thresholds before turning this on.
         monitor_post_count_label: Monitor users up to post count
         monitor_post_count_help: Only analyze content from users who have made fewer than this many posts. Set to 0 to disable post count checking.
         monitor_hours_old_label: Monitor users up to hours old

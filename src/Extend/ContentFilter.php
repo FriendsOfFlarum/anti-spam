@@ -22,6 +22,7 @@ use Illuminate\Contracts\Container\Container;
  * Example usage:
  * ```php
  * (new ContentFilter())
+ *     ->monitorAllUsers()
  *     ->monitorUsersUpToPostCount(5)
  *     ->monitorUsersUpToHoursOld(24)
  *     ->allowDomain('youtube.com')
@@ -35,6 +36,20 @@ class ContentFilter implements ExtenderInterface
      * @var array<string, mixed>
      */
     private array $config = [];
+
+    /**
+     * Monitor every user's posts, not only those of new accounts.
+     *
+     * Administrators and anyone who can hide discussions stay exempt. This supersedes the
+     * post-count and account-age windows, which can
+     * only ever exempt an account permanently once it clears them.
+     */
+    public function monitorAllUsers(bool $monitor = true): self
+    {
+        $this->config['monitor_all_users'] = $monitor;
+
+        return $this;
+    }
 
     /**
      * Monitor users up to their first N posts.
