@@ -233,19 +233,168 @@
   }
 }
 
-// Matches core's admin list header: a plain flex row, not a stretched search field.
-.BlockedRegistrations-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: 8px;
-  row-gap: 8px;
-  margin-bottom: 16px;
+// Modelled on flarum/audit's search: a single key:value box with clickable filter chips and a
+// help panel, so the two admin log browsers behave the same way.
+.BlockedRegistrationSearch {
+  margin-bottom: 15px;
 
-  .BlockedRegistrations-search {
-    // Wide enough for an email address, but not so wide it pushes the other controls away.
-    width: 280px;
-    max-width: 100%;
+  .BlockedRegistrationSearch-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .BlockedRegistrationSearch-wrapper {
+    position: relative;
+    flex: 1 1 auto;
+    max-width: 30em;
+    color: var(--muted-color);
+
+    .FormControl {
+      width: 100%;
+    }
+
+    .Search-clear {
+      position: absolute;
+      top: 0;
+      right: 5px;
+      width: 36px;
+      outline: none;
+    }
+  }
+}
+
+.BlockedRegistrationSearch-autocomplete {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: var(--zindex-dropdown, 1000);
+  min-width: 16em;
+  max-height: 18em;
+  overflow-y: auto;
+  margin: 2px 0 0;
+  padding: 6px 0;
+  list-style: none;
+  background: var(--body-bg);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px var(--shadow-color, rgba(0, 0, 0, 0.2));
+
+  li {
+    list-style: none;
+  }
+
+  .BlockedRegistrationSearch-suggestion {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 4px 12px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--control-bg);
+    }
+
+    code {
+      background: none;
+    }
+  }
+}
+
+.BlockedRegistrationSearch-filters {
+  padding-top: 8px;
+  font-size: 0.9em;
+
+  .BlockedRegistrationSearch-quick {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .BlockedRegistrationSearch-label {
+    color: var(--muted-color);
+  }
+
+  .BlockedRegistrationSearch-toggle {
+    margin-left: auto;
+    color: var(--muted-color);
+    background: none;
+
+    &:hover {
+      background: none;
+      color: var(--link-color);
+    }
+  }
+
+  // Pill-shaped chips that read as controls rather than text, in both themes.
+  .BlockedRegistrationSearch-filter {
+    height: auto;
+    padding: 3px 10px;
+    border: 1px solid var(--control-bg);
+    border-radius: 20px;
+    background: var(--control-bg);
+    color: var(--text-color);
+    line-height: 1.4;
+
+    .Button-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .Button-icon {
+      font-size: 85%;
+      color: var(--muted-color);
+    }
+
+    &:hover {
+      border-color: var(--link-color);
+      background: var(--control-bg);
+      color: var(--link-color);
+
+      .Button-icon {
+        color: var(--link-color);
+      }
+    }
+
+    code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: 95%;
+    }
+  }
+
+  .BlockedRegistrationSearch-help {
+    margin-top: 10px;
+
+    .BlockedRegistrationSearch-list {
+      margin: 0;
+
+      dt {
+        margin-top: 8px;
+      }
+
+      dd {
+        margin: 2px 0 0;
+        color: var(--muted-color);
+      }
+    }
+
+    .BlockedRegistrationSearch-values {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-left: 6px;
+    }
+
+    .BlockedRegistrationSearch-syntax {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--muted-color);
+    }
   }
 }
 

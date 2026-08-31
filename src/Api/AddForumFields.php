@@ -14,6 +14,7 @@ namespace FoF\AntiSpam\Api;
 use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Settings\SettingsRepositoryInterface;
+use FoF\AntiSpam\Search\BlockedRegistrationGambits;
 use FoF\AntiSpam\StopForumSpam;
 
 class AddForumFields
@@ -27,6 +28,18 @@ class AddForumFields
     public function __invoke(): array
     {
         return [
+            // Filter metadata for the blocked registrations list, so its search box can show
+            // clickable examples and a help panel rather than expecting an admin to know the
+            // syntax. Admin-only: the list lives in the admin panel, and the values name the
+            // rules this forum blocks on. Mirrors flarum/audit's auditFilters attribute.
+            Schema\Arr::make('fof-anti-spam.filters')
+                ->visible(fn (mixed $resource, Context $context) => $context->getActor()->isAdmin())
+                ->get(function (mixed $resource, Context $context) {
+                    BlockedRegistrationGambits::registerDefaults();
+
+                    return BlockedRegistrationGambits::$filters;
+                }),
+
             Schema\Arr::make('fof-anti-spam')
                 ->visible(function (mixed $resource, Context $context) {
                     return $context->getActor()->hasPermission('user.spamblock');
