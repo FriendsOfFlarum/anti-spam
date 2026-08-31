@@ -112,9 +112,11 @@ fof-anti-spam:
 
     statistics:
       heading: Spam Defence
+      total_label: Total
       registrations_blocked: Registrations blocked
       users_marked: Users marked as spammers
       posts_flagged: Posts flagged as spam
+      awaiting_review: Flags awaiting review
       this_week: "{count, plural, one {# this week} other {# this week}}"
       vs_last_week: Compared with the previous seven days
       top_reason: "Most often: {reason} ({count, plural, one {# block} other {# blocks}})"

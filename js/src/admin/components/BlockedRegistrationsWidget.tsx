@@ -17,10 +17,14 @@ interface Measure {
 
 interface LifetimeStats {
   registrationsBlocked: Measure;
-  /** Only when flarum/flags is enabled — it is what records the content filter's flags. */
-  postsFlagged?: Measure;
-  /** Only when flarum/audit is enabled — spamblocks are not stored by this extension. */
+  /**
+   * Spam flags currently open — the moderator's queue, not a tally. flarum/flags deletes a
+   * flag when it is dismissed and when its post is deleted, so this cannot be a total.
+   */
+  flagsAwaitingReview: number;
+  /** Durable counts, from the audit log; only when flarum/audit is enabled. */
   usersMarkedAsSpammers?: Measure;
+  postsFlagged?: Measure;
   byReason: Record<string, number>;
   byProvider: Record<string, number>;
 }
@@ -96,14 +100,23 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
   private figures(): Mithril.Children {
     const stats = this.lifetime;
 
-    return (
-      <div className="BlockedRegistrationsWidget-measures">
-        {this.measure(`${PREFIX}.registrations_blocked`, stats?.registrationsBlocked)}
-        {stats?.usersMarkedAsSpammers && this.measure(`${PREFIX}.users_marked`, stats.usersMarkedAsSpammers)}
-        {stats?.postsFlagged && this.measure(`${PREFIX}.posts_flagged`, stats.postsFlagged)}
-        {this.topReason()}
-      </div>
-    );
+    // Core's own structure — labels column, then a row of entities — so this sits in the
+    // dashboard looking like the statistics widget above it rather than near it.
+    return [
+      <div className="StatisticsWidget-entities">
+        <div className="StatisticsWidget-labels">
+          <div className="StatisticsWidget-label">{app.translator.trans(`${PREFIX}.total_label`)}</div>
+        </div>
+
+        <div className="StatisticsWidget-entityList">
+          {this.measure(`${PREFIX}.registrations_blocked`, stats?.registrationsBlocked)}
+          {stats?.usersMarkedAsSpammers && this.measure(`${PREFIX}.users_marked`, stats.usersMarkedAsSpammers)}
+          {stats?.postsFlagged && this.measure(`${PREFIX}.posts_flagged`, stats.postsFlagged)}
+          {this.awaitingReview()}
+        </div>
+      </div>,
+      this.topReason(),
+    ];
   }
 
   /**
@@ -111,21 +124,42 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
    * days before.
    */
   private measure(key: string, measure?: Measure): Mithril.Children {
+    const total = measure?.total ?? 0;
+
     return (
-      <div className="BlockedRegistrationsWidget-measure">
-        <h3 className="BlockedRegistrationsWidget-label">{app.translator.trans(key)}</h3>
+      <div className="StatisticsWidget-entity">
+        <h3 className="StatisticsWidget-heading">{app.translator.trans(key)}</h3>
 
-        <div className="BlockedRegistrationsWidget-figures">
-          <span className="BlockedRegistrationsWidget-total" title={String(measure?.total ?? 0)}>
-            {this.loading ? <LoadingIndicator display="inline" /> : abbreviateNumber(measure?.total ?? 0)}
-          </span>
+        <div className="StatisticsWidget-total" title={String(total)}>
+          {this.loading ? <LoadingIndicator display="inline" /> : abbreviateNumber(total)}
+        </div>
 
-          {!this.loading && (
-            <span className="BlockedRegistrationsWidget-period">
-              {app.translator.trans(`${PREFIX}.this_week`, { count: measure?.period ?? 0 })}
-              {this.change(measure)}
-            </span>
-          )}
+        {!this.loading && (
+          <div className="StatisticsWidget-period">
+            {app.translator.trans(`${PREFIX}.this_week`, { count: measure?.period ?? 0 })} {this.change(measure)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /**
+   * Spam flags still open.
+   *
+   * No total and no trend: the rows behind this are deleted on dismissal, so both would say
+   * more about how quickly moderators work than about how much spam is arriving.
+   */
+  private awaitingReview(): Mithril.Children {
+    const open = this.lifetime?.flagsAwaitingReview ?? 0;
+
+    if (this.loading || open === 0) return null;
+
+    return (
+      <div className="StatisticsWidget-entity">
+        <h3 className="StatisticsWidget-heading">{app.translator.trans(`${PREFIX}.awaiting_review`)}</h3>
+
+        <div className="StatisticsWidget-total" title={String(open)}>
+          {abbreviateNumber(open)}
         </div>
       </div>
     );
@@ -145,10 +179,12 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
 
     if (delta === 0) return null;
 
+    // Core's -change classes colour up green and down red, which reads as good/bad news. That
+    // is wrong here: more blocks can mean more spam arriving as easily as more getting through,
+    // so the direction is shown without the judgement.
     return (
-      <span className="BlockedRegistrationsWidget-change" title={extractText(app.translator.trans(`${PREFIX}.vs_last_week`))}>
-        <Icon name={delta > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} />
-        {Math.abs(delta)}%
+      <span className="StatisticsWidget-change" title={extractText(app.translator.trans(`${PREFIX}.vs_last_week`))}>
+        <Icon name={delta > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} /> {Math.abs(delta)}%
       </span>
     );
   }

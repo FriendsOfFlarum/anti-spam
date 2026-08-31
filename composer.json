@@ -109,7 +109,6 @@
     },
     "suggest": {
         "flarum/audit": "Records spamblocks, so the dashboard widget can report users marked as spammers.",
-        "flarum/flags": "Lets the content filter flag suspected spam posts, and reports them on the dashboard widget.",
         "flarum/suspend": "Suspends a spammer's account instead of leaving it active when they are marked.",
         "flarum/nicknames": "Checks nicknames for spam content, as usernames already are.",
         "fof/user-bio": "Checks bios for spam content, and clears them when a user is marked as a spammer."

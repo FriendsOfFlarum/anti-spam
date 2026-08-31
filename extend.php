@@ -19,6 +19,7 @@ use Flarum\Search\Database\DatabaseSearchDriver;
 use Flarum\User\Event\Saving as UserSaving;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
+use FoF\AntiSpam\Event\PostWasFlaggedAsSpam;
 use FoF\AntiSpam\Event\RegistrationWasBlocked;
 
 return [
@@ -135,6 +136,14 @@ return [
                     'ip' => $e->blocked->ip,
                     'email' => $e->blocked->email,
                     'username' => $e->blocked->username,
+                ])
+                // flarum/flags logs post.flagged only for manual `user` flags — automated ones
+                // are excluded there, as Approval's and Akismet's are — and it deletes its rows
+                // on dismissal anyway. Recording our own keeps a count that survives both.
+                ->listen(PostWasFlaggedAsSpam::class, 'post.flagged_as_spam', fn (PostWasFlaggedAsSpam $e) => [
+                    'post_id' => $e->post->id,
+                    'discussion_id' => $e->post->discussion_id,
+                    'score' => $e->score,
                 ]),
         ]),
 ];

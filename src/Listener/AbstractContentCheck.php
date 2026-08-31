@@ -20,6 +20,7 @@ use Flarum\User\User;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
 use FoF\AntiSpam\ContentFilter\Analyzer;
 use FoF\AntiSpam\ContentFilter\ConfigurationManager;
+use FoF\AntiSpam\Event\PostWasFlaggedAsSpam;
 use Illuminate\Contracts\Events\Dispatcher;
 use Psr\Log\LoggerInterface;
 
@@ -29,7 +30,8 @@ abstract class AbstractContentCheck
         protected Analyzer $analyzer,
         protected LoggerInterface $log,
         protected SettingsRepositoryInterface $settings,
-        protected ConfigurationManager $config
+        protected ConfigurationManager $config,
+        protected Dispatcher $events
     ) {
     }
 
@@ -144,6 +146,11 @@ abstract class AbstractContentCheck
         $flag->created_at = Carbon::now();
 
         $flag->save();
+
+        // The flag row is not a durable record of this: flarum/flags deletes it when the flag
+        // is dismissed, and again when the post is deleted. Announce the flagging so anything
+        // that wants a lasting count — the audit log, the dashboard — can keep one.
+        $this->events->dispatch(new PostWasFlaggedAsSpam($post, $score, $reasonDetail));
     }
 
     /**

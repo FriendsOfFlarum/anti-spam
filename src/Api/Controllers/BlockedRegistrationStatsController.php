@@ -29,9 +29,12 @@ use Psr\Http\Server\RequestHandlerInterface;
  *
  * The extension defends on three fronts, and a useful answer covers all of them: registrations
  * turned away at the door, posts the content filter catches from accounts that got in, and
- * users a moderator later marks as spammers. Only the first is stored by this extension; the
- * other two live in flarum/flags and flarum/audit, so each is reported only when the extension
- * that records it is enabled.
+ * users a moderator later marks as spammers.
+ *
+ * Only registration blocks are stored by this extension. The other two are read from the audit
+ * log — actions this extension registers itself — because that is the only durable record:
+ * flarum/flags deletes a flag row when it is dismissed and when its post is deleted, so that
+ * table can only answer what is currently awaiting review, which is reported separately.
  *
  * Served here rather than through flarum/statistics because that extension's entity list is a
  * hardcoded private array with no extender, so an extension cannot contribute to it.
@@ -86,20 +89,26 @@ class BlockedRegistrationStatsController implements RequestHandlerInterface
                 'byProvider' => $this->countsByProvider(),
             ];
 
-            // Posts the content filter caught from accounts that made it past registration.
-            if ($this->extensions->isEnabled('flarum-flags')) {
-                $stats['postsFlagged'] = $this->measure(
-                    fn () => $this->db->table('flags')->where('type', 'spam'),
+            // Spam flags still open, from the flags table itself. This is the moderator's
+            // queue, not a tally of work done: flarum/flags deletes a flag when it is
+            // dismissed, and again when the post is deleted — which is what marking the author
+            // as a spammer does. It is labelled accordingly, and carries no trend, because a
+            // falling number here means moderation is working rather than spam abating.
+            $stats['flagsAwaitingReview'] = $this->db->table('flags')->where('type', 'spam')->count();
+
+            // The durable counts live in the audit log, which does not delete. Both are
+            // actions this extension registers itself, so they are only available when
+            // flarum/audit is enabled.
+            if ($this->extensions->isEnabled('flarum-audit')) {
+                $stats['usersMarkedAsSpammers'] = $this->measure(
+                    fn () => $this->db->table('audit_log')->where('action', 'user.marked_as_spammer'),
                     'created_at',
                     $week,
                     $previousWeek
                 );
-            }
 
-            // Spamblocks are not stored by this extension; flarum/audit is what records them.
-            if ($this->extensions->isEnabled('flarum-audit')) {
-                $stats['usersMarkedAsSpammers'] = $this->measure(
-                    fn () => $this->db->table('audit_log')->where('action', 'user.marked_as_spammer'),
+                $stats['postsFlagged'] = $this->measure(
+                    fn () => $this->db->table('audit_log')->where('action', 'post.flagged_as_spam'),
                     'created_at',
                     $week,
                     $previousWeek

@@ -221,68 +221,40 @@
 }
 
 .BlockedRegistrationsWidget {
-  .BlockedRegistrationsWidget-measures {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    margin-top: 4px;
-  }
-
-  .BlockedRegistrationsWidget-measure {
-    min-width: 9em;
-  }
-
-  .BlockedRegistrationsWidget-label {
-    margin: 0 0 2px;
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--muted-color);
-  }
-
-  .BlockedRegistrationsWidget-figures {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  }
-
-  .BlockedRegistrationsWidget-total {
-    font-size: 24px;
-    font-weight: bold;
-    line-height: 1.1;
-  }
-
-  .BlockedRegistrationsWidget-period {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
+  // Core's -change is coloured green/red for up/down, which reads as good/bad news. Blocks
+  // rising can mean more spam arriving as easily as more getting through, so it is left
+  // neutral and the admin can judge.
+  .StatisticsWidget-change {
     color: var(--muted-color);
     white-space: nowrap;
-  }
-
-  // Neutral: more blocks can mean more spam arriving as easily as more getting through, so
-  // the direction is reported without being coloured as good or bad news.
-  .BlockedRegistrationsWidget-change {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
 
     .icon {
       font-size: 9px;
     }
   }
 
+  .StatisticsWidget-period {
+    font-size: 12px;
+    color: var(--muted-color);
+  }
+
+  // The headings name three different things here, rather than the one-word entity names
+  // core's widget uses, so they need room to wrap.
+  .StatisticsWidget-heading {
+    height: auto;
+    min-height: 30px;
+  }
+
   .BlockedRegistrationsWidget-topReason {
-    flex-basis: 100%;
-    margin: 4px 0 0;
+    margin: 0;
+    padding: 0 20px 4px;
     color: var(--muted-color);
     font-size: 12px;
   }
 
   .BlockedRegistrationsWidget-error {
-    margin: 8px 0;
+    margin: 0;
+    padding: 0 20px 12px;
     color: var(--alert-error-color, var(--muted-color));
   }
 }

@@ -133,10 +133,29 @@ class BlockedRegistrationStatsTest extends TestCase
     }
 
     #[Test]
-    public function flagged_posts_are_reported_when_flarum_flags_is_enabled()
+    public function flagged_posts_are_read_from_the_audit_log_not_the_flags_table()
     {
-        // flarum-flags is enabled in setUp, since the content filter needs it to flag at all.
+        $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam', 'flarum-audit');
+        $this->app();
+
+        // flarum/flags deletes a flag row when it is dismissed and when its post is deleted,
+        // so a count from that table would fall as moderators work. The durable record is the
+        // audit action this extension registers itself.
         $this->assertArrayHasKey('postsFlagged', $this->stats(['period' => 'lifetime']));
+    }
+
+    #[Test]
+    public function flagged_posts_are_omitted_without_flarum_audit()
+    {
+        $this->assertArrayNotHasKey('postsFlagged', $this->stats(['period' => 'lifetime']));
+    }
+
+    #[Test]
+    public function open_spam_flags_are_reported_separately_and_always()
+    {
+        // The queue is answerable from the flags table whether or not audit is installed, and
+        // is the one question that table can answer honestly.
+        $this->assertArrayHasKey('flagsAwaitingReview', $this->stats(['period' => 'lifetime']));
     }
 
     #[Test]
