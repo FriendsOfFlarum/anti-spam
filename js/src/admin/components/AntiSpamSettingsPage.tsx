@@ -578,11 +578,17 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   detailItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children> {
     const items = new ItemList<Mithril.Children>();
 
+    const attemptedAt = blockedRegistration.attemptedAt();
+
     items.add(
       'attemptedAt',
       <div className="BlockedRegistrations-item--details">
         <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.attempted-at')}</span>
-        <span className="BlockedRegistrations-value">{fullTime(blockedRegistration.attemptedAt() ?? new Date())}</span>
+        {/*
+          No `?? new Date()` fallback here: a missing date rendered as "now" is indistinguishable
+          from a registration that really was blocked seconds ago, which is how this went unnoticed.
+        */}
+        <span className="BlockedRegistrations-value">{attemptedAt ? fullTime(attemptedAt) : <em>&mdash;</em>}</span>
       </div>,
       100
     );

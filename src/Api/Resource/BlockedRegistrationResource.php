@@ -46,6 +46,9 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
                 ->can('delete'),
             Endpoint\Index::make()
                 ->can('fof-anti-spam.viewBlockedRegistrations')
+                // Most recent attempt first: an admin opening this page is almost always
+                // looking at what just happened, not at the oldest record on file.
+                ->defaultSort('-attemptedAt')
                 ->paginate(),
         ];
     }
@@ -53,7 +56,7 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
     public function fields(): array
     {
         return [
-            Schema\Date::make('createdAt')
+            Schema\Date::make('attemptedAt')
                 ->property('attempted_at'),
             Schema\Str::make('ip'),
             Schema\Str::make('email'),
@@ -69,7 +72,7 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
     public function sorts(): array
     {
         return [
-            SortColumn::make('createdAt'),
+            SortColumn::make('attemptedAt'),
         ];
     }
 }
