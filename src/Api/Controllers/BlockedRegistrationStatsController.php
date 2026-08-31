@@ -13,10 +13,11 @@ namespace FoF\AntiSpam\Api\Controllers;
 
 use Carbon\Carbon;
 use DateTime;
+use Flarum\Extension\ExtensionManager;
 use Flarum\Http\RequestUtil;
 use FoF\AntiSpam\Model\BlockedRegistration;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -24,12 +25,16 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Counts of blocked registrations over time, for the dashboard widget.
+ * How the forum is holding up against spam, for the dashboard widget.
+ *
+ * The extension defends on three fronts, and a useful answer covers all of them: registrations
+ * turned away at the door, posts the content filter catches from accounts that got in, and
+ * users a moderator later marks as spammers. Only the first is stored by this extension; the
+ * other two live in flarum/flags and flarum/audit, so each is reported only when the extension
+ * that records it is enabled.
  *
  * Served here rather than through flarum/statistics because that extension's entity list is a
- * hardcoded private array with no extender — an unknown `model` is rejected outright — so an
- * extension cannot contribute to it. Its date-bucketing approach is worth following even so,
- * since it is the shape the admin frontend already understands.
+ * hardcoded private array with no extender, so an extension cannot contribute to it.
  */
 class BlockedRegistrationStatsController implements RequestHandlerInterface
 {
@@ -40,7 +45,9 @@ class BlockedRegistrationStatsController implements RequestHandlerInterface
     public static int $cacheTtl = 300;
 
     public function __construct(
-        protected CacheRepository $cache
+        protected CacheRepository $cache,
+        protected ExtensionManager $extensions,
+        protected ConnectionInterface $db
     ) {
     }
 
@@ -60,17 +67,68 @@ class BlockedRegistrationStatsController implements RequestHandlerInterface
     }
 
     /**
-     * @return array{total: int, byReason: array<string, int>, byProvider: array<string, int>}
+     * @return array<string, mixed>
      */
     private function lifetime(): array
     {
         return $this->cache->remember('fof-anti-spam.stats.lifetime', self::$cacheTtl, function (): array {
-            return [
-                'total' => BlockedRegistration::query()->count(),
+            $week = Carbon::now()->subWeek();
+            $previousWeek = Carbon::now()->subWeeks(2);
+
+            $stats = [
+                'registrationsBlocked' => $this->measure(
+                    fn () => BlockedRegistration::query(),
+                    'attempted_at',
+                    $week,
+                    $previousWeek
+                ),
                 'byReason' => $this->countsByReason(),
                 'byProvider' => $this->countsByProvider(),
             ];
+
+            // Posts the content filter caught from accounts that made it past registration.
+            if ($this->extensions->isEnabled('flarum-flags')) {
+                $stats['postsFlagged'] = $this->measure(
+                    fn () => $this->db->table('flags')->where('type', 'spam'),
+                    'created_at',
+                    $week,
+                    $previousWeek
+                );
+            }
+
+            // Spamblocks are not stored by this extension; flarum/audit is what records them.
+            if ($this->extensions->isEnabled('flarum-audit')) {
+                $stats['usersMarkedAsSpammers'] = $this->measure(
+                    fn () => $this->db->table('audit_log')->where('action', 'user.marked_as_spammer'),
+                    'created_at',
+                    $week,
+                    $previousWeek
+                );
+            }
+
+            return $stats;
         });
+    }
+
+    /**
+     * A metric's total, its last seven days, and the seven days before that.
+     *
+     * The previous period is what makes the number mean anything: 87 blocks this week is only
+     * good or bad news next to what last week looked like.
+     *
+     * @param callable(): (\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder<*>) $query
+     * @return array{total: int, period: int, previousPeriod: int}
+     */
+    private function measure(callable $query, string $column, Carbon $since, Carbon $previousSince): array
+    {
+        return [
+            'total' => $query()->count(),
+            'period' => $query()->where($column, '>=', $since)->count(),
+            'previousPeriod' => $query()
+                ->where($column, '>=', $previousSince)
+                ->where($column, '<', $since)
+                ->count(),
+        ];
     }
 
     /**

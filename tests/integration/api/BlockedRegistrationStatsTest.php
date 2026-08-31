@@ -101,9 +101,42 @@ class BlockedRegistrationStatsTest extends TestCase
     }
 
     #[Test]
-    public function lifetime_statistics_report_the_total()
+    public function lifetime_statistics_report_registrations_blocked()
     {
-        $this->assertSame(3, $this->stats(['period' => 'lifetime'])['total']);
+        $blocked = $this->stats(['period' => 'lifetime'])['registrationsBlocked'];
+
+        $this->assertSame(3, $blocked['total']);
+
+        // The period figures are what make the total mean anything; all three rows were
+        // seeded within the last week.
+        $this->assertSame(3, $blocked['period']);
+        $this->assertSame(0, $blocked['previousPeriod']);
+    }
+
+    #[Test]
+    public function spamblocks_are_reported_when_flarum_audit_is_enabled()
+    {
+        $this->extension('flarum-flags', 'flarum-approval', 'fof-anti-spam', 'flarum-audit');
+        $this->app();
+
+        // Spamblocks are not stored by this extension; flarum/audit is what records them,
+        // which is why the metric is conditional on it.
+        $this->assertArrayHasKey('usersMarkedAsSpammers', $this->stats(['period' => 'lifetime']));
+    }
+
+    #[Test]
+    public function spamblocks_are_omitted_when_flarum_audit_is_absent()
+    {
+        // Without audit there is nowhere to read them from, so the widget must not show a
+        // figure at all rather than showing a misleading zero.
+        $this->assertArrayNotHasKey('usersMarkedAsSpammers', $this->stats(['period' => 'lifetime']));
+    }
+
+    #[Test]
+    public function flagged_posts_are_reported_when_flarum_flags_is_enabled()
+    {
+        // flarum-flags is enabled in setUp, since the content filter needs it to flag at all.
+        $this->assertArrayHasKey('postsFlagged', $this->stats(['period' => 'lifetime']));
     }
 
     #[Test]

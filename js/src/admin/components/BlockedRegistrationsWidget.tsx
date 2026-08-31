@@ -4,26 +4,38 @@ import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import Link from 'flarum/common/components/Link';
 import Icon from 'flarum/common/components/Icon';
 import abbreviateNumber from 'flarum/common/utils/abbreviateNumber';
+import extractText from 'flarum/common/utils/extractText';
 import type Mithril from 'mithril';
 
 const PREFIX = 'fof-anti-spam.admin.statistics';
 
-interface LifetimeStats {
+interface Measure {
   total: number;
+  period: number;
+  previousPeriod: number;
+}
+
+interface LifetimeStats {
+  registrationsBlocked: Measure;
+  /** Only when flarum/flags is enabled — it is what records the content filter's flags. */
+  postsFlagged?: Measure;
+  /** Only when flarum/audit is enabled — spamblocks are not stored by this extension. */
+  usersMarkedAsSpammers?: Measure;
   byReason: Record<string, number>;
   byProvider: Record<string, number>;
 }
 
 /**
- * Blocked registrations on the admin dashboard, alongside flarum/statistics' own widget.
+ * How the forum is holding up against spam.
  *
- * This is a widget of our own rather than an entity added to flarum/statistics: that
- * extension's entity list is a hardcoded private array, and its endpoint rejects any model it
- * does not already know, so there is nothing for an extension to hook into.
+ * Reports each of the extension's three defences — registrations turned away, posts the content
+ * filter caught, users marked as spammers afterwards — each against the previous week, because
+ * a raw count says nothing on its own about whether things are improving.
+ *
+ * The latter two are only shown when the extension that records them is enabled.
  */
 export default class BlockedRegistrationsWidget extends DashboardWidget {
   lifetime: LifetimeStats | null = null;
-  timed: Record<string, number> | null = null;
 
   loading = true;
   failed = false;
@@ -40,24 +52,13 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
     m.redraw();
 
     try {
-      const [lifetime, timed] = await Promise.all([
-        app.request<LifetimeStats>({
-          method: 'GET',
-          url: `${app.forum.attribute('apiUrl')}/fof/anti-spam/statistics`,
-          params: { period: 'lifetime' },
-        }),
-        app.request<Record<string, number>>({
-          method: 'GET',
-          url: `${app.forum.attribute('apiUrl')}/fof/anti-spam/statistics`,
-          params: { period: 'timed' },
-        }),
-      ]);
-
-      this.lifetime = lifetime;
-      this.timed = timed;
+      this.lifetime = await app.request<LifetimeStats>({
+        method: 'GET',
+        url: `${app.forum.attribute('apiUrl')}/fof/anti-spam/statistics`,
+        params: { period: 'lifetime' },
+      });
     } catch (e) {
-      // A dashboard widget that cannot load its data should say so, not sit on a spinner
-      // forever or vanish and leave the admin wondering where it went.
+      // A widget that cannot load its data should say so, not sit on a spinner forever.
       this.failed = true;
     }
 
@@ -73,7 +74,7 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
     return (
       <div className="StatisticsWidget-table">
         <h4 className="StatisticsWidget-title">
-          <Icon name="fas fa-ban" />
+          <Icon name="fas fa-shield-alt" />
           {app.translator.trans(`${PREFIX}.heading`)}
         </h4>
 
@@ -93,54 +94,72 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
   }
 
   private figures(): Mithril.Children {
+    const stats = this.lifetime;
+
     return (
-      <div className="StatisticsWidget-entities">
-        <div className="StatisticsWidget-labels">
-          <div className="StatisticsWidget-label">{app.translator.trans(`${PREFIX}.total_label`)}</div>
-        </div>
-
-        <div className="StatisticsWidget-entityList">
-          {this.figure(`${PREFIX}.blocked_heading`, this.lifetime?.total ?? 0)}
-          {this.figure(`${PREFIX}.last_24h_heading`, this.countSince(24 * 60 * 60))}
-          {this.figure(`${PREFIX}.last_7d_heading`, this.countSince(7 * 24 * 60 * 60))}
-        </div>
-
+      <div className="BlockedRegistrationsWidget-measures">
+        {this.measure(`${PREFIX}.registrations_blocked`, stats?.registrationsBlocked)}
+        {stats?.usersMarkedAsSpammers && this.measure(`${PREFIX}.users_marked`, stats.usersMarkedAsSpammers)}
+        {stats?.postsFlagged && this.measure(`${PREFIX}.posts_flagged`, stats.postsFlagged)}
         {this.topReason()}
       </div>
     );
   }
 
-  private figure(key: string, count: number): Mithril.Children {
+  /**
+   * One metric: its all-time total, the last seven days, and how that compares with the seven
+   * days before.
+   */
+  private measure(key: string, measure?: Measure): Mithril.Children {
     return (
-      <div className="StatisticsWidget-entity">
-        <h3 className="StatisticsWidget-heading">{app.translator.trans(key)}</h3>
-        <div className="StatisticsWidget-total" title={String(count)}>
-          {this.loading ? <LoadingIndicator display="inline" /> : abbreviateNumber(count)}
+      <div className="BlockedRegistrationsWidget-measure">
+        <h3 className="BlockedRegistrationsWidget-label">{app.translator.trans(key)}</h3>
+
+        <div className="BlockedRegistrationsWidget-figures">
+          <span className="BlockedRegistrationsWidget-total" title={String(measure?.total ?? 0)}>
+            {this.loading ? <LoadingIndicator display="inline" /> : abbreviateNumber(measure?.total ?? 0)}
+          </span>
+
+          {!this.loading && (
+            <span className="BlockedRegistrationsWidget-period">
+              {app.translator.trans(`${PREFIX}.this_week`, { count: measure?.period ?? 0 })}
+              {this.change(measure)}
+            </span>
+          )}
         </div>
       </div>
     );
   }
 
   /**
-   * The buckets are keyed by unix timestamp, so a period is the sum of everything at or after
-   * its start.
+   * The week-on-week change.
+   *
+   * Rising blocks are not straightforwardly bad news — they can mean more spam arriving as
+   * easily as more getting through — so this is coloured neutrally and left for the admin to
+   * read, rather than being dressed up as good or bad.
    */
-  private countSince(seconds: number): number {
-    if (!this.timed) return 0;
+  private change(measure?: Measure): Mithril.Children {
+    if (!measure || measure.previousPeriod === 0) return null;
 
-    const cutoff = Date.now() / 1000 - seconds;
+    const delta = Math.round(((measure.period - measure.previousPeriod) / measure.previousPeriod) * 100);
 
-    return Object.entries(this.timed).reduce((total, [timestamp, count]) => (Number(timestamp) >= cutoff ? total + count : total), 0);
+    if (delta === 0) return null;
+
+    return (
+      <span className="BlockedRegistrationsWidget-change" title={extractText(app.translator.trans(`${PREFIX}.vs_last_week`))}>
+        <Icon name={delta > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} />
+        {Math.abs(delta)}%
+      </span>
+    );
   }
 
   /**
-   * The rule doing the most work. Useful at a glance: if one rule accounts for nearly
-   * everything, that is worth an admin knowing before they touch their thresholds.
+   * The rule doing the most work — worth knowing before an admin touches their thresholds.
    */
   private topReason(): Mithril.Children {
     const reasons = this.lifetime?.byReason ?? {};
-    // 'unrecorded' is not a rule — it is the rows we have no answer for — so it must not be
-    // presented as the reason registrations are being blocked.
+    // 'unrecorded' counts rows blocked before reasons were recorded; it is not a rule, and
+    // must not be presented as the reason registrations are being turned away.
     const ranked = Object.entries(reasons).filter(([reason]) => reason !== 'unrecorded');
 
     if (this.loading || !ranked.length) return null;

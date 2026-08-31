@@ -111,14 +111,15 @@ fof-anti-spam:
         report_blocked_registrations_help: When a registration is blocked by the Lookup Registrations feature, we will report the attempt back to StopForumSpam, so that the spammers activity can be better confirmed. Requires a StopForumSpam API key to be set (see below).
 
     statistics:
-      heading: Blocked Registrations
-      total_label: Blocked
-      blocked_heading: All time
-      last_24h_heading: Last 24 hours
-      last_7d_heading: Last 7 days
+      heading: Spam Defence
+      registrations_blocked: Registrations blocked
+      users_marked: Users marked as spammers
+      posts_flagged: Posts flagged as spam
+      this_week: "{count, plural, one {# this week} other {# this week}}"
+      vs_last_week: Compared with the previous seven days
       top_reason: "Most often: {reason} ({count, plural, one {# block} other {# blocks}})"
-      view_all: View all blocked registrations
-      failed: Could not load blocked registration statistics.
+      view_all: View blocked registrations
+      failed: Could not load spam statistics.
 
     blocked_registrations:
       button: Blocked Registrations
