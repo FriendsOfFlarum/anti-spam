@@ -25,6 +25,14 @@ export default class BlockedRegistration extends Model {
     return Model.attribute<string | null>('providerData').call(this);
   }
 
+  /**
+   * The rules that fired, recorded at block time. Null for rows blocked before this was
+   * recorded — the frontend must not invent a reason for those.
+   */
+  reasons() {
+    return Model.attribute<string | null>('reasons').call(this);
+  }
+
   attemptedAt() {
     return Model.attribute<Date | undefined, string | undefined>('attemptedAt', Model.transformDate).call(this);
   }

@@ -106,7 +106,116 @@
           display: flex;
           gap: 10px;
         }
+
+        .BlockEvidence {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+
+          &--empty {
+            color: var(--muted-color);
+            font-style: italic;
+          }
+        }
+
+        .BlockEvidence-reasons {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .BlockEvidence-reasonsLabel {
+          font-weight: bold;
+        }
+
+        .BlockEvidence-reason {
+          background: var(--alert-error-bg, var(--control-bg));
+          color: var(--alert-error-color, var(--text-color));
+          border-radius: var(--border-radius);
+          padding: 2px 8px;
+          font-size: 12px;
+          font-weight: bold;
+        }
+
+        .BlockEvidence-fields {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .BlockEvidence-field {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          gap: 6px;
+        }
+
+        .BlockEvidence-fieldName {
+          min-width: 70px;
+          color: var(--muted-color);
+        }
+
+        .BlockEvidence-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+
+        .BlockEvidence-badge {
+          border-radius: var(--border-radius);
+          padding: 1px 6px;
+          font-size: 12px;
+          background: var(--control-bg);
+          color: var(--control-color);
+
+          &--critical {
+            background: var(--alert-error-bg, #d83e3e);
+            color: var(--alert-error-color, #fff);
+            font-weight: bold;
+          }
+
+          &--warning {
+            background: var(--alert-warning-bg, #f2c94c);
+            color: var(--alert-warning-color, #3b3b3b);
+            font-weight: bold;
+          }
+
+          &--clean {
+            background: var(--alert-success-bg, var(--control-bg));
+            color: var(--alert-success-color, var(--control-color));
+          }
+
+          &--muted {
+            background: var(--control-bg);
+            color: var(--muted-color);
+          }
+        }
       }
     }
+  }
+}
+
+.RawDataModal {
+  .RawDataModal-section {
+    margin-bottom: 20px;
+
+    h4 {
+      margin-bottom: 6px;
+    }
+  }
+
+  .RawDataModal-json {
+    max-height: 300px;
+    overflow: auto;
+    background: var(--control-bg);
+    color: var(--control-color);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    font-size: 12px;
+    white-space: pre;
   }
 }

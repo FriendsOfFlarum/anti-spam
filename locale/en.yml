@@ -123,7 +123,41 @@ fof-anti-spam:
       login-provider: Login Provider
       login-provider-data: Login Provider Data
       sfs-data: StopForumSpam Data
+      reasons: Recorded block reasons
       delete_entry: Delete entry
+      total: "{count, plural, one {# blocked registration} other {# blocked registrations}}"
+
+      evidence:
+        label: Why this was blocked
+        none: No StopForumSpam data was recorded for this attempt.
+        lookup_failed: The StopForumSpam lookup failed, so no data was returned for this attempt.
+        blocked_by: Blocked by
+        rule:
+          confidence: Confidence threshold
+          frequency: Report threshold
+          blacklisted: Blacklisted
+          torExit: Tor exit node
+          deniedAsn: Denied network
+        field:
+          ip: IP
+          email: Email
+          username: Username
+        badge:
+          blacklisted: Blacklisted
+          tor_exit: Tor exit node
+          not_listed: Not listed
+          confidence: "{value}% confidence"
+          frequency: "{count, plural, one {reported # time} other {reported # times}}"
+          last_seen: "last seen {when}"
+          asn: "AS{asn}"
+          normalized: "normalises to {value}"
+
+      raw_data:
+        button: View raw data
+        title: Raw recorded data
+        copy: Copy
+        copied: Copied to clipboard.
+        copy_failed: Could not copy to clipboard.
 
   forum:
     post:

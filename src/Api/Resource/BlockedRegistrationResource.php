@@ -56,7 +56,9 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
     public function fields(): array
     {
         return [
-            Schema\Date::make('attemptedAt')
+            // DateTime, not Date: Schema\Date serializes as 'Y-m-d' and discards the time, so
+            // every attempt arrived as midnight and rendered as 1am once the browser applied BST.
+            Schema\DateTime::make('attemptedAt')
                 ->property('attempted_at'),
             Schema\Str::make('ip'),
             Schema\Str::make('email'),
@@ -66,6 +68,9 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
             Schema\Str::make('provider'),
             Schema\Str::make('providerData')
                 ->property('provider_data'),
+            // Null for rows blocked before reasons were recorded; the frontend falls back to
+            // presenting the raw StopForumSpam response for those.
+            Schema\Str::make('reasons'),
         ];
     }
 
