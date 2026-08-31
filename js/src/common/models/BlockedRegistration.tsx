@@ -26,6 +26,6 @@ export default class BlockedRegistration extends Model {
   }
 
   attemptedAt() {
-    return Model.attribute('attemptedAt', Model.transformDate).call(this);
+    return Model.attribute<Date | undefined, string | undefined>('attemptedAt', Model.transformDate).call(this);
   }
 }
