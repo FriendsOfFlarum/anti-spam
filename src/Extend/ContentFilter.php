@@ -40,7 +40,8 @@ class ContentFilter implements ExtenderInterface
     /**
      * Monitor every user's posts, not only those of new accounts.
      *
-     * Staff stay exempt. This supersedes the post-count and account-age windows, which can
+     * Administrators and anyone who can hide discussions stay exempt. This supersedes the
+     * post-count and account-age windows, which can
      * only ever exempt an account permanently once it clears them.
      */
     public function monitorAllUsers(bool $monitor = true): self

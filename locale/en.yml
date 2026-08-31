@@ -16,8 +16,9 @@ fof-anti-spam:
           Check every post, not just those from new accounts. Without this, an account is never
           examined again once it passes the limits below — which is exactly the case for a
           member whose account is compromised, or one that waits the limits out before posting
-          spam. Staff are never monitored either way. Expect more false positives from
-          established members, so review your thresholds before turning this on.
+          spam. Administrators, and anyone whose group can hide discussions, are never monitored
+          either way. Expect more false positives from established members, so review your
+          thresholds before turning this on.
         monitor_post_count_label: Monitor users up to post count
         monitor_post_count_help: Only analyze content from users who have made fewer than this many posts. Set to 0 to disable post count checking.
         monitor_hours_old_label: Monitor users up to hours old

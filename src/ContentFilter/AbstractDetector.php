@@ -27,11 +27,16 @@ abstract class AbstractDetector implements DetectorInterface
      * Check if user should be monitored.
      *
      * By default only new accounts are — up to a post count or an age — unless the admin has
-     * turned on monitoring for everyone. Staff are exempt either way.
+     * turned on monitoring for everyone.
+     *
+     * Administrators and anyone who can hide discussions are exempt either way. That is a
+     * proxy for trust rather than a designation of it: the exemption follows whoever holds
+     * `discussion.hide`, which a forum may have granted for unrelated reasons.
      */
     protected function shouldMonitorUser(User $user): bool
     {
-        // Never monitor staff
+        // Administrators, and whoever can hide discussions — moderators on a default forum,
+        // though the permission can be granted more widely than that.
         if ($user->isAdmin() || $user->can('discussion.hide')) {
             return false;
         }
@@ -43,7 +48,7 @@ abstract class AbstractDetector implements DetectorInterface
 
         // The window below is one-way: an account that clears it is never examined again. That
         // is the wrong answer for a member whose credentials are stolen, or one that waits the
-        // thresholds out before starting, so an admin can opt into checking everyone. The staff
+        // thresholds out before starting, so an admin can opt into checking everyone. The
         // exemption above still applies.
         if ($this->config->get('monitor_all_users')) {
             return true;

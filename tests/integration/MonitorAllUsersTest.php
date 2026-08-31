@@ -26,6 +26,8 @@ use PHPUnit\Framework\Attributes\Test;
  * matter most, because they all involve accounts that have already earned the exemption: a
  * long-standing member whose credentials are stolen, an account that waits out the thresholds
  * before starting, or a member who simply turns.
+ *
+ * Administrators and anyone who can hide discussions stay exempt in both modes.
  */
 class MonitorAllUsersTest extends TestCase
 {
@@ -47,7 +49,7 @@ class MonitorAllUsersTest extends TestCase
                     'id' => 4, 'username' => 'newcomer', 'email' => 'newcomer@machine.local',
                     'is_email_confirmed' => 1, 'joined_at' => Carbon::now(), 'comment_count' => 0,
                 ],
-                // Staff, equally established.
+                // Equally established, and able to hide discussions.
                 [
                     'id' => 5, 'username' => 'a_moderator', 'email' => 'a_mod@machine.local',
                     'is_email_confirmed' => 1, 'joined_at' => Carbon::now()->subYear(), 'comment_count' => 500,
@@ -130,7 +132,7 @@ class MonitorAllUsersTest extends TestCase
     }
 
     #[Test]
-    public function with_monitor_all_enabled_staff_are_still_exempt()
+    public function with_monitor_all_enabled_users_who_can_hide_discussions_are_still_exempt()
     {
         $this->lowerThresholds();
         $this->setting('fof-anti-spam.content-filter.monitor_all_users', true);
@@ -138,9 +140,10 @@ class MonitorAllUsersTest extends TestCase
 
         $this->postSpamAs(5);
 
-        // Staff exemption is absolute: a moderator quoting a spam post to discuss it must not
-        // have their own post flagged.
-        $this->assertSame(0, $this->spamFlags(), 'Staff must stay exempt however the option is set');
+        // The exemption is on `discussion.hide`, not on being staff as such: a moderator
+        // quoting a spam post in order to discuss it must not have their own post flagged.
+        // Worth knowing that a forum granting that permission more widely widens this too.
+        $this->assertSame(0, $this->spamFlags(), 'Users who can hide discussions stay exempt however the option is set');
     }
 
     #[Test]
