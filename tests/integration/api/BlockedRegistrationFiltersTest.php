@@ -67,13 +67,22 @@ class BlockedRegistrationFiltersTest extends TestCase
     }
 
     /**
+     * Issue the request the way a browser does: as a real query string, parsed by the server.
+     *
+     * Building the params array by hand instead would test an idealised request rather than the
+     * one the frontend actually sends, and would not catch a key the client encodes differently.
+     *
      * @return list<string>
      */
     private function ids(array $params): array
     {
+        $queryString = http_build_query($params);
+
+        parse_str($queryString, $parsed);
+
         $response = $this->send(
-            $this->request('GET', '/api/blocked-registrations', ['authenticatedAs' => 3])
-                ->withQueryParams($params)
+            $this->request('GET', '/api/blocked-registrations?'.$queryString, ['authenticatedAs' => 3])
+                ->withQueryParams($parsed)
         );
 
         $this->assertEquals(200, $response->getStatusCode());

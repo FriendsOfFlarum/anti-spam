@@ -233,20 +233,19 @@
   }
 }
 
+// Matches core's admin list header: a plain flex row, not a stretched search field.
 .BlockedRegistrations-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
+  column-gap: 8px;
+  row-gap: 8px;
+  margin-bottom: 16px;
 
   .BlockedRegistrations-search {
-    flex: 1 1 220px;
-    min-width: 0;
-  }
-
-  .Select {
-    flex: 0 0 auto;
+    // Wide enough for an email address, but not so wide it pushes the other controls away.
+    width: 280px;
+    max-width: 100%;
   }
 }
 

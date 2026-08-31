@@ -15,6 +15,7 @@ import Pagination from 'flarum/common/components/Pagination';
 import Input from 'flarum/common/components/Input';
 import Select from 'flarum/common/components/Select';
 import { debounce } from 'flarum/common/utils/throttleDebounce';
+import extractText from 'flarum/common/utils/extractText';
 import BlockEvidenceSummary from './BlockEvidenceSummary';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
@@ -613,14 +614,15 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   }
 
   filterControls(): Mithril.Children {
+    const t = (key: string) => extractText(app.translator.trans(key));
     const reasons = ['blacklisted', 'torExit', 'deniedAsn', 'confidence', 'frequency'];
 
     return (
       <div className="BlockedRegistrations-filters">
         <Input
           type="search"
-          className="FormControl BlockedRegistrations-search"
-          placeholder={app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.search_placeholder')}
+          className="BlockedRegistrations-search"
+          placeholder={t('fof-anti-spam.admin.blocked_registrations.filters.search_placeholder')}
           clearable={true}
           loading={this.blockedLoading}
           value={this.query}
@@ -631,13 +633,13 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
         />
 
         <Select
-          value={this.reason}
+          // Select renders a real <select>, so its options must be plain strings — trans()
+          // returns a vnode array, which would render as an empty label.
           options={{
-            '': app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.any_reason'),
-            ...Object.fromEntries(
-              reasons.map((reason) => [reason, app.translator.trans(`fof-anti-spam.admin.blocked_registrations.evidence.rule.${reason}`)])
-            ),
+            '': t('fof-anti-spam.admin.blocked_registrations.filters.any_reason'),
+            ...Object.fromEntries(reasons.map((reason) => [reason, t(`fof-anti-spam.admin.blocked_registrations.evidence.rule.${reason}`)])),
           }}
+          value={this.reason}
           onchange={(value: string) => {
             this.reason = value;
             this.loadData(1);
@@ -645,14 +647,14 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
         />
 
         <Select
-          value={this.sort}
           options={{
-            '-attemptedAt': app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_newest'),
-            attemptedAt: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_oldest'),
-            username: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_username'),
-            email: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_email'),
-            ip: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_ip'),
+            '-attemptedAt': t('fof-anti-spam.admin.blocked_registrations.filters.sort_newest'),
+            attemptedAt: t('fof-anti-spam.admin.blocked_registrations.filters.sort_oldest'),
+            username: t('fof-anti-spam.admin.blocked_registrations.filters.sort_username'),
+            email: t('fof-anti-spam.admin.blocked_registrations.filters.sort_email'),
+            ip: t('fof-anti-spam.admin.blocked_registrations.filters.sort_ip'),
           }}
+          value={this.sort}
           onchange={(value: string) => {
             this.sort = value;
             this.loadData(1);
