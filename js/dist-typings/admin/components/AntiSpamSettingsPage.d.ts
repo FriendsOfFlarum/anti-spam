@@ -9,6 +9,10 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     currentPage: number;
     /** Total matching records, from the API's page meta — not a page count. */
     total: number;
+    /** The raw `key:value` search query, parsed into filters when the request is made. */
+    query: string;
+    /** Total with no filters applied, to tell "nothing recorded" from "nothing matched". */
+    totalUnfiltered: number;
     static register(): void;
     /**
      * A lookup that cannot reach StopForumSpam lets the registration through. That is the right
@@ -22,6 +26,13 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     settingsContent(): Mithril.Children;
     blockedRegistrationsContent(): Mithril.Children;
     loadData(page?: number): Promise<void>;
+    /**
+     * Whether the table holds anything at all, as opposed to the current query matching nothing.
+     * Recorded from the first unfiltered load so a query that matches nothing cannot make the
+     * page claim the forum has never blocked a registration.
+     */
+    hasRecords(): boolean;
+    hasActiveFilters(): boolean;
     renderPagination(): Mithril.Children;
     detailItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children>;
     actionItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children>;
