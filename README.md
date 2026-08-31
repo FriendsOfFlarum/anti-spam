@@ -17,11 +17,15 @@ Automatically detect and hold spam content from new users before it becomes visi
   - Custom blocked words and phrases
   - Advanced regex pattern matching
 
-- **Smart User Targeting**: Only monitors users within their first few posts or hours after registration
+- **Smart User Targeting**: By default, only monitors users within their first few posts or hours
+  after registration. That window is one-way — an account that clears it is never examined again —
+  so **Monitor all users** can be turned on to check every post instead. Useful against compromised
+  accounts and accounts that wait the window out before starting. Administrators, and anyone whose
+  group can hide discussions, are exempt either way
 
 - **Flexible Actions**:
-  - Automatically flag suspicious content for moderator review (requires `flarum/flags`)
-  - Send suspicious content to the approval queue (requires `flarum/approval`)
+  - Automatically flag suspicious content for moderator review
+  - Send suspicious content to the approval queue
   - Separate thresholds for flagging and for hiding, so borderline content can be reviewed without disappearing
 
 - **Custom Flag Type**: Uses a dedicated `spam` flag type with prominent score display to distinguish automatic detections from user reports
@@ -40,8 +44,8 @@ never has a window in which it is publicly visible.
 - **Bio** — when `fof/user-bio` is enabled
 
 Only fields a request actually changes are examined, so a user carrying an older value is not locked
-out of editing the rest of their profile. Staff are exempt, and so are users past the monitoring
-window.
+out of editing the rest of their profile. Administrators and anyone who can hide discussions are
+exempt, and so are users past the monitoring window unless **Monitor all users** is on.
 
 ### User Management
 
@@ -50,6 +54,8 @@ window.
 - Select "delete", "hide" or "move to tag" for spam discussions
 - Select either "delete" or "hide" for spam replies
 - Clears the user's bio when `fof/user-bio` is enabled
+- Removes the user's avatar — often the payload itself, and left behind on every hidden post
+  otherwise. The image files are deleted too, including when the account is deleted outright
 - Records actions to `flarum/audit` when that extension is enabled
 
 ### StopForumSpam Integration
@@ -71,9 +77,34 @@ and used in the seconds before a background job would have run.
   including for addresses it has never seen, and almost nobody browses a forum from a hosting
   provider
 - Regional endpoint selection for compliance
-- Blocked attempts are recorded, with the API's verdict, and listed in the admin panel
+- Blocked attempts are recorded, with the API's verdict, and listed in the admin panel. Each entry
+  explains what StopForumSpam reported per field, and which of your rules actually fired, rather
+  than leaving you to read raw JSON — the full payloads stay one click away
+- The list is searchable with `key:value` filters (`provider:github`, `reason:blacklisted`,
+  `attemptedAt:2026-01-01..2026-02-01`), with the available filters shown as clickable examples
 - If StopForumSpam cannot be reached the registration is allowed through, and the admin panel says
   so rather than leaving you to guess
+
+### Dashboard Statistics
+
+A **Spam Defence** widget on the admin dashboard reports how the forum is holding up, each figure
+against the previous seven days so a raw total is not left to speak for itself:
+
+- Registrations blocked
+- Users marked as spammers — requires `flarum/audit`
+- Posts flagged as spam — requires `flarum/audit`
+- Spam flags currently awaiting review
+
+Registrations blocked comes from this extension's own table. The two audit-backed counts are read
+from the audit log rather than counted live, because that is the only durable record:
+`flarum/flags` deletes a flag row when it is dismissed, and again when its post is deleted — which
+is what marking the author as a spammer does. A count from that table would fall as moderators
+worked through it. The flags table is still read for the one question it can answer honestly: how
+many spam flags are open right now.
+
+Both audit-backed figures count from the point `flarum/audit` is installed onward.
+
+The widget appears alongside `flarum/statistics`' own dashboard widget.
 
 ### Registration Rate Limiting
 
@@ -92,7 +123,7 @@ All settings can be configured through the admin panel:
 
 1. Navigate to Extensions → FoF Anti Spam → Settings
 2. Enable content filtering
-3. Configure user targeting (post count, account age)
+3. Configure user targeting (monitor everyone, or a post count and account age)
 4. Enable detectors (phones, emails, URLs)
 5. Set spam score thresholds
 6. Configure automatic actions (flag/unapprove)
@@ -114,6 +145,10 @@ return [
     (new ContentFilter())
         // Enable/disable content filtering
         ->enabled(true)
+
+        // User targeting: monitor every user, not just new accounts. Supersedes the two
+        // windows below, which can only ever exempt an account permanently once it clears them
+        ->monitorAllUsers()
 
         // User targeting: monitor users within first N posts
         ->monitorUsersUpToPostCount(5)
@@ -234,7 +269,22 @@ or nginx's `real_ip` module. Without it every visitor looks to this extension li
 ## Requirements
 
 - Flarum 2.0+
-- PHP 8.3+
+- PHP 8.3+ (inherited from Flarum 2.0)
+- `flarum/approval` and `flarum/flags` — both are hard dependencies, installed by Composer
+
+### Optional integrations
+
+Each is used when present and simply not offered when absent:
+
+| Extension | What it adds |
+| --- | --- |
+| `flarum/audit` | Records spamblocks and automatic spam flags, which the dashboard widget then reports |
+| `flarum/suspend` | Suspends a spammer's account rather than leaving it active |
+| `flarum/nicknames` | Checks nicknames for spam, as usernames already are |
+| `fof/user-bio` | Checks bios for spam, and clears them when a user is marked as a spammer |
+| `flarum/statistics` | The Spam Defence widget appears alongside its dashboard widget |
+| `flarum/tags` | Moving a spammer's discussions to a quarantine tag |
+| `fof/oauth`, `fof/passport` | OAuth registrations are checked on the same route as ordinary ones |
 
 ## More integrations
 
