@@ -8,7 +8,8 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     blockedLoading: boolean;
     blockedRegistrations: BlockedRegistration[] | null | undefined;
     currentPage: number;
-    totalPages: number;
+    /** Total matching records, from the API's page meta — not a page count. */
+    total: number;
     static register(): void;
     oninit(vnode: any): void;
     /**

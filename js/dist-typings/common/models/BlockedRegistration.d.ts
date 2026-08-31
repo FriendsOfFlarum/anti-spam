@@ -6,5 +6,10 @@ export default class BlockedRegistration extends Model {
     sfsData(): string;
     provider(): string | null;
     providerData(): string | null;
+    /**
+     * The rules that fired, recorded at block time. Null for rows blocked before this was
+     * recorded — the frontend must not invent a reason for those.
+     */
+    reasons(): string | null;
     attemptedAt(): Date | undefined;
 }
