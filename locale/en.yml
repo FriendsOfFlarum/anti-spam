@@ -137,6 +137,17 @@ fof-anti-spam:
       delete_entry: Delete entry
       total: "{count, plural, one {# blocked registration} other {# blocked registrations}}"
 
+      filters:
+        search_placeholder: Search IP, email or username
+        any_reason: Any reason
+        no-matches: No blocked registrations match these filters.
+        clear: Clear filters
+        sort_newest: Newest first
+        sort_oldest: Oldest first
+        sort_username: Username
+        sort_email: Email
+        sort_ip: IP address
+
       evidence:
         label: Why this was blocked
         none: No StopForumSpam data was recorded for this attempt.

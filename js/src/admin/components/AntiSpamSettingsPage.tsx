@@ -12,6 +12,9 @@ import fullTime from 'flarum/common/helpers/fullTime';
 import humanTime from 'flarum/common/helpers/humanTime';
 import IPAddress from 'flarum/common/components/IPAddress';
 import Pagination from 'flarum/common/components/Pagination';
+import Input from 'flarum/common/components/Input';
+import Select from 'flarum/common/components/Select';
+import { debounce } from 'flarum/common/utils/throttleDebounce';
 import BlockEvidenceSummary from './BlockEvidenceSummary';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
@@ -23,6 +26,21 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   currentPage: number = 1;
   /** Total matching records, from the API's page meta — not a page count. */
   total: number = 0;
+
+  /** Free-text search across IP, email and username. */
+  query: string = '';
+  /** Restrict to one recorded block reason, or '' for all. */
+  reason: string = '';
+  /** Restrict to one login provider, or '' for all. */
+  provider: string = '';
+  /** A sort the endpoint accepts; '-attemptedAt' is its default. */
+  sort: string = '-attemptedAt';
+
+  /** Total with no filters applied, to tell "nothing recorded" from "nothing matched". */
+  totalUnfiltered: number = 0;
+
+  // Typing in the search box should not fire a request per keystroke.
+  private search = debounce(250, () => this.loadData(1));
 
   static register() {
     app.registry.for('fof-anti-spam');
@@ -508,15 +526,27 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       <div className="FoFAntiSpamSettings--blockedRegistrations">
         <Form>
           <h3>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.title')}</h3>
+          <p className="helpText">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.help')}</p>
+
+          {/*
+            The controls stay put whatever the results are. Rendering them only when there are
+            rows would hide them the moment a filter matched nothing, leaving no way to undo it.
+          */}
+          {(this.hasRecords() || this.hasActiveFilters()) && this.filterControls()}
+
           {this.blockedLoading && <LoadingIndicator />}
+
           {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length === 0 && (
             <div>
-              <p>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.no-records')}</p>
+              <p>
+                {this.hasActiveFilters()
+                  ? app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.no-matches')
+                  : app.translator.trans('fof-anti-spam.admin.blocked_registrations.no-records')}
+              </p>
             </div>
           )}
           {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length > 0 && (
             <div>
-              <p className="helpText">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.help')}</p>
               <div className="BlockedRegistrations--list">
                 {this.blockedRegistrations.map((blockedRegistration) => {
                   return (
@@ -543,7 +573,17 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     m.redraw();
 
     try {
+      const filter: Record<string, string> = {};
+
+      // Only send filters that are set: an empty value would narrow to rows whose column is
+      // literally empty rather than matching everything.
+      if (this.query) filter.q = this.query;
+      if (this.reason) filter.reason = this.reason;
+      if (this.provider) filter.provider = this.provider;
+
       const response = await app.store.find<BlockedRegistration[]>('blocked-registrations', {
+        filter,
+        sort: this.sort,
         page: {
           offset: (page - 1) * AntiSpamSettingsPage.ITEMS_PER_PAGE,
           limit: AntiSpamSettingsPage.ITEMS_PER_PAGE,
@@ -557,6 +597,10 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       const total = response.payload?.meta?.page?.total;
 
       this.total = typeof total === 'number' ? total : response.length;
+
+      if (!this.hasActiveFilters()) {
+        this.totalUnfiltered = this.total;
+      }
     } catch (error) {
       console.error(error);
       this.blockedRegistrations = [];
@@ -566,6 +610,84 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     this.blockedLoading = false;
     this.currentPage = page;
     m.redraw();
+  }
+
+  filterControls(): Mithril.Children {
+    const reasons = ['blacklisted', 'torExit', 'deniedAsn', 'confidence', 'frequency'];
+
+    return (
+      <div className="BlockedRegistrations-filters">
+        <Input
+          type="search"
+          className="FormControl BlockedRegistrations-search"
+          placeholder={app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.search_placeholder')}
+          clearable={true}
+          loading={this.blockedLoading}
+          value={this.query}
+          onchange={(value: string) => {
+            this.query = value;
+            this.search();
+          }}
+        />
+
+        <Select
+          value={this.reason}
+          options={{
+            '': app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.any_reason'),
+            ...Object.fromEntries(
+              reasons.map((reason) => [reason, app.translator.trans(`fof-anti-spam.admin.blocked_registrations.evidence.rule.${reason}`)])
+            ),
+          }}
+          onchange={(value: string) => {
+            this.reason = value;
+            this.loadData(1);
+          }}
+        />
+
+        <Select
+          value={this.sort}
+          options={{
+            '-attemptedAt': app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_newest'),
+            attemptedAt: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_oldest'),
+            username: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_username'),
+            email: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_email'),
+            ip: app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.sort_ip'),
+          }}
+          onchange={(value: string) => {
+            this.sort = value;
+            this.loadData(1);
+          }}
+        />
+
+        {this.hasActiveFilters() && (
+          <Button className="Button Button--text" icon="fas fa-times" onclick={() => this.clearFilters()}>
+            {app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.clear')}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  /**
+   * Whether the table holds anything at all, as opposed to the current filters matching
+   * nothing. Recorded from the first unfiltered load so a filter that matches nothing cannot
+   * make the page claim there are no blocked registrations.
+   */
+  hasRecords(): boolean {
+    return this.totalUnfiltered > 0;
+  }
+
+  hasActiveFilters(): boolean {
+    return Boolean(this.query || this.reason || this.provider) || this.sort !== '-attemptedAt';
+  }
+
+  clearFilters(): void {
+    this.query = '';
+    this.reason = '';
+    this.provider = '';
+    this.sort = '-attemptedAt';
+
+    this.loadData(1);
   }
 
   renderPagination(): Mithril.Children {
