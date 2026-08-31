@@ -17,6 +17,8 @@ use Flarum\Extension\ExtensionManager;
 use Flarum\Foundation\DispatchEventsTrait;
 use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
+use Flarum\User\AvatarUploader;
+use Flarum\User\Event\AvatarDeleting;
 use Flarum\User\Guest;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
@@ -64,7 +66,8 @@ class MarkUserAsSpammerHandler
         public Events $events,
         public SettingsRepositoryInterface $settings,
         public Queue $queue,
-        public LoggerInterface $log
+        public LoggerInterface $log,
+        public AvatarUploader $avatars
     ) {
     }
 
@@ -80,7 +83,7 @@ class MarkUserAsSpammerHandler
         $this->handleDiscussions($user, $actor);
 
         $this->handlePosts($user, $actor);
-        $this->handleUser($user);
+        $this->handleUser($user, $actor);
 
         $this->events->dispatch(
             new MarkedUserAsSpammer($user, $actor)
@@ -114,10 +117,16 @@ class MarkUserAsSpammerHandler
      * Takes the defined actions on the User.
      *
      * @param User $user
+     * @param User $actor
      * @return void
      */
-    protected function handleUser(User $user): void
+    protected function handleUser(User $user, User $actor): void
     {
+        // Run before the delete branch: a spam avatar is often the payload itself (a logo, a
+        // QR code, a phone number), and core's user deletion drops the row without removing
+        // the image files, so deleting the user alone would leave them orphaned on disk.
+        $this->removeAvatar($user, $actor);
+
         if ($this->deleteUser) {
             // Direct deletion - events fire via Eloquent model
             $user->delete();
@@ -140,6 +149,41 @@ class MarkUserAsSpammerHandler
 
         $user->refreshDiscussionCount();
         $user->refreshCommentCount();
+    }
+
+    /**
+     * Removes the User's avatar, if they have one.
+     *
+     * This mirrors core's DeleteAvatarHandler — remove the files, dispatch AvatarDeleting,
+     * save (releasing the AvatarChanged event raised by changeAvatarPath) — rather than
+     * dispatching its DeleteAvatar command, because that handler asserts the actor can
+     * 'edit' the user. Spamblock is gated on `user.spamblock`, a separate permission, and
+     * the actor may be a Guest when the block comes from automated detection rather than a
+     * moderator, so routing through the command would deny exactly those cases. Listeners
+     * such as flarum/audit see the same events either way.
+     *
+     * @param User $user
+     * @param User $actor
+     * @return void
+     */
+    protected function removeAvatar(User $user, User $actor): void
+    {
+        // getRawOriginal, since the avatar_url accessor falls back to a generated URL for
+        // users who never uploaded one.
+        if ($user->getRawOriginal('avatar_url') === null) {
+            return;
+        }
+
+        // remove() queues the file deletion until after the save, and raises AvatarChanged.
+        $this->avatars->remove($user);
+
+        $this->events->dispatch(
+            new AvatarDeleting($user, $actor)
+        );
+
+        $user->save();
+
+        $this->dispatchEventsFor($user, $actor);
     }
 
     /**
