@@ -297,6 +297,10 @@ class ConfigurationManager
                 'value' => $this->isEnabled(),
                 'isCodeConfigured' => $this->isCodeConfigured('enabled'),
             ],
+            'monitorAllUsers' => [
+                'value' => $this->get('monitor_all_users'),
+                'isCodeConfigured' => $this->isCodeConfigured('monitor_all_users'),
+            ],
             'monitorPostCount' => [
                 'value' => $this->get('monitor_post_count'),
                 'isCodeConfigured' => $this->isCodeConfigured('monitor_post_count'),

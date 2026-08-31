@@ -45,6 +45,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
         help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_help'),
       })
       .registerSetting({
+        type: 'switch',
+        setting: 'fof-anti-spam.content-filter.monitor_all_users',
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_help'),
+      })
+      .registerSetting({
         type: 'number',
         setting: 'fof-anti-spam.content-filter.monitor_post_count',
         label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
@@ -217,22 +223,34 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
             <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.user_targeting_heading')}</h4>
             {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.content-filter.monitor_post_count',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help'),
-              placeholder: '5',
-              min: 0,
+              type: 'switch',
+              setting: 'fof-anti-spam.content-filter.monitor_all_users',
+              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_help'),
             })}
 
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.content-filter.monitor_hours_old',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help'),
-              placeholder: '24',
-              min: 0,
-            })}
+            {/*
+              The two windows below only apply when everyone is not being monitored; leaving
+              them enabled would suggest they still narrow anything.
+            */}
+            {!this.monitoringEveryone() && [
+              this.buildSettingComponent({
+                type: 'number',
+                setting: 'fof-anti-spam.content-filter.monitor_post_count',
+                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
+                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help'),
+                placeholder: '5',
+                min: 0,
+              }),
+              this.buildSettingComponent({
+                type: 'number',
+                setting: 'fof-anti-spam.content-filter.monitor_hours_old',
+                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
+                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help'),
+                placeholder: '24',
+                min: 0,
+              }),
+            ]}
 
             <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.detectors_heading')}</h4>
             {this.buildSettingComponent({
@@ -609,6 +627,14 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
    */
   hasRecords(): boolean {
     return this.totalUnfiltered > 0;
+  }
+
+  /**
+   * Whether every user is being monitored, in which case the post-count and account-age
+   * windows no longer narrow anything.
+   */
+  monitoringEveryone(): boolean {
+    return Boolean(this.setting('fof-anti-spam.content-filter.monitor_all_users')());
   }
 
   hasActiveFilters(): boolean {

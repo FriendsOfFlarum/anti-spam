@@ -67,6 +67,36 @@ class ContentFilterConfigurationTest extends TestCase
     }
 
     #[Test]
+    public function monitoring_all_users_can_be_set_in_code()
+    {
+        $this->extend(
+            (new ContentFilter())
+                ->monitorAllUsers()
+        );
+
+        $this->app();
+
+        /** @var ConfigurationManager $config */
+        $config = $this->app()->getContainer()->make(ConfigurationManager::class);
+
+        $this->assertTrue($config->get('monitor_all_users'));
+        $this->assertTrue($config->isCodeConfigured('monitor_all_users'));
+    }
+
+    #[Test]
+    public function monitoring_all_users_is_off_unless_asked_for()
+    {
+        $this->app();
+
+        /** @var ConfigurationManager $config */
+        $config = $this->app()->getContainer()->make(ConfigurationManager::class);
+
+        // Turning this on changes behaviour for every existing member, so an upgrade must not
+        // do it silently.
+        $this->assertFalse((bool) $config->get('monitor_all_users'));
+    }
+
+    #[Test]
     public function code_configuration_overrides_database()
     {
         // Database says 10

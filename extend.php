@@ -91,6 +91,9 @@ return [
         // Content filter defaults
         ->default('fof-anti-spam.moderation.system_user_id', 1)
         ->default('fof-anti-spam.content-filter.enabled', true)
+        // Off by default: turning it on changes behaviour for every existing member, which is
+        // an admin's decision to make rather than one to inherit on upgrade.
+        ->default('fof-anti-spam.content-filter.monitor_all_users', false)
         ->default('fof-anti-spam.content-filter.monitor_post_count', 5)
         ->default('fof-anti-spam.content-filter.monitor_hours_old', 24)
         ->default('fof-anti-spam.content-filter.detect_phones', true)
