@@ -32,6 +32,11 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
      * page claim the forum has never blocked a registration.
      */
     hasRecords(): boolean;
+    /**
+     * Whether every user is being monitored, in which case the post-count and account-age
+     * windows no longer narrow anything.
+     */
+    monitoringEveryone(): boolean;
     hasActiveFilters(): boolean;
     renderPagination(): Mithril.Children;
     detailItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children>;
