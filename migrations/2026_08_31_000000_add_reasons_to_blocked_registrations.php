@@ -10,7 +10,6 @@
  */
 
 use Flarum\Database\Migration;
-use Illuminate\Database\Schema\Blueprint;
 
 /**
  * Records which rules actually fired, at the moment the registration was blocked.
