@@ -6,5 +6,5 @@ export default class BlockedRegistration extends Model {
     sfsData(): string;
     provider(): string | null;
     providerData(): string | null;
-    attemptedAt(): Date | null | undefined;
+    attemptedAt(): Date | undefined;
 }
