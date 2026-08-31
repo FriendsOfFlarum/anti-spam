@@ -104,6 +104,7 @@
         "flarum/realtime": "^2.0.0",
         "flarum/audit": "^2.0.0",
         "flarum/markdown": "^2.0",
-        "flarum/nicknames": "^2.0"
+        "flarum/nicknames": "^2.0",
+        "flarum/statistics": "^2.0"
     }
 }

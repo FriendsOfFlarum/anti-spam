@@ -15,6 +15,7 @@ use Flarum\Api\Resource\ForumResource;
 use Flarum\Api\Resource\UserResource;
 use Flarum\Audit\Extend\Audit;
 use Flarum\Extend;
+use Flarum\Search\Database\DatabaseSearchDriver;
 use Flarum\User\Event\Saving as UserSaving;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
@@ -33,7 +34,8 @@ return [
     new Extend\Locales(__DIR__.'/locale'),
 
     (new Extend\Routes('api'))
-        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class),
+        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
+        ->get('/fof/anti-spam/statistics', 'fof-anti-spam.statistics', Api\Controllers\BlockedRegistrationStatsController::class),
 
     (new Extend\ApiResource(ForumResource::class))
         ->fields(Api\AddForumFields::class),
@@ -41,6 +43,16 @@ return [
     (new Extend\ApiResource(UserResource::class))
         ->fields(Api\AddUserPermissions::class)
         ->fields(Api\AddUserRegistrationIp::class),
+
+    (new Extend\SearchDriver(DatabaseSearchDriver::class))
+        ->addSearcher(Model\BlockedRegistration::class, Search\BlockedRegistrationSearcher::class)
+        ->setFulltext(Search\BlockedRegistrationSearcher::class, Search\FulltextFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\AttemptedAtFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\EmailFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\IpFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\ProviderFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\ReasonFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\UsernameFilter::class),
 
     (new Extend\Policy())
         ->modelPolicy(User::class, Access\UserPolicy::class),
