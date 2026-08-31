@@ -19,8 +19,11 @@ use Flarum\Post\CommentPost;
 use Flarum\Post\Event\Deleted as PostDeleted;
 use Flarum\Post\Post;
 use Flarum\Testing\integration\TestCase;
+use Flarum\User\Event\AvatarChanged;
+use Flarum\User\Event\AvatarDeleting;
 use Flarum\User\User;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Filesystem\Factory;
 use PHPUnit\Framework\Attributes\Test;
 
 class SpamblockTest extends TestCase
@@ -461,5 +464,150 @@ class SpamblockTest extends TestCase
 
         $this->assertEquals(204, $response->getStatusCode());
         $this->assertNull(User::find(5), 'User should be deleted');
+    }
+
+    /**
+     * Give the spammer a locally-stored avatar, writing real files to the
+     * avatars disk so we can assert they are cleaned up and not merely
+     * detached from the user record.
+     *
+     * @return array<int, string> The variant paths that were written.
+     */
+    protected function giveSpammerAnAvatar(string $basePath = 'spam-avatar.webp'): array
+    {
+        /** @var \Illuminate\Contracts\Filesystem\Factory $filesystem */
+        $filesystem = $this->app()->getContainer()->make(Factory::class);
+        $disk = $filesystem->disk('flarum-avatars');
+
+        $paths = [$basePath, 'spam-avatar@2x.webp', 'spam-avatar@3x.webp'];
+
+        foreach ($paths as $path) {
+            $disk->put($path, 'not-really-an-image');
+        }
+
+        $user = User::find(5);
+        $user->avatar_url = $basePath;
+        $user->has_avatar_2x = true;
+        $user->has_avatar_3x = true;
+        $user->save();
+
+        return $paths;
+    }
+
+    #[Test]
+    public function spammer_avatar_is_removed()
+    {
+        $paths = $this->giveSpammerAnAvatar();
+
+        $this->assertNotNull(User::find(5)->getRawOriginal('avatar_url'), 'Spammer should start with an avatar');
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+
+        $user = User::find(5);
+
+        $this->assertNull($user->getRawOriginal('avatar_url'), 'Spammer avatar path should be cleared');
+        $this->assertFalse((bool) $user->has_avatar_2x, 'has_avatar_2x should be cleared');
+        $this->assertFalse((bool) $user->has_avatar_3x, 'has_avatar_3x should be cleared');
+
+        /** @var \Illuminate\Contracts\Filesystem\Factory $filesystem */
+        $filesystem = $this->app()->getContainer()->make(Factory::class);
+        $disk = $filesystem->disk('flarum-avatars');
+
+        foreach ($paths as $path) {
+            $this->assertFalse($disk->exists($path), "Avatar file $path should be deleted from disk");
+        }
+    }
+
+    #[Test]
+    public function removing_the_spammer_avatar_dispatches_events()
+    {
+        $this->giveSpammerAnAvatar();
+
+        $deleting = 0;
+        $changed = 0;
+
+        $this->app()->getContainer()->make(Dispatcher::class)->listen(
+            AvatarDeleting::class,
+            function (AvatarDeleting $event) use (&$deleting) {
+                if ($event->user->id === 5) {
+                    $deleting++;
+                }
+            }
+        );
+
+        $this->app()->getContainer()->make(Dispatcher::class)->listen(
+            AvatarChanged::class,
+            function (AvatarChanged $event) use (&$changed) {
+                if ($event->user->id === 5) {
+                    $changed++;
+                }
+            }
+        );
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+
+        // flarum/audit and other listeners rely on these firing.
+        $this->assertSame(1, $deleting, 'AvatarDeleting should be dispatched once');
+        $this->assertSame(1, $changed, 'AvatarChanged should be dispatched once');
+    }
+
+    #[Test]
+    public function spamblock_works_when_spammer_has_no_avatar()
+    {
+        $this->app();
+
+        // The user factory assigns a placeholder avatar_url to every seeded user, so clear
+        // it explicitly to exercise the no-avatar path.
+        $user = User::find(5);
+        $user->avatar_url = null;
+        $user->save();
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertNull(User::find(5)->getRawOriginal('avatar_url'));
+    }
+
+    #[Test]
+    public function deleting_spammer_removes_their_avatar_files()
+    {
+        $this->setting('fof-anti-spam.actions.deleteUser', true);
+
+        $paths = $this->giveSpammerAnAvatar();
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertNull(User::find(5), 'User should be deleted');
+
+        /** @var \Illuminate\Contracts\Filesystem\Factory $filesystem */
+        $filesystem = $this->app()->getContainer()->make(Factory::class);
+        $disk = $filesystem->disk('flarum-avatars');
+
+        // Core's user deletion drops the row but leaves the image files behind,
+        // so the spam avatar must be removed before the user goes.
+        foreach ($paths as $path) {
+            $this->assertFalse($disk->exists($path), "Avatar file $path should be deleted from disk");
+        }
     }
 }
