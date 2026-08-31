@@ -15,9 +15,11 @@ use Flarum\Api\Resource\ForumResource;
 use Flarum\Api\Resource\UserResource;
 use Flarum\Audit\Extend\Audit;
 use Flarum\Extend;
+use Flarum\Search\Database\DatabaseSearchDriver;
 use Flarum\User\Event\Saving as UserSaving;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
+use FoF\AntiSpam\Event\PostWasFlaggedAsSpam;
 use FoF\AntiSpam\Event\RegistrationWasBlocked;
 
 return [
@@ -33,7 +35,8 @@ return [
     new Extend\Locales(__DIR__.'/locale'),
 
     (new Extend\Routes('api'))
-        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class),
+        ->post('/users/{id}/spamblock', 'users.spamblock', Api\Controllers\MarkAsSpammerController::class)
+        ->get('/fof/anti-spam/statistics', 'fof-anti-spam.statistics', Api\Controllers\BlockedRegistrationStatsController::class),
 
     (new Extend\ApiResource(ForumResource::class))
         ->fields(Api\AddForumFields::class),
@@ -41,6 +44,16 @@ return [
     (new Extend\ApiResource(UserResource::class))
         ->fields(Api\AddUserPermissions::class)
         ->fields(Api\AddUserRegistrationIp::class),
+
+    (new Extend\SearchDriver(DatabaseSearchDriver::class))
+        ->addSearcher(Model\BlockedRegistration::class, Search\BlockedRegistrationSearcher::class)
+        ->setFulltext(Search\BlockedRegistrationSearcher::class, Search\FulltextFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\AttemptedAtFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\EmailFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\IpFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\ProviderFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\ReasonFilter::class)
+        ->addFilter(Search\BlockedRegistrationSearcher::class, Search\Filter\UsernameFilter::class),
 
     (new Extend\Policy())
         ->modelPolicy(User::class, Access\UserPolicy::class),
@@ -123,6 +136,14 @@ return [
                     'ip' => $e->blocked->ip,
                     'email' => $e->blocked->email,
                     'username' => $e->blocked->username,
+                ])
+                // flarum/flags logs post.flagged only for manual `user` flags — automated ones
+                // are excluded there, as Approval's and Akismet's are — and it deletes its rows
+                // on dismissal anyway. Recording our own keeps a count that survives both.
+                ->listen(PostWasFlaggedAsSpam::class, 'post.flagged_as_spam', fn (PostWasFlaggedAsSpam $e) => [
+                    'post_id' => $e->post->id,
+                    'discussion_id' => $e->post->discussion_id,
+                    'score' => $e->score,
                 ]),
         ]),
 ];

@@ -12,6 +12,8 @@ import fullTime from 'flarum/common/helpers/fullTime';
 import humanTime from 'flarum/common/helpers/humanTime';
 import IPAddress from 'flarum/common/components/IPAddress';
 import Pagination from 'flarum/common/components/Pagination';
+import BlockedRegistrationSearch from './BlockedRegistrationSearch';
+import parseBlockedRegistrationQuery from '../utils/parseBlockedRegistrationQuery';
 import BlockEvidenceSummary from './BlockEvidenceSummary';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
@@ -23,6 +25,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   currentPage: number = 1;
   /** Total matching records, from the API's page meta — not a page count. */
   total: number = 0;
+
+  /** The raw `key:value` search query, parsed into filters when the request is made. */
+  query: string = '';
+
+  /** Total with no filters applied, to tell "nothing recorded" from "nothing matched". */
+  totalUnfiltered: number = 0;
 
   static register() {
     app.registry.for('fof-anti-spam');
@@ -508,15 +516,36 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       <div className="FoFAntiSpamSettings--blockedRegistrations">
         <Form>
           <h3>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.title')}</h3>
+          <p className="helpText">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.help')}</p>
+
+          {/*
+            The controls stay put whatever the results are. Rendering them only when there are
+            rows would hide them the moment a filter matched nothing, leaving no way to undo it.
+          */}
+          {(this.hasRecords() || this.hasActiveFilters()) && (
+            <BlockedRegistrationSearch
+              query={this.query}
+              loading={this.blockedLoading}
+              onsubmit={(query: string) => {
+                this.query = query;
+                this.loadData(1);
+              }}
+            />
+          )}
+
           {this.blockedLoading && <LoadingIndicator />}
+
           {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length === 0 && (
             <div>
-              <p>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.no-records')}</p>
+              <p>
+                {this.hasActiveFilters()
+                  ? app.translator.trans('fof-anti-spam.admin.blocked_registrations.filters.no-matches')
+                  : app.translator.trans('fof-anti-spam.admin.blocked_registrations.no-records')}
+              </p>
             </div>
           )}
           {!this.blockedLoading && this.blockedRegistrations && this.blockedRegistrations.length > 0 && (
             <div>
-              <p className="helpText">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.help')}</p>
               <div className="BlockedRegistrations--list">
                 {this.blockedRegistrations.map((blockedRegistration) => {
                   return (
@@ -544,6 +573,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
     try {
       const response = await app.store.find<BlockedRegistration[]>('blocked-registrations', {
+        filter: parseBlockedRegistrationQuery(this.query),
         page: {
           offset: (page - 1) * AntiSpamSettingsPage.ITEMS_PER_PAGE,
           limit: AntiSpamSettingsPage.ITEMS_PER_PAGE,
@@ -557,6 +587,10 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       const total = response.payload?.meta?.page?.total;
 
       this.total = typeof total === 'number' ? total : response.length;
+
+      if (!this.hasActiveFilters()) {
+        this.totalUnfiltered = this.total;
+      }
     } catch (error) {
       console.error(error);
       this.blockedRegistrations = [];
@@ -566,6 +600,19 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     this.blockedLoading = false;
     this.currentPage = page;
     m.redraw();
+  }
+
+  /**
+   * Whether the table holds anything at all, as opposed to the current query matching nothing.
+   * Recorded from the first unfiltered load so a query that matches nothing cannot make the
+   * page claim the forum has never blocked a registration.
+   */
+  hasRecords(): boolean {
+    return this.totalUnfiltered > 0;
+  }
+
+  hasActiveFilters(): boolean {
+    return this.query !== '';
   }
 
   renderPagination(): Mithril.Children {

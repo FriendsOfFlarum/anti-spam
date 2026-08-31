@@ -78,6 +78,10 @@ class BlockedRegistrationResource extends Resource\AbstractDatabaseResource
     {
         return [
             SortColumn::make('attemptedAt'),
+            SortColumn::make('ip'),
+            SortColumn::make('email'),
+            SortColumn::make('username'),
+            SortColumn::make('provider'),
         ];
     }
 }
