@@ -80,6 +80,7 @@ class StopForumSpam
             $frequency = 0;      // Total reports across all enabled fields (cumulative)
             $confidence = 0.0;   // Highest confidence score across all fields (not cumulative)
             $blacklisted = false;
+            $blacklistedFields = [];
             $isTorExit = false;
             $maxListingAgeDays = (int) $this->settings->get('fof-anti-spam.maxListingAgeDays');
 
@@ -94,6 +95,7 @@ class StopForumSpam
 
                 if ($value->blacklisted) {
                     $blacklisted = true;
+                    $blacklistedFields[] = $key;
                 }
 
                 // A sighting from years ago says little about whoever is registering today. A
@@ -127,7 +129,38 @@ class StopForumSpam
             // 4. IP is a Tor exit node (absolute block if feature enabled)
             // 5. IP sits on an ASN the admin has denied (absolute block, opt in)
             if ($confidence >= $requiredConfidence || $frequency >= $requiredFrequency || $blacklisted || $isTorExit || $isDeniedAsn) {
-                $this->buildAndDispatchEvents(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData);
+                // Record what actually fired, while the thresholds that produced this decision
+                // are still in scope. Reconstructing it later from the stored response would be
+                // guesswork once an admin changes a threshold.
+                $reasons = new BlockReasons();
+
+                if ($blacklisted) {
+                    $reasons->reasons[] = BlockReasons::BLACKLISTED;
+                    $reasons->context['blacklistedFields'] = $blacklistedFields;
+                }
+
+                if ($isTorExit) {
+                    $reasons->reasons[] = BlockReasons::TOR_EXIT;
+                }
+
+                if ($isDeniedAsn) {
+                    $reasons->reasons[] = BlockReasons::DENIED_ASN;
+                    $reasons->context['asn'] = $sfsResponse->ip?->asn;
+                }
+
+                if ($confidence >= $requiredConfidence) {
+                    $reasons->reasons[] = BlockReasons::CONFIDENCE;
+                    $reasons->context['confidence'] = $confidence;
+                    $reasons->context['confidenceThreshold'] = $requiredConfidence;
+                }
+
+                if ($frequency >= $requiredFrequency) {
+                    $reasons->reasons[] = BlockReasons::FREQUENCY;
+                    $reasons->context['frequency'] = $frequency;
+                    $reasons->context['frequencyThreshold'] = $requiredFrequency;
+                }
+
+                $this->buildAndDispatchEvents(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData, $reasons);
 
                 return true;
             }
@@ -188,7 +221,7 @@ class StopForumSpam
         return false;
     }
 
-    private function buildAndDispatchEvents(array $data, string $sfsData, ?string $provider = null, ?array $providerData = null): void
+    private function buildAndDispatchEvents(array $data, string $sfsData, ?string $provider = null, ?array $providerData = null, ?BlockReasons $reasons = null): void
     {
         $ip = Arr::get($data, 'ip') ?? 'unknown';
         $email = Arr::get($data, 'email') ?? 'unknown';
@@ -206,7 +239,8 @@ class StopForumSpam
                 $username,
                 $sfsData,
                 $provider,
-                $providerData
+                $providerData,
+                $reasons
             )
         ));
     }

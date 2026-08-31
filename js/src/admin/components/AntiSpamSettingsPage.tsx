@@ -10,6 +10,8 @@ import ItemList from 'flarum/common/utils/ItemList';
 import fullTime from 'flarum/common/helpers/fullTime';
 import humanTime from 'flarum/common/helpers/humanTime';
 import IPAddress from 'flarum/common/components/IPAddress';
+import Pagination from 'flarum/common/components/Pagination';
+import BlockEvidenceSummary from './BlockEvidenceSummary';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
   private static readonly ITEMS_PER_PAGE: number = 20;
@@ -19,7 +21,8 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   blockedRegistrations: BlockedRegistration[] | null | undefined = null;
 
   currentPage: number = 1;
-  totalPages: number = 1;
+  /** Total matching records, from the API's page meta — not a page count. */
+  total: number = 0;
 
   static register() {
     app.registry.for('fof-anti-spam');
@@ -522,6 +525,9 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                   );
                 })}
               </div>
+              <p className="BlockedRegistrations-total">
+                {app.translator.trans('fof-anti-spam.admin.blocked_registrations.total', { count: this.total })}
+              </p>
               {this.renderPagination()}
             </div>
           )}
@@ -544,14 +550,15 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
       this.blockedRegistrations = response;
 
-      // Calculate total pages from response
-      // If we get a full page of results, there might be more pages
-      // This is a simplified approach - you may want to use meta data from the API response if available
-      const hasNextPage = response.length === AntiSpamSettingsPage.ITEMS_PER_PAGE;
-      this.totalPages = hasNextPage ? page + 1 : page;
+      // The endpoint counts the full result set and reports it in meta, so we can show a real
+      // total instead of inferring "there is probably one more page" from a full page of rows.
+      const total = response.payload?.meta?.page?.total;
+
+      this.total = typeof total === 'number' ? total : response.length;
     } catch (error) {
       console.error(error);
       this.blockedRegistrations = [];
+      this.total = 0;
     }
 
     this.blockedLoading = false;
@@ -560,18 +567,20 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   }
 
   renderPagination(): Mithril.Children {
+    // Nothing to navigate when everything already fits on one page.
+    if (this.total <= AntiSpamSettingsPage.ITEMS_PER_PAGE) return null;
+
+    // Core's component rather than a bespoke one: it brings first/last buttons, a jump-to-page
+    // input, translated labels and the a11y wiring, and stays consistent with the admin Users
+    // page an admin has already learned.
     return (
-      <nav className="BlockedRegistrations--pagination">
-        <Button className="Button" disabled={this.currentPage <= 1} onclick={() => this.loadData(this.currentPage - 1)}>
-          Previous
-        </Button>
-        <span>
-          Page {this.currentPage} of {this.totalPages}
-        </span>
-        <Button className="Button" disabled={this.currentPage >= this.totalPages} onclick={() => this.loadData(this.currentPage + 1)}>
-          Next
-        </Button>
-      </nav>
+      <Pagination
+        currentPage={this.currentPage}
+        loadingPageNumber={this.blockedLoading ? this.currentPage : undefined}
+        total={this.total}
+        perPage={AntiSpamSettingsPage.ITEMS_PER_PAGE}
+        onChange={(page: number) => this.loadData(page)}
+      />
     );
   }
 
@@ -635,28 +644,40 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       );
     }
 
-    if (blockedRegistration.providerData()) {
-      items.add(
-        'providerData',
-        <div className="BlockedRegistrations-item--details">
-          <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.login-provider-data')}</span>
-          <span className="BlockedRegistrations-value">
-            <code>{blockedRegistration.providerData()}</code>
-          </span>
-        </div>,
-        50
-      );
-    }
-
     items.add(
-      'sfsData',
+      'evidence',
       <div className="BlockedRegistrations-item--details">
-        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.sfs-data')}</span>
+        <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.evidence.label')}</span>
         <span className="BlockedRegistrations-value">
-          <code>{blockedRegistration.sfsData()}</code>
+          <BlockEvidenceSummary registration={blockedRegistration} />
         </span>
       </div>,
       20
+    );
+
+    // The full payloads stay available, but behind a click: they are reference material, not
+    // something to read every time. Loaded on demand so the bundle does not carry the modal
+    // for admins who never open it.
+    items.add(
+      'rawData',
+      <div className="BlockedRegistrations-item--details">
+        <span className="BlockedRegistrations-label" />
+        <span className="BlockedRegistrations-value">
+          {/*
+            Passed as a loader rather than a resolved component: app.modal.show accepts an async
+            import, so the modal is fetched only when an admin actually opens it. The chunk is
+            served via the jsDirectory registered in extend.php.
+          */}
+          <Button
+            className="Button Button--text"
+            icon="fas fa-code"
+            onclick={() => app.modal.show(() => import('./RawDataModal'), { registration: blockedRegistration })}
+          >
+            {app.translator.trans('fof-anti-spam.admin.blocked_registrations.raw_data.button')}
+          </Button>
+        </span>
+      </div>,
+      10
     );
 
     return items;
