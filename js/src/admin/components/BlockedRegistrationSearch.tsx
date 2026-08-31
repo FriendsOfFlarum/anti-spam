@@ -225,24 +225,28 @@ export default class BlockedRegistrationSearch extends Component<BlockedRegistra
   }
 
   /**
-   * Filters advertising a value set open their suggestions; the rest drop their example
-   * straight into the box.
+   * Filters advertising a value set open their suggestions. The rest prime the box with the
+   * key and wait: their values are whatever the admin has in their data, so running a search
+   * on a placeholder would only ever return nothing.
    */
   filterChip(filter: BlockedRegistrationFilter): Mithril.Children {
     const autocompletes = filter.values.length > 0;
-    const label = autocompletes ? `${filter.key}:` : filter.example;
 
     return (
       <Button
         className="Button BlockedRegistrationSearch-filter"
         icon={autocompletes ? 'fas fa-list-ul' : undefined}
-        onclick={() => (autocompletes ? this.openAutocomplete(filter.key) : this.applyExample(filter.example))}
+        onclick={() => this.openAutocomplete(filter.key)}
       >
-        <code>{label}</code>
+        <code>{filter.example}</code>
       </Button>
     );
   }
 
+  /**
+   * Run a complete `key:value` query straight away. Only used from the help panel's value
+   * chips, where the value is one the backend advertises as real.
+   */
   applyExample(example: string): void {
     this.q = example;
     this.caret = example.length;

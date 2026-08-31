@@ -11,6 +11,8 @@
 
 namespace FoF\AntiSpam\Search;
 
+use FoF\AntiSpam\BlockReasons;
+
 /**
  * Registry of the search filters available on the blocked registrations list.
  *
@@ -61,31 +63,32 @@ class BlockedRegistrationGambits
      */
     public static function registerDefaults(): void
     {
-        self::register('ip', 'ip:192.0.2.1', 'fof-anti-spam.admin.blocked_registrations.filters.help.ip');
-        self::register('email', 'email:someone@example.com', 'fof-anti-spam.admin.blocked_registrations.filters.help.email');
-        self::register('username', 'username:spammer', 'fof-anti-spam.admin.blocked_registrations.filters.help.username');
+        // A bare `key:` where the value is whatever the admin types — a made-up sample address
+        // would only ever match nothing. Concrete values are given below, where the set is
+        // known and every one of them is a filter that can actually return something.
+        self::register('ip', 'ip:', 'fof-anti-spam.admin.blocked_registrations.filters.help.ip');
+        self::register('email', 'email:', 'fof-anti-spam.admin.blocked_registrations.filters.help.email');
+        self::register('username', 'username:', 'fof-anti-spam.admin.blocked_registrations.filters.help.username');
+        // Providers are a known, short set, so every chip here is a filter that can return
+        // something on a forum using them.
         self::register(
             'provider',
-            'provider:flarum',
+            'provider:',
             'fof-anti-spam.admin.blocked_registrations.filters.help.provider',
             ['flarum', 'github', 'forum']
         );
         self::register(
             'reason',
-            'reason:blacklisted',
+            'reason:',
             'fof-anti-spam.admin.blocked_registrations.filters.help.reason',
             [
-                \FoF\AntiSpam\BlockReasons::BLACKLISTED,
-                \FoF\AntiSpam\BlockReasons::TOR_EXIT,
-                \FoF\AntiSpam\BlockReasons::DENIED_ASN,
-                \FoF\AntiSpam\BlockReasons::CONFIDENCE,
-                \FoF\AntiSpam\BlockReasons::FREQUENCY,
+                BlockReasons::BLACKLISTED,
+                BlockReasons::TOR_EXIT,
+                BlockReasons::DENIED_ASN,
+                BlockReasons::CONFIDENCE,
+                BlockReasons::FREQUENCY,
             ]
         );
-        self::register(
-            'attemptedAt',
-            'attemptedAt:2026-01-01..2026-02-01',
-            'fof-anti-spam.admin.blocked_registrations.filters.help.attemptedAt'
-        );
+        self::register('attemptedAt', 'attemptedAt:', 'fof-anti-spam.admin.blocked_registrations.filters.help.attemptedAt');
     }
 }

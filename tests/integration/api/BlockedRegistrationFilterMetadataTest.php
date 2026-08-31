@@ -75,6 +75,21 @@ class BlockedRegistrationFilterMetadataTest extends TestCase
             // The example has to be a usable query, not just a key name, since clicking a chip
             // drops it straight into the search box.
             $this->assertStringContainsString(':', $filter['example']);
+
+            // And where it carries a value, that value has to be one the filter accepts.
+            // A made-up sample (ip:192.0.2.1) is worse than a bare prefix: clicking it runs a
+            // search that is guaranteed to return nothing.
+            [$key, $value] = explode(':', $filter['example'], 2);
+
+            $this->assertSame($filter['key'], $key, 'An example must use its own filter key');
+
+            if ($value !== '') {
+                $this->assertContains(
+                    $value,
+                    $filter['values'],
+                    "The example for '{$filter['key']}' invents a value; use a bare prefix unless the value set is known"
+                );
+            }
         }
     }
 
