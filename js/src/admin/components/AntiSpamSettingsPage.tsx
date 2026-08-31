@@ -2,6 +2,7 @@ import Form from 'flarum/common/components/Form';
 import app from 'flarum/admin/app';
 import ExtensionPage from 'flarum/admin/components/ExtensionPage';
 import Button from 'flarum/common/components/Button';
+import LinkButton from 'flarum/common/components/LinkButton';
 import Link from 'flarum/common/components/Link';
 import type Mithril from 'mithril';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
@@ -16,7 +17,6 @@ import BlockEvidenceSummary from './BlockEvidenceSummary';
 export default class AntiSpamSettingsPage extends ExtensionPage {
   private static readonly ITEMS_PER_PAGE: number = 20;
 
-  page!: string;
   blockedLoading: boolean = false;
   blockedRegistrations: BlockedRegistration[] | null | undefined = null;
 
@@ -116,12 +116,6 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       });
   }
 
-  oninit(vnode: any) {
-    super.oninit(vnode);
-
-    this.page = 'settings';
-  }
-
   /**
    * A lookup that cannot reach StopForumSpam lets the registration through. That is the right
    * call — better an open door than a forum nobody can join — but it must not happen quietly, or
@@ -146,43 +140,51 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     );
   }
 
+  oninit(vnode: Mithril.Vnode<any, this>) {
+    super.oninit(vnode);
+
+    // Landing straight on the tab — a reload, or a bookmarked link — has to fetch as well,
+    // since no menu click went through to start it.
+    if (m.route.param('page') === 'blocked-registrations') {
+      this.loadData();
+    }
+  }
+
   content() {
+    // The route is the source of truth, so the tab survives a reload and can be linked to.
+    // Holding it in component state meant every refresh dropped the admin back on Settings.
+    const page = m.route.param('page') || 'settings';
+
     return (
       <div className="FoFAntiSpamSettings">
         <div className="container">
-          {this.menuButtons()}
-          {this.page === 'settings' && this.settingsContent()}
-          {this.page === 'blocked-registrations' && this.blockedRegistrationsContent()}
+          {this.menuButtons(page)}
+          {page === 'settings' && this.settingsContent()}
+          {page === 'blocked-registrations' && this.blockedRegistrationsContent()}
         </div>
       </div>
     );
   }
 
-  menuButtons(): Mithril.Children {
+  menuButtons(page: string): Mithril.Children {
     return (
       <div className="MenuButtons">
-        <Button className={`Button ${this.page === 'settings' ? 'active' : ''}`} icon="fas fa-cog" onclick={() => this.setPage('settings')}>
+        <LinkButton
+          className={`Button ${page === 'settings' ? 'active' : ''}`}
+          icon="fas fa-cog"
+          href={app.route('extension', { id: 'fof-anti-spam' })}
+        >
           {app.translator.trans('fof-anti-spam.admin.settings.button')}
-        </Button>
-        <Button
-          className={`Button ${this.page === 'blocked-registrations' ? 'active' : ''}`}
+        </LinkButton>
+        <LinkButton
+          className={`Button ${page === 'blocked-registrations' ? 'active' : ''}`}
           icon="fas fa-ban"
-          onclick={() => this.setPage('blocked-registrations')}
+          href={app.route('extension', { id: 'fof-anti-spam', page: 'blocked-registrations' })}
         >
           {app.translator.trans('fof-anti-spam.admin.blocked_registrations.button')}
-        </Button>
+        </LinkButton>
       </div>
     );
-  }
-
-  setPage(page: string): void {
-    this.page = page;
-
-    if (page === 'blocked-registrations' && !this.blockedRegistrations) {
-      this.loadData();
-    } else {
-      m.redraw();
-    }
   }
 
   settingsContent(): Mithril.Children {
