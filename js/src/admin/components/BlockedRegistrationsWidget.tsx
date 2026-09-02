@@ -36,7 +36,7 @@ interface LifetimeStats {
  * filter caught, users marked as spammers afterwards — each against the previous week, because
  * a raw count says nothing on its own about whether things are improving.
  *
- * The latter two are only shown when the extension that records them is enabled.
+ * The latter two are only shown when flarum/audit is enabled, since that is what records them.
  */
 export default class BlockedRegistrationsWidget extends DashboardWidget {
   lifetime: LifetimeStats | null = null;
@@ -71,20 +71,20 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
   }
 
   className() {
-    return 'StatisticsWidget StatisticsWidget--mini BlockedRegistrationsWidget';
+    return 'SpamDefenceWidget';
   }
 
   content() {
     return (
-      <div className="StatisticsWidget-table">
-        <h4 className="StatisticsWidget-title">
+      <div>
+        <h4 className="SpamDefenceWidget-title">
           <Icon name="fas fa-shield-alt" />
           {app.translator.trans(`${PREFIX}.heading`)}
         </h4>
 
         {this.failed ? this.error() : this.figures()}
 
-        <div className="StatisticsWidget-viewFull">
+        <div className="SpamDefenceWidget-viewFull">
           <Link href={app.route('extension', { id: 'fof-anti-spam', page: 'blocked-registrations' })}>
             {app.translator.trans(`${PREFIX}.view_all`)}
           </Link>
@@ -94,21 +94,20 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
   }
 
   private error(): Mithril.Children {
-    return <p className="BlockedRegistrationsWidget-error">{app.translator.trans(`${PREFIX}.failed`)}</p>;
+    return <p className="SpamDefenceWidget-error">{app.translator.trans(`${PREFIX}.failed`)}</p>;
   }
 
   private figures(): Mithril.Children {
     const stats = this.lifetime;
 
-    // Core's own structure — labels column, then a row of entities — so this sits in the
-    // dashboard looking like the statistics widget above it rather than near it.
+    // A labels column, then a row of figures: the conventional shape for a dashboard widget.
     return [
-      <div className="StatisticsWidget-entities">
-        <div className="StatisticsWidget-labels">
-          <div className="StatisticsWidget-label">{app.translator.trans(`${PREFIX}.total_label`)}</div>
+      <div className="SpamDefenceWidget-entities">
+        <div className="SpamDefenceWidget-labels">
+          <div className="SpamDefenceWidget-label">{app.translator.trans(`${PREFIX}.total_label`)}</div>
         </div>
 
-        <div className="StatisticsWidget-entityList">
+        <div className="SpamDefenceWidget-entityList">
           {this.measure(`${PREFIX}.registrations_blocked`, stats?.registrationsBlocked)}
           {stats?.usersMarkedAsSpammers && this.measure(`${PREFIX}.users_marked`, stats.usersMarkedAsSpammers)}
           {stats?.postsFlagged && this.measure(`${PREFIX}.posts_flagged`, stats.postsFlagged)}
@@ -127,15 +126,15 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
     const total = measure?.total ?? 0;
 
     return (
-      <div className="StatisticsWidget-entity">
-        <h3 className="StatisticsWidget-heading">{app.translator.trans(key)}</h3>
+      <div className="SpamDefenceWidget-entity">
+        <h3 className="SpamDefenceWidget-heading">{app.translator.trans(key)}</h3>
 
-        <div className="StatisticsWidget-total" title={String(total)}>
+        <div className="SpamDefenceWidget-total" title={String(total)}>
           {this.loading ? <LoadingIndicator display="inline" /> : abbreviateNumber(total)}
         </div>
 
         {!this.loading && (
-          <div className="StatisticsWidget-period">
+          <div className="SpamDefenceWidget-period">
             {app.translator.trans(`${PREFIX}.this_week`, { count: measure?.period ?? 0 })} {this.change(measure)}
           </div>
         )}
@@ -155,10 +154,10 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
     if (this.loading || open === 0) return null;
 
     return (
-      <div className="StatisticsWidget-entity">
-        <h3 className="StatisticsWidget-heading">{app.translator.trans(`${PREFIX}.awaiting_review`)}</h3>
+      <div className="SpamDefenceWidget-entity">
+        <h3 className="SpamDefenceWidget-heading">{app.translator.trans(`${PREFIX}.awaiting_review`)}</h3>
 
-        <div className="StatisticsWidget-total" title={String(open)}>
+        <div className="SpamDefenceWidget-total" title={String(open)}>
           {abbreviateNumber(open)}
         </div>
       </div>
@@ -183,7 +182,7 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
     // is wrong here: more blocks can mean more spam arriving as easily as more getting through,
     // so the direction is shown without the judgement.
     return (
-      <span className="StatisticsWidget-change" title={extractText(app.translator.trans(`${PREFIX}.vs_last_week`))}>
+      <span className="SpamDefenceWidget-change" title={extractText(app.translator.trans(`${PREFIX}.vs_last_week`))}>
         <Icon name={delta > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'} /> {Math.abs(delta)}%
       </span>
     );
@@ -203,7 +202,7 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
     const [reason, count] = ranked.reduce((top, entry) => (entry[1] > top[1] ? entry : top));
 
     return (
-      <p className="BlockedRegistrationsWidget-topReason">
+      <p className="SpamDefenceWidget-topReason">
         {app.translator.trans(`${PREFIX}.top_reason`, {
           reason: app.translator.trans(`fof-anti-spam.admin.blocked_registrations.evidence.rule.${reason}`),
           count,

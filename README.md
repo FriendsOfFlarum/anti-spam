@@ -104,7 +104,8 @@ many spam flags are open right now.
 
 Both audit-backed figures count from the point `flarum/audit` is installed onward.
 
-The widget appears alongside `flarum/statistics`' own dashboard widget.
+The widget is self-contained: it needs no other extension to display, and styles itself rather
+than borrowing from one.
 
 ### Registration Rate Limiting
 
@@ -282,7 +283,6 @@ Each is used when present and simply not offered when absent:
 | `flarum/suspend` | Suspends a spammer's account rather than leaving it active |
 | `flarum/nicknames` | Checks nicknames for spam, as usernames already are |
 | `fof/user-bio` | Checks bios for spam, and clears them when a user is marked as a spammer |
-| `flarum/statistics` | The Spam Defence widget appears alongside its dashboard widget |
 | `flarum/tags` | Moving a spammer's discussions to a quarantine tag |
 | `fof/oauth`, `fof/passport` | OAuth registrations are checked on the same route as ordinary ones |
 

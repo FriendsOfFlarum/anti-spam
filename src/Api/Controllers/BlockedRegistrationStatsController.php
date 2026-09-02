@@ -36,8 +36,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * flarum/flags deletes a flag row when it is dismissed and when its post is deleted, so that
  * table can only answer what is currently awaiting review, which is reported separately.
  *
- * Served here rather than through flarum/statistics because that extension's entity list is a
- * hardcoded private array with no extender, so an extension cannot contribute to it.
+ * Served by this extension, and depending on nothing else to display it.
  */
 class BlockedRegistrationStatsController implements RequestHandlerInterface
 {
@@ -141,8 +140,8 @@ class BlockedRegistrationStatsController implements RequestHandlerInterface
     }
 
     /**
-     * Counts keyed by unix timestamp, bucketed by hour for the last day and by day before that
-     * — the same shape flarum/statistics produces, so the chart code is conventional.
+     * Counts keyed by unix timestamp, bucketed by hour for the last day and by day before that,
+     * which is the conventional shape for charting a period in the admin panel.
      *
      * @return array<int, int>
      */
