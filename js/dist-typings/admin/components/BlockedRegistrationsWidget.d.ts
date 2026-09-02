@@ -25,7 +25,7 @@ interface LifetimeStats {
  * filter caught, users marked as spammers afterwards — each against the previous week, because
  * a raw count says nothing on its own about whether things are improving.
  *
- * The latter two are only shown when the extension that records them is enabled.
+ * The latter two are only shown when flarum/audit is enabled, since that is what records them.
  */
 export default class BlockedRegistrationsWidget extends DashboardWidget {
     lifetime: LifetimeStats | null;
