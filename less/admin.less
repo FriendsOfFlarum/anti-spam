@@ -221,9 +221,99 @@
 }
 
 .BlockedRegistrationsWidget {
-  // Core's -change is coloured green/red for up/down, which reads as good/bad news. Blocks
-  // rising can mean more spam arriving as easily as more getting through, so it is left
-  // neutral and the admin can judge.
+  // Every class this widget's markup uses is defined here, including the StatisticsWidget-*
+  // ones it shares with flarum/statistics.
+  //
+  // Borrowing that extension's stylesheet looked reasonable — the markup is deliberately the
+  // same shape so the two widgets sit together — but it left the layout dependent on another
+  // extension's CSS being loaded first. Asset order is a topological sort over declared
+  // dependencies, falling back to alphabetical, so it happened to work on some forums and not
+  // others. Declaring the optional dependency fixes the order; defining the rules here means
+  // the order stops mattering, and a restyle upstream cannot silently break this widget.
+  padding: 0;
+
+  .StatisticsWidget-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 16px 20px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted-color);
+
+    .icon {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+  }
+
+  .StatisticsWidget-entities {
+    display: flex;
+    align-items: flex-end;
+    margin: 0 20px;
+
+    & > :not(:last-child) {
+      margin-right: 10px;
+    }
+  }
+
+  .StatisticsWidget-labels {
+    padding-bottom: 15px;
+    min-width: 130px;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--muted-color);
+  }
+
+  .StatisticsWidget-label {
+    padding-top: 8px;
+    height: 35px;
+  }
+
+  .StatisticsWidget-entityList {
+    display: flex;
+    align-items: flex-end;
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+
+    & > :not(:last-child) {
+      margin-right: 10px;
+    }
+  }
+
+  .StatisticsWidget-entity {
+    min-width: 130px;
+    padding: 15px 20px;
+    color: var(--text-color);
+    font-size: 20px;
+  }
+
+  // The headings name whole metrics here, rather than the one-word entity names
+  // flarum/statistics uses, so they need room to wrap.
+  .StatisticsWidget-heading {
+    height: auto;
+    min-height: 30px;
+    padding-top: 5px;
+    margin: 0;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--muted-color);
+  }
+
+  .StatisticsWidget-total {
+    font-weight: bold;
+  }
+
+  .StatisticsWidget-period {
+    font-size: 12px;
+    color: var(--muted-color);
+  }
+
+  // Deliberately not the green/red flarum/statistics uses: blocks rising can mean more spam
+  // arriving as easily as more getting through, so the direction is shown without the verdict.
   .StatisticsWidget-change {
     color: var(--muted-color);
     white-space: nowrap;
@@ -233,16 +323,9 @@
     }
   }
 
-  .StatisticsWidget-period {
-    font-size: 12px;
-    color: var(--muted-color);
-  }
-
-  // The headings name three different things here, rather than the one-word entity names
-  // core's widget uses, so they need room to wrap.
-  .StatisticsWidget-heading {
-    height: auto;
-    min-height: 30px;
+  .StatisticsWidget-viewFull {
+    padding: 12px 16px;
+    text-align: center;
   }
 
   .BlockedRegistrationsWidget-topReason {

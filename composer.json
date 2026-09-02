@@ -47,7 +47,8 @@
             "optional-dependencies": [
                 "flarum/suspend",
                 "flarum/tags",
-                "flarum/audit"
+                "flarum/audit",
+                "flarum/statistics"
             ]
         },
         "flarum-cli": {
