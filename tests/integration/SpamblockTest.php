@@ -140,7 +140,13 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
+
+        $payload = json_decode((string) $response->getBody(), true);
+        $this->assertSame('users', $payload['data']['type']);
+        $this->assertSame('5', $payload['data']['id']);
+        $this->assertSame(0, $payload['data']['attributes']['discussionCount']);
+        $this->assertSame(0, $payload['data']['attributes']['commentCount']);
 
         // Verify ALL spammer's discussions are hidden
         $discussion2 = Discussion::find(2);
@@ -182,7 +188,7 @@ class SpamblockTest extends TestCase
             $this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         $discussion = Discussion::find(4);
 
@@ -200,7 +206,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         // Normal users should not be able to see any of the spammer's discussions
         $response = $this->send(
@@ -242,12 +248,18 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         $user = User::find(5);
 
         $this->assertNotNull($user->suspended_until, 'User should be suspended');
         $this->assertTrue(Carbon::parse($user->suspended_until)->greaterThan(Carbon::now()->addYears(19)), 'User should be suspended for 20 years');
+
+        $payload = json_decode((string) $response->getBody(), true);
+        $this->assertEquals(
+            Carbon::parse($user->suspended_until),
+            Carbon::parse($payload['data']['attributes']['suspendedUntil'])
+        );
     }
 
     #[Test]
@@ -268,7 +280,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         // Verify ALL spammer's content is deleted
         $this->assertCount(0, Discussion::where('user_id', 5)->get(), 'All spammer discussions should be deleted');
@@ -303,7 +315,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
         $this->assertNull(CommentPost::find(10), 'Spammer reply in normal discussion should be deleted');
 
         $discussion->refresh();
@@ -333,7 +345,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         // The spammer's own discussions (and their posts) are deleted, firing a Deleted event each.
         $this->assertEqualsCanonicalizing([2, 3], $deletedDiscussionIds, 'Discussion deleted events should fire for both spammer discussions');
@@ -376,7 +388,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         // Discussion deletion fires Discussion\Event\Deleted for each of the spammer's discussions.
         $this->assertEqualsCanonicalizing([2, 3], $deletedDiscussionIds, 'Discussion deleted events should fire for both spammer discussions');
@@ -405,6 +417,7 @@ class SpamblockTest extends TestCase
         $this->assertEquals(204, $response->getStatusCode());
 
         // Verify user is deleted
+        $this->assertSame('', (string) $response->getBody());
         $this->assertNull(User::find(5), 'User should be deleted');
     }
 
@@ -427,8 +440,10 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
         $this->assertNull(User::find(5)->bio, 'Spammer bio should be cleared');
+        $payload = json_decode((string) $response->getBody(), true);
+        $this->assertNull($payload['data']['attributes']['bio']);
     }
 
     #[Test]
@@ -441,7 +456,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
     }
 
     #[Test]
@@ -467,7 +482,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertEquals(200, $response->getStatusCode(), (string) $response->getBody());
         $this->assertNotNull(User::find(5), 'The spammer account should be retained');
         $this->assertNotNull(User::find(5)->suspended_until);
         $this->assertEquals(0, $this->database()->table('fof_masquerade_answers')->where('user_id', 5)->count());
@@ -486,7 +501,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertEquals(200, $response->getStatusCode(), (string) $response->getBody());
         $this->assertNotNull(User::find(5));
     }
 
@@ -553,13 +568,16 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         $user = User::find(5);
 
         $this->assertNull($user->getRawOriginal('avatar_url'), 'Spammer avatar path should be cleared');
         $this->assertFalse((bool) $user->has_avatar_2x, 'has_avatar_2x should be cleared');
         $this->assertFalse((bool) $user->has_avatar_3x, 'has_avatar_3x should be cleared');
+
+        $payload = json_decode((string) $response->getBody(), true);
+        $this->assertSame($user->avatar_url, $payload['data']['attributes']['avatarUrl']);
 
         /** @var \Illuminate\Contracts\Filesystem\Factory $filesystem */
         $filesystem = $this->app()->getContainer()->make(Factory::class);
@@ -602,7 +620,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         // flarum/audit and other listeners rely on these firing.
         $this->assertSame(1, $deleting, 'AvatarDeleting should be dispatched once');
@@ -626,7 +644,7 @@ class SpamblockTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
         $this->assertNull(User::find(5)->getRawOriginal('avatar_url'));
     }
 

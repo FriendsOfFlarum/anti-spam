@@ -11,8 +11,8 @@
 
 namespace FoF\AntiSpam\Api\Controllers;
 
+use Flarum\Api\Client;
 use Flarum\Http\RequestUtil;
-use Flarum\Http\UrlGenerator;
 use Flarum\User\User;
 use FoF\AntiSpam\Command\MarkUserAsSpammer;
 use Illuminate\Contracts\Bus\Dispatcher;
@@ -24,7 +24,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class MarkAsSpammerController implements RequestHandlerInterface
 {
-    public function __construct(protected Dispatcher $bus, protected UrlGenerator $url)
+    public function __construct(protected Dispatcher $bus, protected Client $api)
     {
     }
 
@@ -46,8 +46,12 @@ class MarkAsSpammerController implements RequestHandlerInterface
 
         $options = Arr::get($request->getParsedBody(), 'options', []);
 
-        $this->bus->dispatch(new MarkUserAsSpammer($user, $options, $actor));
+        $user = $this->bus->dispatch(new MarkUserAsSpammer($user, $options, $actor));
 
-        return new EmptyResponse();
+        if (! $user->exists) {
+            return new EmptyResponse();
+        }
+
+        return $this->api->withParentRequest($request)->get('/users/'.$user->id);
     }
 }

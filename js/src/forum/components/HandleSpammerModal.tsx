@@ -5,6 +5,7 @@ import User from 'flarum/common/models/User';
 import app from 'flarum/forum/app';
 import type Mithril from 'mithril';
 import Switch from 'flarum/common/components/Switch';
+import type { ApiPayloadSingle } from 'flarum/common/Store';
 
 interface HandleSpammerModalAttrs extends IInternalModalAttrs {
   user: User;
@@ -137,14 +138,26 @@ export default class HandleSpammerModal extends Modal<HandleSpammerModalAttrs> {
     };
 
     app
-      .request({
+      .request<ApiPayloadSingle | null>({
         method: 'POST',
         url: `${app.forum.attribute('apiUrl')}/users/${this.user.id()}/spamblock`,
         body: body,
       })
-      .then(() => {
+      .then((payload) => {
+        if (payload) {
+          app.store.pushPayload(payload);
+        } else {
+          app.store.remove(this.user);
+          m.route.set(app.route('index'));
+        }
+
         this.loading = false;
         this.hide();
+
+        app.alerts.show(
+          { type: 'success' },
+          app.translator.trans('fof-anti-spam.forum.spammer_modal.success', { username: this.user.displayName() })
+        );
       });
   }
 }
