@@ -56,7 +56,7 @@ class AuditTest extends TestCase
             ])
         );
 
-        $this->assertEquals(204, $response->getStatusCode());
+        $this->assertEquals(200, $response->getStatusCode());
 
         $log = AuditLog::query()->where('action', 'user.marked_as_spammer')->first();
 

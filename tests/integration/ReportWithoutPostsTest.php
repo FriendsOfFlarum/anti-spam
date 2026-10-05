@@ -58,7 +58,7 @@ class ReportWithoutPostsTest extends TestCase
     {
         $this->app()->getContainer()->make('flarum.settings')->set(SfsClient::KEY, 'a-real-key');
 
-        $this->assertEquals(204, $this->spamblock(5));
+        $this->assertEquals(200, $this->spamblock(5));
 
         $reports = $this->sfsReports();
 
@@ -70,7 +70,7 @@ class ReportWithoutPostsTest extends TestCase
     #[Test]
     public function nothing_is_reported_without_an_api_key()
     {
-        $this->assertEquals(204, $this->spamblock(5));
+        $this->assertEquals(200, $this->spamblock(5));
 
         $this->assertCount(0, $this->sfsReports(), 'Submissions need a key; lookups never did');
     }
@@ -85,7 +85,7 @@ class ReportWithoutPostsTest extends TestCase
 
         User::find(5)->forceFill(['registration_ip' => null])->save();
 
-        $this->assertEquals(204, $this->spamblock(5));
+        $this->assertEquals(200, $this->spamblock(5));
 
         // Never invent an address: reporting the wrong one gets an innocent party listed.
         $this->assertCount(0, $this->sfsReports());
