@@ -23,6 +23,7 @@ use Flarum\User\Guest;
 use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 use FoF\AntiSpam\Job\ReportSpammerJob;
+use FoF\Masquerade\Answer;
 use Illuminate\Contracts\Events\Dispatcher as Events;
 use Illuminate\Contracts\Queue\Queue;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -139,6 +140,13 @@ class MarkUserAsSpammerHandler
         if ($this->extensions->isEnabled('fof-user-bio') && ! empty($user->bio)) {
             $user->bio = null;
             $user->save();
+        }
+
+        // Spammers can leave spam in custom profile fields. Clear their Masquerade answers.
+        if ($this->extensions->isEnabled('fof-masquerade')) {
+            Answer::query()
+                ->where('user_id', $user->id)
+                ->delete();
         }
 
         if ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {

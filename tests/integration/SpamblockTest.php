@@ -445,6 +445,52 @@ class SpamblockTest extends TestCase
     }
 
     #[Test]
+    public function spammer_masquerade_answers_are_cleared_without_affecting_other_profiles()
+    {
+        $this->extension('fof-masquerade', 'flarum-suspend');
+
+        $this->prepareDatabase([
+            'fof_masquerade_fields' => [
+                ['id' => 1, 'name' => 'Website', 'type' => 'url', 'on_bio' => true],
+                ['id' => 2, 'name' => 'About me', 'type' => 'textarea', 'on_bio' => false, 'required' => true],
+            ],
+            'fof_masquerade_answers' => [
+                ['id' => 1, 'field_id' => 1, 'user_id' => 5, 'content' => 'https://spam.example'],
+                ['id' => 2, 'field_id' => 2, 'user_id' => 5, 'content' => 'Buy cheap pills'],
+                ['id' => 3, 'field_id' => 1, 'user_id' => 4, 'content' => 'https://example.org'],
+            ],
+        ]);
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertNotNull(User::find(5), 'The spammer account should be retained');
+        $this->assertNotNull(User::find(5)->suspended_until);
+        $this->assertEquals(0, $this->database()->table('fof_masquerade_answers')->where('user_id', 5)->count());
+        $this->assertSame('https://example.org', $this->database()->table('fof_masquerade_answers')->where('user_id', 4)->value('content'));
+        $this->assertEquals(2, $this->database()->table('fof_masquerade_fields')->count(), 'Field definitions must be preserved');
+    }
+
+    #[Test]
+    public function spamblock_works_with_masquerade_when_the_user_has_no_answers()
+    {
+        $this->extension('fof-masquerade');
+
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertNotNull(User::find(5));
+    }
+
+    #[Test]
     public function deleting_spammer_with_bio_does_not_error()
     {
         $this->extension('fof-user-bio');

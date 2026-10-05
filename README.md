@@ -54,6 +54,7 @@ exempt, and so are users past the monitoring window unless **Monitor all users**
 - Select "delete", "hide" or "move to tag" for spam discussions
 - Select either "delete" or "hide" for spam replies
 - Clears the user's bio when `fof/user-bio` is enabled
+- Deletes the user's `fof/masquerade` answers
 - Removes the user's avatar — often the payload itself, and left behind on every hidden post
   otherwise. The image files are deleted too, including when the account is deleted outright
 - Records actions to `flarum/audit` when that extension is enabled
@@ -283,6 +284,7 @@ Each is used when present and simply not offered when absent:
 | `flarum/suspend` | Suspends a spammer's account rather than leaving it active |
 | `flarum/nicknames` | Checks nicknames for spam, as usernames already are |
 | `fof/user-bio` | Checks bios for spam, and clears them when a user is marked as a spammer |
+| `fof/masquerade` | Clears all custom profile answers when a user is marked as a spammer |
 | `flarum/tags` | Moving a spammer's discussions to a quarantine tag |
 | `fof/oauth`, `fof/passport` | OAuth registrations are checked on the same route as ordinary ones |
 
