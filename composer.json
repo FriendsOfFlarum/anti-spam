@@ -47,7 +47,8 @@
             "optional-dependencies": [
                 "flarum/suspend",
                 "flarum/tags",
-                "flarum/audit"
+                "flarum/audit",
+                "fof/masquerade"
             ]
         },
         "flarum-cli": {
@@ -104,7 +105,8 @@
         "flarum/realtime": "^2.0.0",
         "flarum/audit": "^2.0.0",
         "flarum/markdown": "^2.0",
-        "flarum/nicknames": "^2.0"
+        "flarum/nicknames": "^2.0",
+        "fof/masquerade": "^3.0"
     },
     "suggest": {
         "flarum/audit": "Records spamblocks, so the dashboard widget can report users marked as spammers.",
