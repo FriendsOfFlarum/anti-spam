@@ -25,6 +25,7 @@ use FoF\AntiSpam\Event\RegistrationWasBlocked;
 return [
     (new Extend\Frontend('forum'))
         ->js(__DIR__.'/js/dist/forum.js')
+        ->jsDirectory(__DIR__.'/js/dist/forum')
         ->css(__DIR__.'/less/forum.less'),
 
     (new Extend\Frontend('admin'))
