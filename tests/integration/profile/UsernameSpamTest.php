@@ -46,10 +46,10 @@ class UsernameSpamTest extends ProfileFieldTestCase
     }
 
     #[Test]
-    public function a_blocked_word_buried_inside_a_username_is_not_caught()
+    public function a_blocked_word_joined_to_others_by_underscores_is_caught()
     {
-        // Documented limit, not an aspiration: blocked words are matched on word boundaries and
-        // `_` is a word character, so `\bviagra\b` never fires inside `cheap_viagra_deals`.
+        // Usernames cannot contain spaces, so `_` is how words are separated in them. As a word
+        // character it would otherwise keep `\bviagra\b` from ever firing inside one.
         $this->setting('fof-anti-spam.content-filter.blocked_words', "viagra\ncialis");
 
         $response = $this->send(
@@ -61,6 +61,32 @@ class UsernameSpamTest extends ProfileFieldTestCase
                             'username' => 'cheap_viagra_deals',
                             'password' => 'too-obscure',
                             'email' => 'buried@example.com',
+                        ],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(422, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertSame('/data/attributes/username', json_decode((string) $response->getBody(), true)['errors'][0]['source']['pointer']);
+    }
+
+    #[Test]
+    public function a_blocked_word_inside_a_longer_word_is_still_left_alone()
+    {
+        // Treating `_` as a separator must not turn the match into a substring search, which
+        // would refuse `classic_cars` over a word list containing "ass".
+        $this->setting('fof-anti-spam.content-filter.blocked_words', "ass");
+
+        $response = $this->send(
+            $this->request('POST', '/api/users', [
+                'json' => [
+                    'data' => [
+                        'type' => 'users',
+                        'attributes' => [
+                            'username' => 'classic_cars',
+                            'password' => 'too-obscure',
+                            'email' => 'cars@example.com',
                         ],
                     ],
                 ],
