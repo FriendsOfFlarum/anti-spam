@@ -72,6 +72,26 @@ class UsernameSpamTest extends ProfileFieldTestCase
     }
 
     #[Test]
+    public function a_blocked_word_that_itself_contains_an_underscore_still_matches()
+    {
+        // Normalising `_` for matching must not hide the username as it was typed from an
+        // admin's own entry written with one.
+        $this->setting('fof-anti-spam.content-filter.blocked_words', 'free_money');
+
+        $response = $this->send(
+            $this->request('POST', '/api/users', [
+                'json' => ['data' => ['type' => 'users', 'attributes' => [
+                    'username' => 'free_money',
+                    'password' => 'too-obscure',
+                    'email' => 'money@example.com',
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(422, $response->getStatusCode(), (string) $response->getBody());
+    }
+
+    #[Test]
     public function a_blocked_word_inside_a_longer_word_is_still_left_alone()
     {
         // Treating `_` as a separator must not turn the match into a substring search, which

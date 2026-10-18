@@ -23,10 +23,12 @@ class CheckUsernameContent extends AbstractProfileFieldCheck
 
     /**
      * Usernames cannot contain spaces, so `_` is what separates their words. As a word character
-     * it would keep a blocked word's boundaries from ever matching inside one.
+     * it would keep a blocked word's boundaries from ever matching inside one. The name as typed
+     * is kept alongside, so an admin's own entry written with `_` still matches it.
      */
+    #[\Override]
     protected function textToAnalyze(string $value): string
     {
-        return str_replace('_', ' ', $value);
+        return str_contains($value, '_') ? $value.' '.str_replace('_', ' ', $value) : $value;
     }
 }
