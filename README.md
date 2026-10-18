@@ -85,6 +85,12 @@ and used in the seconds before a background job would have run.
   `attemptedAt:2026-01-01..2026-02-01`), with the available filters shown as clickable examples
 - If StopForumSpam cannot be reached the registration is allowed through, and the admin panel says
   so rather than leaving you to guess
+- With an API key, blocked attempts can be reported back to StopForumSpam. Only attempts whose email
+  or username StopForumSpam already lists are reported, at most once a day per identity — a block
+  from Tor, a denied network, or a score against the address alone is never reported, since none of
+  those says anything about the person
+- OAuth registrations are checked against the email and username the provider supplies, which are
+  what the account actually receives
 
 ### Dashboard Statistics
 
@@ -112,7 +118,8 @@ than borrowing from one.
 
 Flarum limits how often somebody can post, but not how often they can create accounts. This
 extension adds a minimum interval between registrations from the same address, covering both
-registration routes. Admins creating accounts by hand are exempt.
+registration routes. Admins creating accounts by hand are exempt. IPv6 addresses are grouped by their
+/64 network, since a single subscriber is routinely given a whole /64.
 
 Bear in mind that offices, schools and mobile networks put many people behind one address. Set the
 interval to `0` to switch it off.
