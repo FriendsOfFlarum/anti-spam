@@ -32,15 +32,35 @@ class UrlDetector extends AbstractDetector
      * match from starting mid-token, which is also what stops an email address from being counted
      * here as well as by the EmailDetector.
      */
-    private const URL_PATTERN = '~
+    protected const string URL_PATTERN = '~
         (?<! [\w@.\-] )
         (?:
-            [a-z][a-z0-9+.\-]* :// [-\w]+ (?: \. [-\w]+ )*      # scheme://host
-          | // [-\w]+ (?: \. [-\w]+ )*                          # protocol-relative //host
-          | www \. [-\w]+ (?: \. [-\w]+ )*                      # www.host
-          | (?: [a-z0-9] [-a-z0-9]* \. )+ (?: __TLDS__ ) (?! [-\w(] )  # bare host.tld, not a call
+            [a-z][a-z0-9+.\-]* :// [-\w]++ (?: \. [-\w]++ )*+      # scheme://host
+          | // [-\w]++ (?: \. [-\w]++ )*+                          # protocol-relative //host
+          | www \. [-\w]++ (?: \. [-\w]++ )*+                      # www.host
+          | LABELS (?: __TLDS__ ) (?! [-\w] | \(\) )                # bare host.tld, not foo.top()
+          | LABELS (?: __PATH_TLDS__ ) (?= / [-\w%] )                # t.me/… : a word-like TLD, with a path
         )
     ~ixu';
+
+    /**
+     * Hostname labels. Possessive, so a long dotted run is read once rather than exhausting the
+     * regex engine's stack; a label only repeats when another follows its dot, so a sentence's
+     * full stop is not taken for one.
+     */
+    protected const string LABELS = '(?: [a-z0-9] [-a-z0-9]*+ \. (?= [a-z0-9] ) )++';
+
+    /**
+     * Country codes left out of TLDS because they are English words or identifiers, still counted
+     * once a path follows: `t.me/…`, `wa.me/…`, `youtu.be/…` and `amzn.to/…` are the short hosts
+     * spam leans on most, and `user.id` or `that.It` never carry a path.
+     *
+     * @var array<string>
+     */
+    protected const array PATH_TLDS = [
+        'ai', 'am', 'as', 'at', 'be', 'by', 'do', 'id', 'im', 'in', 'is', 'it', 'me', 'my', 'no',
+        'pl', 'pm', 'to', 'us',
+    ];
 
     /**
      * TLDs a bare, schemeless hostname is allowed to end in.
@@ -69,7 +89,7 @@ class UrlDetector extends AbstractDetector
      *
      * @var array<string>
      */
-    private const TLDS = [
+    protected const array TLDS = [
         // Classic gTLDs
         'com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'biz', 'mobi', 'asia', 'travel', 'jobs',
         'coop', 'aero', 'museum', 'xxx',
@@ -114,9 +134,13 @@ class UrlDetector extends AbstractDetector
     /**
      * Build the URL regex, once per process.
      */
-    private static function pattern(): string
+    protected static function pattern(): string
     {
-        return self::$pattern ??= str_replace('__TLDS__', implode('|', self::TLDS), self::URL_PATTERN);
+        return self::$pattern ??= str_replace(
+            ['LABELS', '__PATH_TLDS__', '__TLDS__'],
+            [self::LABELS, implode('|', self::PATH_TLDS), implode('|', self::TLDS)],
+            self::URL_PATTERN
+        );
     }
 
     /**
@@ -126,8 +150,10 @@ class UrlDetector extends AbstractDetector
      */
     public static function extractUrls(string $content): array
     {
-        if (! preg_match_all(self::pattern(), $content, $matches)) {
-            return [];
+        $found = preg_match_all(self::pattern(), $content, $matches);
+
+        if ($found === false) {
+            throw new \RuntimeException('URL pattern failed: '.preg_last_error_msg());
         }
 
         return $matches[0];
@@ -136,7 +162,7 @@ class UrlDetector extends AbstractDetector
     /**
      * Give a matched token a scheme so it can be parsed as a URI.
      */
-    private static function normalizeUrl(string $url): string
+    protected static function normalizeUrl(string $url): string
     {
         if (str_starts_with($url, '//')) {
             return 'http:'.$url;
@@ -209,10 +235,10 @@ class UrlDetector extends AbstractDetector
         $explicit = count(array_filter($flaggedUrls, [self::class, 'isClickable']));
 
         // A bare hostname cannot be clicked, so in a post one on its own lands between the flag
-        // and spam thresholds: in front of a moderator, without the post being taken down. A
-        // profile field has no such middle ground, only refusal, and a domain in a display name
-        // shown beside every post is the payload whether or not it is clickable.
-        $bareScore = ($context['type'] ?? null) === 'profile' ? self::CLICKABLE_SCORE : self::BARE_SCORE;
+        // and spam thresholds: in front of a moderator, without the post being taken down.
+        // Anywhere else it counts in full. A profile field can only be refused, and a title or a
+        // display name is shown on every list, where a domain is the payload either way.
+        $bareScore = ($context['type'] ?? null) === 'post' ? self::BARE_SCORE : self::CLICKABLE_SCORE;
         $score = min(80, $explicit * self::CLICKABLE_SCORE + ($flaggedCount - $explicit) * $bareScore);
 
         $reasons = [];
@@ -237,7 +263,7 @@ class UrlDetector extends AbstractDetector
     /**
      * Check if a URL is allowed based on domain allowlist and callbacks.
      */
-    private function isUrlAllowed(
+    protected function isUrlAllowed(
         UriInterface $uri,
         User $user,
         array $allowedDomains,
@@ -249,12 +275,8 @@ class UrlDetector extends AbstractDetector
             return true;
         }
 
-        // Check against allowlist
-        foreach ($allowedDomains as $allowedDomain) {
-            // Exact match or subdomain match
-            if ($host === $allowedDomain || str_ends_with($host, '.'.$allowedDomain)) {
-                return true;
-            }
+        if (self::hostIsAllowed($host, $allowedDomains)) {
+            return true;
         }
 
         // Check custom callbacks
@@ -266,6 +288,22 @@ class UrlDetector extends AbstractDetector
             } catch (\Throwable $e) {
                 // Callback failed, continue checking
                 continue;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether a host is an allowed domain or one of its subdomains.
+     *
+     * @param array<string> $allowedDomains
+     */
+    public static function hostIsAllowed(string $host, array $allowedDomains): bool
+    {
+        foreach ($allowedDomains as $allowed) {
+            if ($host === $allowed || str_ends_with($host, '.'.$allowed)) {
+                return true;
             }
         }
 

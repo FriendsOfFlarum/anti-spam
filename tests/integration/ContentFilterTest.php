@@ -297,6 +297,26 @@ class ContentFilterTest extends TestCase
     }
 
     #[Test]
+    public function a_bare_hostname_in_a_title_is_hidden()
+    {
+        // A title is shown on every discussion list, where a domain is the payload whether or not
+        // anyone can click it. Only a post body gets the softer weight.
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => ['data' => ['type' => 'discussions', 'attributes' => [
+                    'title' => 'Cheap pills at cheap-pills.xyz',
+                    'content' => 'Hello everyone, nice to meet you.',
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $id = json_decode((string) $response->getBody(), true)['data']['id'];
+        $this->assertFalse((bool) Discussion::find($id)->is_approved);
+    }
+
+    #[Test]
     public function a_clickable_link_is_hidden_at_the_default_thresholds()
     {
         $post = $this->freshUserPosts('Great deals at https://cheap-pills.xyz today');

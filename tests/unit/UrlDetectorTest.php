@@ -36,6 +36,18 @@ class UrlDetectorTest extends TestCase
         yield 'bare domain with subdomain' => ['Go to shop.suspicious-site.co.uk now', ['shop.suspicious-site.co.uk']];
         yield 'bare domain, spammy tld' => ['cheap-pills.xyz has the best prices', ['cheap-pills.xyz']];
 
+        // A word-like country code is still a link once a path follows it. These are the short
+        // hosts spam leans on most. As everywhere, the host is what is extracted.
+        yield 'telegram' => ['Join t.me/cheap_followers now', ['t.me']];
+        yield 'whatsapp' => ['Message wa.me/919876543210', ['wa.me']];
+        yield 'youtube short' => ['Watch youtu.be/dQw4w9WgXcQ', ['youtu.be']];
+        yield 'amazon short' => ['Buy at amzn.to/3xYz', ['amzn.to']];
+        yield 'shortener on at' => ['See shorturl.at/abc12', ['shorturl.at']];
+        yield 'ccTLD with a path' => ['Bonus at best-casino.in/bonus', ['best-casino.in']];
+
+        // A bracket straight after a host is only a method call when it is an empty one.
+        yield 'bracket after a host' => ['Go to spam-site.com(click here)', ['spam-site.com']];
+
         // Dropping a TLD from the bare-hostname list never stops an explicit link being caught.
         yield 'explicit link on an excluded tld' => ['Go to http://spam-shop.id today', ['http://spam-shop.id']];
         yield 'www on an excluded tld' => ['Go to www.spam-shop.it today', ['www.spam-shop.it']];
@@ -93,6 +105,15 @@ class UrlDetectorTest extends TestCase
         yield 'perl files' => ['See the script.pl and Module.pm files'];
         yield 'illustrator file' => ['Open logo.ai in Illustrator'];
         yield 'method on a ccTLD-looking name' => ['Call str.to(\'x\') and user.is(\'admin\')'];
+        yield 'empty call on a kept tld' => ['Read window.top() first'];
+    }
+
+    #[Test]
+    public function a_huge_dotted_run_neither_errors_nor_hides_an_earlier_link(): void
+    {
+        $content = 'See http://spam-site.com now. '.str_repeat('a.', 50000).'com';
+
+        $this->assertSame('http://spam-site.com', UrlDetector::extractUrls($content)[0] ?? null);
     }
 
     #[Test]
@@ -124,7 +145,9 @@ class UrlDetectorTest extends TestCase
         yield '.example' => ['shop.example', true];
         yield '.invalid' => ['nothing.invalid', true];
 
-        yield 'public ip' => ['203.0.113.9', false];
+        yield 'public ip' => ['8.8.8.8', false];
+        // Documentation ranges are not private: nothing about them stops a page being served.
+        yield 'documentation range ip' => ['203.0.113.9', false];
         yield 'public 172 outside the private block' => ['172.32.0.1', false];
         yield 'lookalike' => ['example.com.spam-site.top', false];
         yield 'suffix lookalike' => ['notexample.com', false];
