@@ -44,8 +44,10 @@ never has a window in which it is publicly visible.
 - **Nickname** — when `flarum/nicknames` is enabled. A nickname is the display name that follows the
   user onto every post they make
 - **Bio** — when `fof/user-bio` is enabled
-- **Custom profile fields** — when `fof/masquerade` is enabled. A website or email field is expected to
-  hold a link or an address, so only blocked words and patterns apply to those
+- **Custom profile fields** — when `fof/masquerade` is enabled. A website field is expected to hold a
+  link and an email field an address, so the URL or email check is skipped for those; the other
+  detectors still apply. A masquerade answer is judged by its owner, so the staff exemption below
+  does not cover a moderator editing someone else's answers
 
 Only fields a request actually changes are examined, so a user carrying an older value is not locked
 out of editing the rest of their profile. Administrators and anyone who can hide discussions are
