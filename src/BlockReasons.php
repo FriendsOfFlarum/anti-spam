@@ -26,6 +26,12 @@ class BlockReasons
     public const TOR_EXIT = 'torExit';
     public const DENIED_ASN = 'deniedAsn';
 
+    // The honeypot: what the client did, never anything about the identity it typed in.
+    public const HONEYPOT = 'honeypot';
+    public const TOO_FAST = 'tooFast';
+    public const FORM_TOKEN = 'formToken';
+    public const NO_FORM = 'noForm';
+
     /**
      * @param list<string> $reasons Rule identifiers, in the order they are evaluated.
      * @param array<string, mixed> $context The values that tripped them, for display.

@@ -1,0 +1,12 @@
+
+// The honeypot: clipped to nothing rather than display:none, which some bots know to skip. Clipping
+// rather than moving it off-screen keeps right-to-left pages from gaining a horizontal scroll.
+.FoFAntiSpam-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -130,6 +130,38 @@ registration routes. Admins creating accounts by hand are exempt. IPv6 addresses
 Bear in mind that offices, schools and mobile networks put many people behind one address. Set the
 interval to `0` to switch it off.
 
+### Sign-up Honeypot
+
+A trap for form-filling bots StopForumSpam has not seen yet. Off by default; turn on **Trap
+form-filling bots** in the settings.
+
+- The sign-up form gets a field people never see: moved off-screen, hidden from screen readers and
+  skipped by the keyboard. A bot filling in every input fills it, and the sign-up is refused
+- The page carries a signed timestamp from when it was served. A form sent back faster than a
+  person could manage (3 seconds by default, configurable) is refused, as is one carrying a
+  timestamp the server never issued. Each page view's token covers a few sign-ups and lasts a day,
+  so one fetched page cannot be replayed indefinitely. OAuth sign-ups, which return to a pre-filled
+  form, are not held to the minimum time
+- Both checks run before the StopForumSpam lookup, so a trapped bot costs no request off-site.
+  Nothing is sent anywhere and nothing is asked of real people
+- A sign-up the trap refuses is told only that it could not be completed, not that it was found
+  in a spam database: a person whose password manager filled the hidden field never was
+- Refused attempts are recorded in the blocked registrations list with the reason (`honeypot`,
+  `tooFast`, `formToken`, `noForm`), and are never reported to StopForumSpam: they say something
+  about the client, nothing about the identity it typed in
+- Sign-ups through the OAuth form are checked the same way. Admins creating accounts are exempt
+
+**Strict mode** also refuses guest sign-ups sent without a form token, as scripts posting straight
+to the API do. A script that fetches a page first does get a token, so this raises the bar rather
+than closing the door. Leave it off if an app, an SSO bridge or another tool creates accounts through
+the API. Someone on a page left open for over a day is asked to reload rather than refused.
+
+If a CDN caches whole pages for guests, every visitor shares the cached page's token and it goes
+stale; exclude the forum's pages from such caching before turning strict mode on.
+
+It will not stop bots written for Flarum that render the page and wait, or people paid to sign up;
+StopForumSpam and the content filter are there for those.
+
 ## Configuration
 
 ### Basic Setup (Admin UI)

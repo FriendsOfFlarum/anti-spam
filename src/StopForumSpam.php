@@ -160,7 +160,7 @@ class StopForumSpam
                     $reasons->context['frequencyThreshold'] = $requiredFrequency;
                 }
 
-                $this->buildAndDispatchEvents(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData, $reasons);
+                $this->recordBlock(['ip' => $ip, 'email' => $email, 'username' => $username], json_encode($sfsResponse), $provider, $providerData, $reasons);
 
                 return true;
             }
@@ -221,7 +221,10 @@ class StopForumSpam
         return false;
     }
 
-    private function buildAndDispatchEvents(array $data, string $sfsData, ?string $provider = null, ?array $providerData = null, ?BlockReasons $reasons = null): void
+    /**
+     * Record a refused registration and announce it, whichever check refused it.
+     */
+    public function recordBlock(array $data, string $sfsData, ?string $provider = null, ?array $providerData = null, ?BlockReasons $reasons = null): void
     {
         $ip = Arr::get($data, 'ip') ?? Model\BlockedRegistration::MISSING;
         $email = Arr::get($data, 'email') ?? Model\BlockedRegistration::MISSING;

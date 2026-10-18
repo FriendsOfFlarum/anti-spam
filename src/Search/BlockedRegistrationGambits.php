@@ -87,6 +87,10 @@ class BlockedRegistrationGambits
                 BlockReasons::DENIED_ASN,
                 BlockReasons::CONFIDENCE,
                 BlockReasons::FREQUENCY,
+                BlockReasons::HONEYPOT,
+                BlockReasons::TOO_FAST,
+                BlockReasons::FORM_TOKEN,
+                BlockReasons::NO_FORM,
             ]
         );
         self::register('attemptedAt', 'attemptedAt:', 'fof-anti-spam.admin.blocked_registrations.filters.help.attemptedAt');

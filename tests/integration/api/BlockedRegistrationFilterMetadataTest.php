@@ -100,7 +100,7 @@ class BlockedRegistrationFilterMetadataTest extends TestCase
         $reason = collect($filters)->firstWhere('key', 'reason');
 
         // Sourced from BlockReasons so the chips cannot drift from the rules actually recorded.
-        $this->assertSame(['blacklisted', 'torExit', 'deniedAsn', 'confidence', 'frequency'], $reason['values']);
+        $this->assertSame(['blacklisted', 'torExit', 'deniedAsn', 'confidence', 'frequency', 'honeypot', 'tooFast', 'formToken', 'noForm'], $reason['values']);
     }
 
     #[Test]

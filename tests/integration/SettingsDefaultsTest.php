@@ -55,6 +55,9 @@ class SettingsDefaultsTest extends TestCase
             'fof-anti-spam.registrationThrottleSeconds',
             'fof-anti-spam.reportToStopForumSpam',
             'fof-anti-spam.report_blocked_registrations',
+            'fof-anti-spam.honeypot.enabled',
+            'fof-anti-spam.honeypot.strict',
+            'fof-anti-spam.honeypot.minSeconds',
 
             // Spamblock actions
             'fof-anti-spam.actions.deleteUser',
