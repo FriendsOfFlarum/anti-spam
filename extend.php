@@ -117,7 +117,8 @@ return [
     (new Extend\Event())
         ->subscribe(Listener\CheckPostContent::class)
         ->subscribe(Listener\CheckDiscussionContent::class)
-        ->listen(UserSaving::class, Listener\CheckUsernameContent::class),
+        ->listen(UserSaving::class, Listener\CheckUsernameContent::class)
+        ->listen(RegistrationWasBlocked::class, Listener\ReportBlockedRegistration::class),
 
     new Extend\ApiResource(Api\Resource\BlockedRegistrationResource::class),
 
