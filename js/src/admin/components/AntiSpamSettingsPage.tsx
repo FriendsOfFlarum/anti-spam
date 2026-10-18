@@ -499,6 +499,27 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
             })}
             {this.buildSettingComponent({
               type: 'boolean',
+              setting: 'fof-anti-spam.honeypot.enabled',
+              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_label'),
+              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_help'),
+            })}
+            {!!this.setting('fof-anti-spam.honeypot.enabled')() &&
+              this.buildSettingComponent({
+                type: 'number',
+                setting: 'fof-anti-spam.honeypot.minSeconds',
+                label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_min_seconds_label'),
+                help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_min_seconds_help'),
+                min: 0,
+              })}
+            {!!this.setting('fof-anti-spam.honeypot.enabled')() &&
+              this.buildSettingComponent({
+                type: 'boolean',
+                setting: 'fof-anti-spam.honeypot.strict',
+                label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_strict_label'),
+                help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_strict_help'),
+              })}
+            {this.buildSettingComponent({
+              type: 'boolean',
               setting: 'fof-anti-spam.blockTorExitNodes',
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_label'),
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_help'),

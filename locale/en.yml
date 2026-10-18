@@ -111,6 +111,12 @@ fof-anti-spam:
         max_listing_age_help: A sighting from years ago says little about whoever is registering today. 0 keeps every listing, however old. Blacklisted domains and networks are always honoured regardless of this.
         registration_throttle_label: Seconds between registrations from one address
         registration_throttle_help: Flarum limits how often somebody can post, but not how often they can create accounts. 0 disables this. Bear in mind that offices, schools and mobile networks share one address between many people.
+        honeypot_label: Trap form-filling bots
+        honeypot_help: Adds a field people never see to the sign-up form, and refuses sign-ups that fill it in or come back faster than a person could. It catches bots StopForumSpam has not seen yet, sends nothing off-site, and asks nothing of real people.
+        honeypot_min_seconds_label: Minimum seconds before a sign-up
+        honeypot_min_seconds_help: Counted from when the page was served. A person reading the form takes longer than this; a script does not.
+        honeypot_strict_label: Refuse sign-ups that skip the form
+        honeypot_strict_help: Also refuses guest sign-ups sent without the form, as scripts posting straight to the API do. Leave this off if an app, an SSO bridge or another tool creates accounts through the API.
         lookup_failed: "StopForumSpam could not be reached (first failure {when}). Registrations are being allowed through unchecked until it recovers."
         email_hash_label: Use hashed email address
         email_hash_help: Pass a MD5 hash of the email address should you wish to not pass the email address itself. This method bypasses all blacklists, normalisation and obfuscation bypass checks.
@@ -182,6 +188,10 @@ fof-anti-spam:
           blacklisted: Blacklisted
           torExit: Tor exit node
           deniedAsn: Denied network
+          honeypot: Filled in the hidden field
+          tooFast: Sent faster than a person could
+          formToken: Tampered sign-up form
+          noForm: Not sent from the sign-up form
         field:
           ip: IP
           email: Email
@@ -204,6 +214,8 @@ fof-anti-spam:
         copy_failed: Could not copy to clipboard.
 
   forum:
+    sign_up:
+      trap_label: Leave this field empty
     post:
       flagged_as_spam_text: "Automatic Spam Detection - score {score}"
 
