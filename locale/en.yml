@@ -148,7 +148,7 @@ fof-anti-spam:
       title: Blocked Registrations
       no-records: No blocked registrations found.
       help: |
-        This page shows all registrations that have been blocked by the StopForumSpam service. You can view the details of each registration, and if you wish, you can delete the record from the database.
+        This page shows all registrations that have been blocked, by StopForumSpam or by the sign-up honeypot. You can view the details of each registration, and if you wish, you can delete the record from the database.
       attempted-at: Attempted at
       ip: IP Address
       email: Email Address
