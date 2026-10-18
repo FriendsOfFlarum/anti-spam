@@ -178,7 +178,7 @@ return [
         ->blockUrls(true)
 
         // Spam score thresholds (0-100)
-        // Each detector awards 50 points per match
+        // Most matches score 50 points; a bare hostname in a post scores 30
         ->spamScoreThreshold(50)  // At or above this, content is hidden
         ->flagScoreThreshold(30)  // At or above this, content is flagged for review
 
@@ -208,7 +208,8 @@ interval, spamblock defaults — are configured through the admin panel only.
 The content filtering system uses a point-based spam scoring mechanism:
 
 - Each detector awards **50 points** per match (capped at 80 points per detector, or 100 for the
-  pattern detector)
+  pattern detector). The exception is a bare hostname in a post, such as `suspicious-site.com`
+  without a scheme or `www.`: nobody can click it, so it scores **30**
 - Multiple detections stack up to create a cumulative score, capped at 100
 - Two thresholds, both configurable:
   - **Flag threshold** (default **30**) — at or above this, content is flagged for moderator review
@@ -218,8 +219,9 @@ Flagging deliberately starts below hiding, so a weak signal can be put in front 
 without taking the content down.
 
 **Example**: A post containing both a phone number and an email address scores 100 points, which is
-flagged and hidden. A single indicator scores 50, which is also both. A future detector worth 30–40
-points on its own would be flagged only.
+flagged and hidden. A single indicator scores 50, which is also both. A single bare hostname scores
+30, so it is flagged for a moderator but stays visible. Profile fields have no flag, only refusal,
+so a bare hostname there counts the full 50.
 
 ### Custom Flag Type
 
@@ -233,21 +235,30 @@ This extension uses a custom `spam` flag type for automatic detections:
 ### Detection Methods
 
 **Phone Number Detector**
-- Matches international phone numbers with + or 00 prefix
-- Requires at least 9 digits
-- Examples: `+1234567890`, `00 123 456 7890`
+- Matches international phone numbers with a `+` or `00` prefix and 9 to 15 digits, spaced, dashed,
+  dotted or bracketed: `+1234567890`, `00 123 456 7890`, `+44 (0)20 7946 0958`
+- Digits from any script count, so fullwidth or Arabic-Indic digits do not slip through
+- Dates, times, large numbers, sums and the `00` inside numbers such as `1000` are not matched: the
+  prefix must start a token, and a country code never begins with 0
 
 **Email Detector**
-- Matches standard email addresses
-- Example: `spam@example.com`
+- Matches email addresses, such as `spam@suspicious-site.com`
+- Package pins and git remotes (`flarum/core@2.0.2`, `react@18.3.1`, `git@github.com:org/repo`) are
+  not addresses
+- Addresses on your allowed domains, or on reserved example domains, do not count
 
 **URL Detector**
 - Matches URLs with a scheme (`http://suspicious-site.com`), protocol-relative URLs
   (`//suspicious-site.com`), `www.` prefixed hosts (`www.suspicious-site.com`) and bare hostnames
   (`suspicious-site.com`). Dropping the scheme costs a spammer nothing, so it earns them nothing
-- Checks the host against your allowlist; your forum's own domain is always allowed
+- Checks the host against your allowlist; your forum's own domain is always allowed, and so are
+  `localhost`, loopback and private network addresses, and the reserved example names
+  (`example.com`, `*.test`, `*.example`, `*.invalid`)
 - A bare hostname must end in a recognised TLD before it counts, so `README.md`, `extend.php` and
-  `main.rs` are not mistaken for links
+  `main.rs` are not mistaken for links. Country codes that are also English words or common
+  identifiers (`it`, `in`, `is`, `to`, `id`, `at`, …) are left out for bare hostnames, so
+  `user.id`, `arr.at()` and a sentence missing its space (`that.It`) are not links either. An
+  explicit link on any of them is still caught
 
 **Pattern Detector (Blocked Words)**
 - Case-insensitive matching
