@@ -40,7 +40,8 @@
         border-radius: var(--border-radius);
       }
 
-      .Button {
+      // A link button keeps core's look: transparent, so white text would vanish.
+      .Button:not(.Button--link) {
         background: var(--primary-color); // Button with primary color
         color: var(--body-bg);
 
@@ -527,4 +528,24 @@
 .BlockedRegistrations-total {
   color: var(--muted-color);
   margin: 10px 0;
+}
+
+.FlagAccountSetting-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+
+  .Avatar {
+    --size: 24px;
+  }
+}
+
+.FlagAccountSetting-name {
+  font-weight: bold;
+}
+
+.FlagAccountSetting-controls {
+  display: flex;
+  gap: 8px;
 }

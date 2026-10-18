@@ -43,8 +43,14 @@ fof-anti-spam:
         auto_unapprove_help: "When enabled, content that reaches the spam threshold will be sent to the approval queue (requires flarum/approval). Moderators will need to approve the content before it becomes visible."
         auto_flag_label: Auto-flag spam content
         auto_flag_help: "When enabled, content that reaches the flag threshold will be automatically flagged for moderator review (requires flarum/flags). The flag reason will include details about why the content was detected as spam."
-        system_user_id_label: System user ID for flags
-        system_user_id_help: "The user ID that will be assigned as the creator of automatic spam flags. This should typically be an admin or system account. Defaults to user ID 1 if not configured."
+        flag_account_label: Account that raises spam flags
+        flag_account_help: Shown as the author of automatic spam flags in the moderation queue. Left on the default, the first administrator raises them.
+        flag_account_default: "Default: the first administrator"
+        flag_account_choose_button: Choose…
+        flag_account_default_button: Use the default
+        flag_account_modal_title: Choose the account that raises spam flags
+        flag_account_missing: The chosen account no longer exists, so the first administrator raises spam flags until you choose another.
+        flag_account_in_code: Chosen in extend.php with assignFlagsToModerator(), so it can't be changed here.
         no_action_extensions: "Install flarum/approval and/or flarum/flags extensions to enable automatic moderation actions. Detected spam will be managed through Flarum's built-in approval queue and flags system."
 
         allowlist_heading: Domain Allowlist

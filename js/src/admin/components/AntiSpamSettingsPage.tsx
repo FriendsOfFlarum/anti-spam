@@ -15,6 +15,7 @@ import Pagination from 'flarum/common/components/Pagination';
 import BlockedRegistrationSearch from './BlockedRegistrationSearch';
 import parseBlockedRegistrationQuery from '../utils/parseBlockedRegistrationQuery';
 import BlockEvidenceSummary from './BlockEvidenceSummary';
+import FlagAccountSetting from './FlagAccountSetting';
 
 export default class AntiSpamSettingsPage extends ExtensionPage {
   private static readonly ITEMS_PER_PAGE: number = 20;
@@ -105,10 +106,10 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
         help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
       })
       .registerSetting({
-        type: 'number',
+        type: 'text',
         setting: 'fof-anti-spam.moderation.system_user_id',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_help'),
+        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_label'),
+        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_help'),
       })
       .registerSetting({
         type: 'switch',
@@ -312,15 +313,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                 help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
               })}
 
-            {flagsEnabled &&
-              this.buildSettingComponent({
-                type: 'number',
-                setting: 'fof-anti-spam.moderation.system_user_id',
-                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_label'),
-                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.system_user_id_help'),
-                placeholder: '1',
-                min: 1,
-              })}
+            {flagsEnabled && <FlagAccountSetting setting={this.setting('fof-anti-spam.moderation.system_user_id')} />}
 
             {!approvalEnabled && !flagsEnabled && (
               <p className="helpText Alert">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.no_action_extensions')}</p>
