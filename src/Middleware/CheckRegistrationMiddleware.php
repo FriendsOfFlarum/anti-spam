@@ -53,8 +53,9 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            $email = Arr::get($attributes, 'email');
-            $username = Arr::get($attributes, 'username');
+            // Anything but a string is junk for this check, and the lookup is typed to say so.
+            $email = self::text(Arr::get($attributes, 'email'));
+            $username = self::text(Arr::get($attributes, 'username'));
             $provider = 'flarum';
             $providerData = $attributes;
 
@@ -65,8 +66,8 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
                 // Core applies the token's attributes over the body's after validation, so these
                 // are what the account will really carry. Checking the body alone let a request
                 // send clean values, or none at all, beside a token holding the spammer's.
-                $email = Arr::get($token->user_attributes, 'email', $email);
-                $username = Arr::get($token->user_attributes, 'username', $username);
+                $email = self::text(Arr::get($token->user_attributes, 'email', $email));
+                $username = self::text(Arr::get($token->user_attributes, 'username', $username));
             }
 
             // First, and before anything leaves the server: a bot that springs the trap needs no
@@ -76,11 +77,16 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
                     ['ip' => $this->getIpAddress($request), 'email' => $email, 'username' => $username],
                     '{}',
                     $provider,
-                    $providerData,
+                    // What a bot typed into the trap says nothing useful, and may be long.
+                    Arr::except($providerData, [Honeypot::FIELD, Honeypot::TOKEN]),
                     new BlockReasons([$reason])
                 );
 
-                return $this->refuse($request);
+                // A form the server cannot vouch for is most often a page left open, or loaded
+                // before strict mode was turned on: worth a reload, not a refusal.
+                return in_array($reason, [BlockReasons::NO_FORM, BlockReasons::FORM_TOKEN], true)
+                    ? $this->refuse($request, 'fof-anti-spam.forum.message.honeypot.reload')
+                    : $this->refuse($request);
             }
 
             // Skip spam check if essential data is missing (let normal validation handle it)
@@ -107,16 +113,24 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
     /**
      * The same answer whichever check refused it, so a bot learns nothing about which one it hit.
      */
-    protected function refuse(ServerRequestInterface $request): ResponseInterface
+    protected function refuse(ServerRequestInterface $request, string $message = 'fof-anti-spam.forum.message.stopforumspam.blocked'): ResponseInterface
     {
         return (new JsonApiFormatter())
             ->format(
                 resolve(Registry::class)
                     ->handle(new ValidationException([
-                        'username' => resolve('translator')->trans('fof-anti-spam.forum.message.stopforumspam.blocked'),
+                        'username' => resolve('translator')->trans($message),
                     ])),
                 $request
             );
+    }
+
+    /**
+     * A non-empty string, truncated to what the record can hold, or null.
+     */
+    protected static function text(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? mb_substr($value, 0, 255) : null;
     }
 
     /**

@@ -325,6 +325,17 @@ class CheckRegistrationMiddlewareTest extends TestCase
     }
 
     #[Test]
+    public function junk_types_in_the_body_are_refused_rather_than_crashing_the_check()
+    {
+        // The lookup is typed for strings. An array where the email should be used to reach it and
+        // answer with a server error instead of a validation one.
+        $response = $this->registerViaApi(['username' => ['not' => 'a string'], 'email' => ['x'], 'password' => 'too-obscure']);
+
+        $this->assertNotEquals(500, $response->getStatusCode(), (string) $response->getBody());
+        $this->assertGreaterThanOrEqual(400, $response->getStatusCode());
+    }
+
+    #[Test]
     public function it_skips_the_api_spam_check_when_sfs_lookup_disabled()
     {
         $this->setting('fof-anti-spam.sfs-lookup', false);

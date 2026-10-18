@@ -169,6 +169,7 @@ class HoneypotTest extends TestCase
         $token = $this->tokenSubmittedAfter(20);
 
         $this->assertEquals(422, $this->register('quick_typist', [self::TOKEN => $token])->getStatusCode());
+        $this->assertSame(['tooFast'], $this->reasonsFor('quick_typist'));
     }
 
     #[Test]
@@ -189,11 +190,14 @@ class HoneypotTest extends TestCase
         // The timestamp is part of what is signed, so making a fresh token "older" breaks it.
         $this->enable();
         $token = $this->tokenSubmittedAfter(0);
-        [, $signature] = explode('.', $token, 2);
 
-        $response = $this->register('rewriter', [self::TOKEN => (Carbon::now()->timestamp - 600).'.'.$signature]);
+        $parts = explode('.', $token);
+        $parts[0] = (string) (Carbon::now()->timestamp - 600);
+
+        $response = $this->register('rewriter', [self::TOKEN => implode('.', $parts)]);
 
         $this->assertEquals(422, $response->getStatusCode());
+        $this->assertSame(['formToken'], $this->reasonsFor('rewriter'));
     }
 
     #[Test]
@@ -225,6 +229,7 @@ class HoneypotTest extends TestCase
         $token = $this->tokenSubmittedAfter(2 * 86400);
 
         $this->assertEquals(422, $this->register('stale_form', [self::TOKEN => $token])->getStatusCode());
+        $this->assertSame(['noForm'], $this->reasonsFor('stale_form'));
     }
 
     #[Test]
@@ -275,6 +280,155 @@ class HoneypotTest extends TestCase
 
         $this->assertEquals(422, $response->getStatusCode());
         $this->assertSame('github', $this->blockedFor('oauth_filler')?->provider);
+    }
+
+    #[Test]
+    public function a_form_sent_back_exactly_at_the_minimum_is_accepted()
+    {
+        $this->enable();
+        $token = $this->tokenSubmittedAfter(3);
+
+        $this->assertEquals(201, $this->register('on_the_dot', [self::TOKEN => $token])->getStatusCode());
+    }
+
+    #[Test]
+    public function lenient_mode_lets_an_expired_token_through()
+    {
+        $this->enable();
+        $token = $this->tokenSubmittedAfter(2 * 86400);
+
+        $this->assertEquals(201, $this->register('left_a_tab_open', [self::TOKEN => $token])->getStatusCode());
+    }
+
+    #[Test]
+    public function a_person_signing_up_through_the_forum_route_gets_in()
+    {
+        $this->enable();
+        $token = $this->tokenSubmittedAfter(20);
+
+        $response = $this->send(
+            $this->request('POST', '/register', [
+                'json' => [
+                    'username' => 'forum_person', 'password' => 'too-obscure', 'email' => 'forum_person@example.com',
+                    self::HONEYPOT => '', self::TOKEN => $token,
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode(), (string) $response->getBody());
+    }
+
+    #[Test]
+    public function one_token_cannot_be_reused_for_sign_up_after_sign_up()
+    {
+        // Any page view hands out a token. A bot fetching one and replaying it would otherwise
+        // sign up as often as the address throttle allows, for a whole day.
+        $this->enable();
+        $token = $this->tokenSubmittedAfter(20);
+
+        $statuses = [];
+        foreach (range(1, 6) as $n) {
+            $statuses[] = $this->register("replay_$n", [self::TOKEN => $token])->getStatusCode();
+        }
+
+        $this->assertSame([201, 201, 201, 201, 201, 422], $statuses, 'A few uses allow for honest retries; no more');
+        $this->assertSame(['formToken'], $this->reasonsFor('replay_6'));
+    }
+
+    #[Test]
+    public function every_page_view_gets_a_token_of_its_own()
+    {
+        $this->enable();
+        Carbon::setTestNow('2026-05-01 12:00:00');
+
+        $this->assertNotSame($this->formToken(), $this->formToken(), 'Two views in the same second still differ');
+    }
+
+    #[Test]
+    public function the_signing_secret_exists_before_anyone_visits_and_is_not_handed_out()
+    {
+        // Created when the extension is installed, so serving a page never writes to the database
+        // and two first visitors cannot race to create different ones.
+        $this->enable();
+        $settings = $this->app()->getContainer()->make('flarum.settings');
+
+        $this->assertNotEmpty($settings->get('fof-anti-spam.honeypot.secret'));
+
+        $response = $this->send($this->request('GET', '/api'));
+        $this->assertStringNotContainsString((string) $settings->get('fof-anti-spam.honeypot.secret'), (string) $response->getBody());
+    }
+
+    #[Test]
+    public function an_oauth_sign_up_is_not_held_to_the_minimum_time()
+    {
+        // The provider sends people back to a pre-filled form they can submit at once.
+        $this->enable();
+        $this->app();
+        $registration = RegistrationToken::generate('github', '5151', ['username' => 'oauth_quick', 'email' => 'quick@example.com'], []);
+        $registration->save();
+        $token = $this->tokenSubmittedAfter(1);
+
+        $response = $this->register('oauth_quick', ['token' => $registration->token, self::HONEYPOT => '', self::TOKEN => $token]);
+
+        $this->assertEquals(201, $response->getStatusCode(), (string) $response->getBody());
+    }
+
+    #[Test]
+    public function a_stale_form_is_answered_differently_from_a_trap()
+    {
+        // A person on a page left open, or loaded before strict mode was turned on, is told to
+        // reload rather than that they were blocked.
+        $this->enable(strict: true);
+
+        $stale = json_decode((string) $this->register('stale_person')->getBody(), true)['errors'][0]['detail'] ?? null;
+        $trapped = json_decode((string) $this->register('trapped_bot', [self::HONEYPOT => 'filled'])->getBody(), true)['errors'][0]['detail'] ?? null;
+
+        $this->assertNotNull($stale);
+        $this->assertNotSame($trapped, $stale);
+    }
+
+    #[Test]
+    public function a_trapped_bot_sending_junk_types_is_refused_not_crashed_on()
+    {
+        $this->enable();
+
+        $response = $this->send(
+            $this->request('POST', '/api/users', [
+                'json' => ['data' => ['type' => 'users', 'attributes' => [
+                    'username' => ['not' => 'a string'], 'email' => ['x'], 'password' => 'too-obscure', self::HONEYPOT => 'filled',
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(422, $response->getStatusCode(), (string) $response->getBody());
+    }
+
+    #[Test]
+    public function the_trap_values_are_not_kept_in_the_record()
+    {
+        $this->enable();
+
+        $this->register('form_filler', [self::HONEYPOT => str_repeat('spam ', 1000)]);
+
+        $kept = json_decode((string) $this->blockedFor('form_filler')?->provider_data, true) ?? [];
+        $this->assertArrayNotHasKey(self::HONEYPOT, $kept);
+        $this->assertArrayNotHasKey(self::TOKEN, $kept);
+    }
+
+    #[Test]
+    public function the_fields_cannot_be_written_on_an_existing_account()
+    {
+        $this->enable();
+        $this->prepareDatabase([User::class => [['id' => 3, 'username' => 'member', 'email' => 'member@example.com', 'is_email_confirmed' => 1]]]);
+
+        $response = $this->send(
+            $this->request('PATCH', '/api/users/3', [
+                'authenticatedAs' => 3,
+                'json' => ['data' => ['type' => 'users', 'id' => '3', 'attributes' => [self::HONEYPOT => 'x']]],
+            ])
+        );
+
+        $this->assertGreaterThanOrEqual(400, $response->getStatusCode());
     }
 
     #[Test]
