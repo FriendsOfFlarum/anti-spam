@@ -35,6 +35,19 @@ class PhoneDetectorTest extends TestCase
         // Evasions the old pattern caught and the new one must keep catching.
         yield 'fullwidth digits' => ['Call ＋９１ ９８７６５ ４３２１０', ['＋９１ ９８７６５ ４３２１０']];
         yield 'arabic-indic digits' => ['اتصل +٩١٩٨٧٦٥٤٣٢١٠', ['+٩١٩٨٧٦٥٤٣٢١٠']];
+        yield 'no-break spaces' => ["Call +91\u{00A0}98765\u{00A0}43210", ["+91\u{00A0}98765\u{00A0}43210"]];
+        yield 'narrow no-break spaces' => ["Call +91\u{202F}98765\u{202F}43210", ["+91\u{202F}98765\u{202F}43210"]];
+        yield 'space after the plus' => ['Call + 91 98765 43210', ['+ 91 98765 43210']];
+        yield 'spaced dashes' => ['Call +91 - 98765 - 43210', ['+91 - 98765 - 43210']];
+        yield 'en dash' => ["Call +91\u{2013}98765\u{2013}43210", ["+91\u{2013}98765\u{2013}43210"]];
+        yield 'bracketed country code' => ['Call +(91) 98765 43210', ['+(91) 98765 43210']];
+        yield 'glued to a word' => ['call+919876543210', ['+919876543210']];
+        yield 'after a full stop' => ['tel.+919876543210', ['+919876543210']];
+        yield 'followed by a word' => ['+919876543210WhatsApp me', ['+919876543210']];
+        yield 'followed by an underscore' => ['+919876543210_', ['+919876543210']];
+        yield 'followed by a year' => ['Call +919876543210 2024 only', ['+919876543210']];
+        yield 'two numbers in a row' => ['+919876543210 919876543211', ['+919876543210']];
+        yield 'no trailing space before a bracket' => ['Dial +14155552671 (E164)', ['+14155552671']];
     }
 
     #[Test]
@@ -62,6 +75,21 @@ class PhoneDetectorTest extends TestCase
         yield 'too long to be a number' => ['Hash +1234567890123456789'];
         yield 'plus inside a word' => ['Use c++11 or g++ 12345678901'];
         yield 'diff line' => ['+ 1 2 3 4 5 6 7 8 9'];
+        yield 'time then a number' => ['At 12:00 1234567890 rows were read'];
+        yield 'labelled zero-padded id' => ['ID:00123456789'];
+        yield 'dashed zero-padded id' => ['INV-00123456789'];
+        yield 'hashed zero-padded id' => ['Order #00123456789'];
+        yield 'path segment' => ['GET /api/00123456789'];
+    }
+
+    #[Test]
+    public function a_huge_run_of_digits_neither_errors_nor_hides_an_earlier_number(): void
+    {
+        // A run long enough to exhaust the regex engine's stack used to abort the whole match,
+        // discarding the real number before it: content that breaks the detector got through.
+        $content = 'Call +919876543210 now. +'.str_repeat('9', 100000);
+
+        $this->assertSame(['+919876543210'], PhoneDetector::extractPhoneNumbers($content));
     }
 
     #[Test]
