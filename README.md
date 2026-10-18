@@ -219,9 +219,9 @@ Flagging deliberately starts below hiding, so a weak signal can be put in front 
 without taking the content down.
 
 **Example**: A post containing both a phone number and an email address scores 100 points, which is
-flagged and hidden. A single indicator scores 50, which is also both. A single bare hostname scores
-30, so it is flagged for a moderator but stays visible. Profile fields have no flag, only refusal,
-so a bare hostname there counts the full 50.
+flagged and hidden. A single indicator scores 50, which is also both. A single bare hostname in a
+post scores 30, so it is flagged for a moderator but stays visible. Anywhere else it counts the full
+50: a title is shown on every discussion list, and a profile field can only be refused.
 
 ### Custom Flag Type
 
@@ -236,8 +236,10 @@ This extension uses a custom `spam` flag type for automatic detections:
 
 **Phone Number Detector**
 - Matches international phone numbers with a `+` or `00` prefix and 9 to 15 digits, spaced, dashed,
-  dotted or bracketed: `+1234567890`, `00 123 456 7890`, `+44 (0)20 7946 0958`
-- Digits from any script count, so fullwidth or Arabic-Indic digits do not slip through
+  dotted or bracketed: `+1234567890`, `00 123 456 7890`, `+44 (0)20 7946 0958`, `+(91) 98765 43210`
+- Digits from any script count and spaces of any width, so fullwidth digits, no-break spaces and
+  dashes of any kind do not slip through; nor does a number glued to a word (`call+91…`) or
+  followed by more digits
 - Dates, times, large numbers, sums and the `00` inside numbers such as `1000` are not matched: the
   prefix must start a token, and a country code never begins with 0
 
@@ -257,8 +259,9 @@ This extension uses a custom `spam` flag type for automatic detections:
 - A bare hostname must end in a recognised TLD before it counts, so `README.md`, `extend.php` and
   `main.rs` are not mistaken for links. Country codes that are also English words or common
   identifiers (`it`, `in`, `is`, `to`, `id`, `at`, …) are left out for bare hostnames, so
-  `user.id`, `arr.at()` and a sentence missing its space (`that.It`) are not links either. An
-  explicit link on any of them is still caught
+  `user.id`, `arr.at()` and a sentence missing its space (`that.It`) are not links either. With a
+  path they count again, which is how `t.me/…`, `wa.me/…`, `youtu.be/…` and `amzn.to/…` are written,
+  and an explicit link on any of them is always caught
 
 **Pattern Detector (Blocked Words)**
 - Case-insensitive matching
