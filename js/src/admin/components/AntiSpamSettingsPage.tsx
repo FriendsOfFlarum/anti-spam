@@ -202,6 +202,15 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     );
   }
 
+  /**
+   * Read the way core's Switch reads it: the stored value is the string '0' once switched off.
+   */
+  honeypotOn(): boolean {
+    const value = this.setting('fof-anti-spam.honeypot.enabled')();
+
+    return !!value && value !== '0';
+  }
+
   settingsContent(): Mithril.Children {
     const apiRegions = ['closest', 'europe', 'us'];
     const tagsEnabled = app.initializers.has('flarum-tags');
@@ -503,7 +512,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
               label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_label'),
               help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_help'),
             })}
-            {!!this.setting('fof-anti-spam.honeypot.enabled')() &&
+            {this.honeypotOn() &&
               this.buildSettingComponent({
                 type: 'number',
                 setting: 'fof-anti-spam.honeypot.minSeconds',
@@ -511,7 +520,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
                 help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_min_seconds_help'),
                 min: 0,
               })}
-            {!!this.setting('fof-anti-spam.honeypot.enabled')() &&
+            {this.honeypotOn() &&
               this.buildSettingComponent({
                 type: 'boolean',
                 setting: 'fof-anti-spam.honeypot.strict',

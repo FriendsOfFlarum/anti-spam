@@ -27,8 +27,13 @@ export default class BlockEvidenceSummary extends Component<BlockEvidenceSummary
       return <div className="BlockEvidence BlockEvidence--empty">{app.translator.trans(`${PREFIX}.lookup_failed`)}</div>;
     }
 
+    // The honeypot refuses before any lookup, so its rows carry a reason and no fields.
     if (!evidence.fields.length) {
-      return <div className="BlockEvidence BlockEvidence--empty">{app.translator.trans(`${PREFIX}.none`)}</div>;
+      return evidence.reasons?.length ? (
+        <div className="BlockEvidence">{this.recordedReasons(evidence.reasons)}</div>
+      ) : (
+        <div className="BlockEvidence BlockEvidence--empty">{app.translator.trans(`${PREFIX}.none`)}</div>
+      );
     }
 
     return (

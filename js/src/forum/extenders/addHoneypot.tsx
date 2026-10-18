@@ -28,7 +28,7 @@ export default function addHoneypot() {
     // Off-screen rather than display:none, which some bots know to skip.
     items.add(
       'fofAntiSpamTrap',
-      <div className="FoFAntiSpam-trap" aria-hidden="true">
+      <div className="FoFAntiSpam-trap" aria-hidden="true" inert>
         <label>
           {app.translator.trans('fof-anti-spam.forum.sign_up.trap_label')}
           <input className="FormControl" type="text" name={FIELD} tabindex={-1} autocomplete="off" bidi={this.fofAntiSpamTrap} />
