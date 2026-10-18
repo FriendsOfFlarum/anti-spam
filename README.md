@@ -10,7 +10,7 @@ A [Flarum](http://flarum.org) extension. Effective tools to manage spammers on y
 
 Automatically detect and hold spam content from new users before it becomes visible:
 
-- **Automatic Detection**: Monitors posts and discussion titles from recently registered users for common spam indicators
+- **Automatic Detection**: Monitors posts and discussion titles (including renames) from recently registered users for common spam indicators
   - Phone numbers in international format
   - Email addresses
   - URLs not on your allowlist, whether or not they carry a scheme
@@ -20,7 +20,9 @@ Automatically detect and hold spam content from new users before it becomes visi
 - **Smart User Targeting**: By default, only monitors users within their first few posts or hours
   after registration. That window is one-way — an account that clears it is never examined again —
   so **Monitor all users** can be turned on to check every post instead. Useful against compromised
-  accounts and accounts that wait the window out before starting. Administrators, and anyone whose
+  accounts and accounts that wait the window out before starting. Edits are judged the same way: an
+  account that has left the window can edit links into its earlier posts unchecked, which only
+  **Monitor all users** prevents. Administrators, and anyone whose
   group can hide discussions, are exempt either way
 
 - **Flexible Actions**:
@@ -42,6 +44,8 @@ never has a window in which it is publicly visible.
 - **Nickname** — when `flarum/nicknames` is enabled. A nickname is the display name that follows the
   user onto every post they make
 - **Bio** — when `fof/user-bio` is enabled
+- **Custom profile fields** — when `fof/masquerade` is enabled. A website or email field is expected to
+  hold a link or an address, so only blocked words and patterns apply to those
 
 Only fields a request actually changes are examined, so a user carrying an older value is not locked
 out of editing the rest of their profile. Administrators and anyone who can hide discussions are
@@ -251,8 +255,8 @@ This extension uses a custom `spam` flag type for automatic detections:
 
 **Pattern Detector (Blocked Words)**
 - Case-insensitive matching
-- Whole word boundary matching (e.g. "viagra" matches "viagra" but not "niagara"). Note that `_` is a
-  word character, so `cheap_viagra` will not match either
+- Whole word boundary matching (e.g. "viagra" matches "viagra" but not "niagara"). In usernames, `_`
+  separates words, so `cheap_viagra_deals` is caught; elsewhere `_` is a word character
 - Supports multi-word phrases (e.g. "crypto pump")
 - Advanced: Custom regex patterns via the admin panel or `extend.php`
 
@@ -284,7 +288,7 @@ Each is used when present and simply not offered when absent:
 | `flarum/suspend` | Suspends a spammer's account rather than leaving it active |
 | `flarum/nicknames` | Checks nicknames for spam, as usernames already are |
 | `fof/user-bio` | Checks bios for spam, and clears them when a user is marked as a spammer |
-| `fof/masquerade` | Clears all custom profile answers when a user is marked as a spammer |
+| `fof/masquerade` | Checks custom profile answers for spam, and clears them when a user is marked as a spammer |
 | `flarum/tags` | Moving a spammer's discussions to a quarantine tag |
 | `fof/oauth`, `fof/passport` | OAuth registrations are checked on the same route as ordinary ones |
 
