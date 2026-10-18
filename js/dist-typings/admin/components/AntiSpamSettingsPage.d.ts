@@ -23,6 +23,10 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     oninit(vnode: Mithril.Vnode<any, this>): void;
     content(): JSX.Element;
     menuButtons(page: string): Mithril.Children;
+    /**
+     * Read the way core's Switch reads it: the stored value is the string '0' once switched off.
+     */
+    honeypotOn(): boolean;
     settingsContent(): Mithril.Children;
     blockedRegistrationsContent(): Mithril.Children;
     loadData(page?: number): Promise<void>;
