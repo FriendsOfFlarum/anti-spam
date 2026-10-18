@@ -149,10 +149,14 @@ class MarkUserAsSpammerHandler
                 ->delete();
         }
 
-        if ($this->extensions->isEnabled('flarum-suspend') && $user->suspended_until === null) {
-            // Direct property update - events fire when model is saved
-            $user->suspended_until = Carbon::now()->addYears(20);
+        // A display name follows the account onto every post, and is often the payload itself.
+        if ($this->extensions->isEnabled('flarum-nicknames') && ! empty($user->nickname)) {
+            $user->nickname = null;
             $user->save();
+        }
+
+        if ($this->extensions->isEnabled('flarum-suspend')) {
+            $this->suspend($user);
         }
 
         $user->refreshDiscussionCount();
@@ -321,9 +325,30 @@ class MarkUserAsSpammerHandler
             });
     }
 
+    /**
+     * Saved directly rather than through the user resource, so flarum/suspend raises no Suspended
+     * event: that would alert and email the spammer, and spammer addresses are throwaway enough
+     * that the mail mostly bounces against the forum's sending reputation. The spamblock itself
+     * is what gets audited.
+     */
+    protected function suspend(User $user): void
+    {
+        $until = Carbon::now()->addYears(20);
+
+        // A short or lapsed suspension is replaced; a longer one is left alone.
+        if ($user->suspended_until !== null && $user->suspended_until->greaterThanOrEqualTo($until)) {
+            return;
+        }
+
+        $user->suspended_until = $until;
+        $user->save();
+    }
+
     protected function moveUserDiscussionsToQuarantine(User $user): void
     {
-        if (! $this->moveDiscussionsToQuarantine) {
+        // The setting outlives flarum/tags being disabled, and without it there is no tags
+        // relationship to sync.
+        if (! $this->moveDiscussionsToQuarantine || ! $this->extensions->isEnabled('flarum-tags')) {
             return;
         }
 

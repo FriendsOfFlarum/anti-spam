@@ -263,6 +263,106 @@ class SpamblockTest extends TestCase
     }
 
     #[Test]
+    public function a_spammer_already_on_a_short_suspension_gets_the_long_one()
+    {
+        $this->extension('flarum-suspend');
+        $this->app();
+
+        User::query()->where('id', 5)->update(['suspended_until' => Carbon::now()->addDay()]);
+
+        $this->send($this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3]));
+
+        $this->assertTrue(Carbon::parse(User::find(5)->suspended_until)->greaterThan(Carbon::now()->addYears(19)));
+    }
+
+    #[Test]
+    public function a_spammer_whose_suspension_has_expired_is_suspended_again()
+    {
+        $this->extension('flarum-suspend');
+        $this->app();
+
+        User::query()->where('id', 5)->update(['suspended_until' => Carbon::now()->subDay()]);
+
+        $this->send($this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3]));
+
+        $this->assertTrue(Carbon::parse(User::find(5)->suspended_until)->greaterThan(Carbon::now()->addYears(19)));
+    }
+
+    #[Test]
+    public function a_longer_suspension_already_in_place_is_not_shortened()
+    {
+        $this->extension('flarum-suspend');
+        $this->app();
+
+        $longer = Carbon::now()->addYears(50)->startOfSecond();
+        User::query()->where('id', 5)->update(['suspended_until' => $longer]);
+
+        $this->send($this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3]));
+
+        $this->assertEquals($longer, Carbon::parse(User::find(5)->suspended_until));
+    }
+
+    #[Test]
+    public function discussions_are_moved_to_the_quarantine_tags()
+    {
+        $this->extension('flarum-tags');
+        $this->setting('fof-anti-spam.actions.moveDiscussionsToTags', '[1]');
+        $this->prepareDatabase([
+            'tags' => [['id' => 1, 'name' => 'Quarantine', 'slug' => 'quarantine', 'position' => 0]],
+        ]);
+
+        $response = $this->send($this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3]));
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(
+            [1],
+            $this->database()->table('discussion_tag')->where('discussion_id', 3)->pluck('tag_id')->map(fn ($id) => (int) $id)->all()
+        );
+    }
+
+    #[Test]
+    public function a_quarantine_setting_left_behind_by_disabled_tags_does_not_break_the_spamblock()
+    {
+        // The setting survives disabling flarum/tags. Acting on it then has no tags relationship
+        // to sync, and failing there would leave content hidden but the spammer still active.
+        $this->extension('flarum-suspend');
+        $this->setting('fof-anti-spam.actions.moveDiscussionsToTags', '[1]');
+
+        $response = $this->send($this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3]));
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertNotNull(Discussion::find(3)->hidden_at);
+        $this->assertNotNull(User::find(5)->suspended_until);
+    }
+
+    #[Test]
+    public function the_spammers_nickname_is_cleared()
+    {
+        // A display name follows the account onto every post, and is often the payload itself.
+        $this->extension('flarum-nicknames', 'flarum-suspend');
+        $this->app();
+
+        User::query()->where('id', 5)->update(['nickname' => 'Cheap pills at spam.example']);
+
+        $response = $this->send($this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3]));
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertNull(User::find(5)->nickname);
+    }
+
+    #[Test]
+    public function the_spammer_is_not_notified_of_the_suspension()
+    {
+        // Spammer addresses are throwaway. Mailing every one of them would mostly collect
+        // bounces against the forum's sending reputation.
+        $this->extension('flarum-suspend');
+
+        $this->send($this->request('POST', 'api/users/5/spamblock', ['authenticatedAs' => 3]));
+
+        $this->assertSame(0, $this->database()->table('notifications')->where('user_id', 5)->count());
+    }
+
+    #[Test]
     public function all_content_can_be_deleted_instead_of_hidden()
     {
         $this->setting('fof-anti-spam.actions.deletePosts', true);
