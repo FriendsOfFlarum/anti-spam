@@ -34,9 +34,9 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
      * enabled — completely unchecked. Both routes reach this endpoint, so both are covered, and
      * neither is checked twice.
      */
-    private const REGISTER_ROUTE = 'users.create';
+    protected const string REGISTER_ROUTE = 'users.create';
 
-    public function __construct(private StopForumSpam $sfs)
+    public function __construct(protected StopForumSpam $sfs)
     {
     }
 

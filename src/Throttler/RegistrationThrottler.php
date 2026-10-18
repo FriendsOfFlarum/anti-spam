@@ -34,7 +34,7 @@ class RegistrationThrottler
 {
     public const SETTING = 'fof-anti-spam.registrationThrottleSeconds';
 
-    private const CACHE_PREFIX = 'fof-anti-spam.registration-throttle.';
+    protected const string CACHE_PREFIX = 'fof-anti-spam.registration-throttle.';
 
     public function __construct(
         protected SettingsRepositoryInterface $settings,
@@ -80,10 +80,19 @@ class RegistrationThrottler
      * An IPv6 subscriber is routinely given a whole /64, so the full address would let every
      * registration arrive from a fresh one. IPv4 stays per address: a /24 is commonly shared by
      * unrelated households behind one provider. An IPv4-mapped IPv6 address is its IPv4 address.
+     *
+     * Someone holding a /56 or /48 can still rotate through /64s; going wider would start to
+     * throttle unrelated customers of providers that assign from a shared /48.
      */
     protected static function network(string $ip): string
     {
-        $packed = (string) inet_pton($ip);
+        $packed = inet_pton($ip);
+
+        // ClientIp only passes validated addresses, but an unparseable one must not share a key
+        // with every other.
+        if ($packed === false) {
+            return md5($ip);
+        }
 
         if (strlen($packed) === 16 && str_starts_with($packed, str_repeat("\0", 10)."\xff\xff")) {
             $packed = substr($packed, 12);
