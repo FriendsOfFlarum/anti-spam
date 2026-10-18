@@ -8,6 +8,7 @@ export default [
 
   new Extend.Admin() //
     .page(AntiSpamSettingsPage)
+    .generalIndexItems('settings', () => AntiSpamSettingsPage.searchIndex())
     .permission(
       () => ({
         icon: 'fas fa-pastafarianism',

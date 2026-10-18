@@ -2,8 +2,29 @@ fof-anti-spam:
   admin:
     permissions:
       spamblock_users_label: Mark user as spammer
+    tabs:
+      sign_ups: Sign-ups
+      stopforumspam: StopForumSpam
+      content_filter: Content Filter
+      spammer_actions: Spammer Actions
+    unsaved_changes: You have unsaved changes on this tab. Leave without saving them?
     settings:
-      button: Settings
+      sign_ups:
+        heading: Sign-up Checks
+        introduction: Checks this forum makes on every sign-up by itself, with nothing sent to an outside service. Lookups against StopForumSpam have a tab of their own.
+
+        honeypot_heading: Honeypot
+        honeypot_label: Trap form-filling bots
+        honeypot_help: Adds a field people never see to the sign-up form, and refuses sign-ups that fill it in or come back faster than a person could. It catches bots StopForumSpam has not seen yet, sends nothing off-site, and asks nothing of real people.
+        honeypot_min_seconds_label: Minimum seconds before a sign-up
+        honeypot_min_seconds_help: Counted from when the page was served. A person reading the form takes longer than this; a script does not.
+        honeypot_strict_label: Refuse sign-ups that skip the form
+        honeypot_strict_help: Also refuses guest sign-ups sent without the form, as scripts posting straight to the API do. Leave this off if an app, an SSO bridge or another tool creates accounts through the API.
+
+        throttle_heading: Rate Limit
+        registration_throttle_label: Seconds between registrations from one address
+        registration_throttle_help: Flarum limits how often somebody can post, but not how often they can create accounts. 0 disables this. Bear in mind that offices, schools and mobile networks share one address between many people.
+
       content-filter:
         heading: Content Filter
         introduction: Automatically detect and flag spam content from new users. This system monitors posts and discussions from recently registered users for common spam indicators like phone numbers, email addresses, and suspicious URLs.
@@ -87,6 +108,11 @@ fof-anti-spam:
         ip_label: IP Address Spam Check
         email_label: Email Spam Check
 
+        checks_heading: What to Check
+        thresholds_heading: When to Block
+        also_block_heading: Also Block
+        reporting_heading: Reporting
+
         frequency_label: Threshold
         frequency_help: | 
           The number of spam reports between all enabled checks that will trip the spam filter.
@@ -109,14 +135,6 @@ fof-anti-spam:
         blocked_asns_help: One per line, or comma separated. Registrations from these networks are refused outright, whether or not the address is listed. StopForumSpam returns the network number on every lookup, and almost nobody browses a forum from a hosting provider. Accepts 31272 or AS31272. Leave empty to record the network without acting on it.
         max_listing_age_label: Ignore listings older than (days)
         max_listing_age_help: A sighting from years ago says little about whoever is registering today. 0 keeps every listing, however old. Blacklisted domains and networks are always honoured regardless of this.
-        registration_throttle_label: Seconds between registrations from one address
-        registration_throttle_help: Flarum limits how often somebody can post, but not how often they can create accounts. 0 disables this. Bear in mind that offices, schools and mobile networks share one address between many people.
-        honeypot_label: Trap form-filling bots
-        honeypot_help: Adds a field people never see to the sign-up form, and refuses sign-ups that fill it in or come back faster than a person could. It catches bots StopForumSpam has not seen yet, sends nothing off-site, and asks nothing of real people.
-        honeypot_min_seconds_label: Minimum seconds before a sign-up
-        honeypot_min_seconds_help: Counted from when the page was served. A person reading the form takes longer than this; a script does not.
-        honeypot_strict_label: Refuse sign-ups that skip the form
-        honeypot_strict_help: Also refuses guest sign-ups sent without the form, as scripts posting straight to the API do. Leave this off if an app, an SSO bridge or another tool creates accounts through the API.
         lookup_failed: "StopForumSpam could not be reached (first failure {when}). Registrations are being allowed through unchecked until it recovers."
         email_hash_label: Use hashed email address
         email_hash_help: Pass a MD5 hash of the email address should you wish to not pass the email address itself. This method bypasses all blacklists, normalisation and obfuscation bypass checks.
@@ -128,7 +146,7 @@ fof-anti-spam:
         sfs_lookup_help: If enabled, we will check the StopForumSpam database when a new user registers on your forum. If the user is found (username, IP address, email) and that data point is enabled along with the SFS confidence level reaching your defined level, they will be prevented from completing their registration.
 
         report_blocked_registrations_label: Report blocked registrations
-        report_blocked_registrations_help: When StopForumSpam's own data blocks a registration, the attempt is reported back so the spammer's activity can be confirmed. Blocks from Tor or a denied network are never reported, as they are this forum's policy rather than evidence. Requires a StopForumSpam API key (see below).
+        report_blocked_registrations_help: When StopForumSpam's own data blocks a registration, the attempt is reported back so the spammer's activity can be confirmed. Blocks from Tor or a denied network are never reported, as they are this forum's policy rather than evidence. Requires a StopForumSpam API key (see above).
 
     statistics:
       heading: Spam Defence
