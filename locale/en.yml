@@ -105,7 +105,7 @@ fof-anti-spam:
         max_listing_age_help: A sighting from years ago says little about whoever is registering today. 0 keeps every listing, however old. Blacklisted domains and networks are always honoured regardless of this.
         registration_throttle_label: Seconds between registrations from one address
         registration_throttle_help: Flarum limits how often somebody can post, but not how often they can create accounts. 0 disables this. Bear in mind that offices, schools and mobile networks share one address between many people.
-        lookup_failed: "StopForumSpam could not be reached (last failure {when}). Registrations are being allowed through unchecked until it recovers."
+        lookup_failed: "StopForumSpam could not be reached (first failure {when}). Registrations are being allowed through unchecked until it recovers."
         email_hash_label: Use hashed email address
         email_hash_help: Pass a MD5 hash of the email address should you wish to not pass the email address itself. This method bypasses all blacklists, normalisation and obfuscation bypass checks.
 

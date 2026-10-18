@@ -120,11 +120,14 @@ class SfsClient
     }
 
     /**
-     * Written only on the transition into failure, so an ordinary registration costs no write.
+     * Written only on the transition into failure: it dates the outage for the admin, and a
+     * registration during one costs no write.
      */
     private function recordLookupFailed(): void
     {
-        $this->settings->set(self::FAILURE_KEY, Carbon::now()->toIso8601String());
+        if ($this->settings->get(self::FAILURE_KEY) === null) {
+            $this->settings->set(self::FAILURE_KEY, Carbon::now()->toIso8601String());
+        }
     }
 
     private function recordLookupRecovered(): void
