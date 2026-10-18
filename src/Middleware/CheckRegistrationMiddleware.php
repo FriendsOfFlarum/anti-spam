@@ -15,6 +15,8 @@ use Flarum\Foundation\ErrorHandling\JsonApiFormatter;
 use Flarum\Foundation\ErrorHandling\Registry;
 use Flarum\Foundation\ValidationException;
 use Flarum\User\RegistrationToken;
+use FoF\AntiSpam\BlockReasons;
+use FoF\AntiSpam\Honeypot;
 use FoF\AntiSpam\Http\ClientIp;
 use FoF\AntiSpam\StopForumSpam;
 use Illuminate\Support\Arr;
@@ -36,7 +38,7 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
      */
     protected const string REGISTER_ROUTE = 'users.create';
 
-    public function __construct(protected StopForumSpam $sfs)
+    public function __construct(protected StopForumSpam $sfs, protected Honeypot $honeypot)
     {
     }
 
@@ -67,6 +69,20 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
                 $username = Arr::get($token->user_attributes, 'username', $username);
             }
 
+            // First, and before anything leaves the server: a bot that springs the trap needs no
+            // StopForumSpam lookup to be turned away.
+            if ($this->honeypot->enabled() && ($reason = $this->honeypot->verdict($attributes)) !== null) {
+                $this->sfs->recordBlock(
+                    ['ip' => $this->getIpAddress($request), 'email' => $email, 'username' => $username],
+                    '{}',
+                    $provider,
+                    $providerData,
+                    new BlockReasons([$reason])
+                );
+
+                return $this->refuse($request);
+            }
+
             // Skip spam check if essential data is missing (let normal validation handle it)
             if (empty($email) && empty($username)) {
                 return $handler->handle($request);
@@ -81,18 +97,26 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
             );
 
             if ($shouldPrevent) {
-                return (new JsonApiFormatter())
-                    ->format(
-                        resolve(Registry::class)
-                            ->handle(new ValidationException([
-                                'username' => resolve('translator')->trans('fof-anti-spam.forum.message.stopforumspam.blocked'),
-                            ])),
-                        $request
-                    );
+                return $this->refuse($request);
             }
         }
 
         return $handler->handle($request);
+    }
+
+    /**
+     * The same answer whichever check refused it, so a bot learns nothing about which one it hit.
+     */
+    protected function refuse(ServerRequestInterface $request): ResponseInterface
+    {
+        return (new JsonApiFormatter())
+            ->format(
+                resolve(Registry::class)
+                    ->handle(new ValidationException([
+                        'username' => resolve('translator')->trans('fof-anti-spam.forum.message.stopforumspam.blocked'),
+                    ])),
+                $request
+            );
     }
 
     /**

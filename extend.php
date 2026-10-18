@@ -45,7 +45,8 @@ return [
 
     (new Extend\ApiResource(UserResource::class))
         ->fields(Api\AddUserPermissions::class)
-        ->fields(Api\AddUserRegistrationIp::class),
+        ->fields(Api\AddUserRegistrationIp::class)
+        ->fields(Api\AddHoneypotFields::class),
 
     (new Extend\SearchDriver(DatabaseSearchDriver::class))
         ->addSearcher(Model\BlockedRegistration::class, Search\BlockedRegistrationSearcher::class)
@@ -83,6 +84,11 @@ return [
         ->default('fof-anti-spam.blockedAsns', '')
         // 0 means no limit, which is the behaviour that shipped.
         ->default('fof-anti-spam.maxListingAgeDays', 0)
+        // The honeypot is opt in: turning it on changes who can sign up.
+        ->default('fof-anti-spam.honeypot.enabled', false)
+        ->default('fof-anti-spam.honeypot.strict', false)
+        // Seconds from the page being served to the form coming back. A person takes longer.
+        ->default('fof-anti-spam.honeypot.minSeconds', 3)
         // Seconds between account creations from one address. 0 disables it.
         ->default('fof-anti-spam.registrationThrottleSeconds', 30)
         ->default('fof-anti-spam.actions.deleteUser', false)

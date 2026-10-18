@@ -15,6 +15,7 @@ use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Settings\SettingsRepositoryInterface;
 use FoF\AntiSpam\ContentFilter\FlagAccount;
+use FoF\AntiSpam\Honeypot;
 use FoF\AntiSpam\Search\BlockedRegistrationGambits;
 use FoF\AntiSpam\StopForumSpam;
 
@@ -23,7 +24,8 @@ class AddForumFields
     public function __construct(
         protected SettingsRepositoryInterface $settings,
         protected StopForumSpam $stopForumSpam,
-        protected FlagAccount $flagAccount
+        protected FlagAccount $flagAccount,
+        protected Honeypot $honeypot
     ) {
     }
 
@@ -41,6 +43,12 @@ class AddForumFields
 
                     return BlockedRegistrationGambits::$filters;
                 }),
+
+            // The timestamp the sign-up form sends back, signed, so the registration check can tell
+            // how fast it came back. Everyone gets one: the form is filled in by guests.
+            Schema\Str::make('fof-anti-spam.formToken')
+                ->nullable()
+                ->get(fn () => $this->honeypot->enabled() ? $this->honeypot->issue() : null),
 
             // Who raises automatic spam flags, by name, so the setting can be shown and chosen
             // without anyone knowing a user ID. Admin-only, like the setting itself.
