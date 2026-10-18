@@ -16,17 +16,63 @@ use FoF\AntiSpam\ContentFilter\AbstractDetector;
 use FoF\AntiSpam\ContentFilter\SpamScore;
 
 /**
- * Detects phone numbers in content.
- *
- * Matches international phone numbers with + or 00 prefix and at least 9 digits
+ * Detects international phone numbers: a `+` or `00` prefix and 9 to 15 digits.
  */
 class PhoneDetector extends AbstractDetector
 {
     /**
-     * Regex pattern for detecting phone numbers
-     * Matches: +1234567890, 00123456789, +1-234-567-8900, etc.
+     * A `+` or `00` prefix, then digit groups joined by single separators.
+     *
+     * - The prefix may not follow a letter, digit, `+` or `.`, so the `00` inside `1000` or
+     *   `2008-12-01`, and the `+` in `c++` or `3 + 4`, never start a match.
+     * - A country code never begins with 0, which rules out every run of zeros in a large number.
+     * - Digits are any script's: spammers reach for fullwidth and Arabic-Indic digits to slip past
+     *   an ASCII-only pattern. Combining marks and zero-width characters between them are skipped
+     *   for the same reason.
      */
-    private const PHONE_PATTERN = '/(\\+|00)([0-9-\p{No}\p{Nd}\p{M}\s]){9,}/u';
+    protected const string PHONE_PATTERN = '~
+        (?<! [\p{L}\p{N}_+\x{FF0B}.] )
+        (?: [+\x{FF0B}] | 00 \x20? )
+        (?! [0\x{FF10}\x{0660}\x{06F0}\x{0966}] ) (?= \p{Nd} )
+        (?:
+            \p{Nd}
+          | [\p{M}\x{200B}-\x{200D}\x{2060}\x{FEFF}]
+          | [\x20\-.] (?= [\p{Nd}(] )
+          | \( (?= \p{Nd} )
+          | \) (?= [\x20\-.]? \p{Nd} )
+        )+
+        (?! [\p{Nd}\p{L}_] )
+    ~xu';
+
+    protected const int MIN_DIGITS = 9;
+
+    /**
+     * The E.164 maximum. Anything longer is a hash or an identifier, not a number anyone can ring.
+     */
+    protected const int MAX_DIGITS = 15;
+
+    /**
+     * Extract every phone number from content that has already had its formatting stripped.
+     *
+     * @return array<string> The matched numbers, in the order they appear.
+     */
+    public static function extractPhoneNumbers(string $content): array
+    {
+        if (! preg_match_all(self::PHONE_PATTERN, $content, $matches)) {
+            return [];
+        }
+
+        return array_values(array_filter($matches[0], function (string $candidate): bool {
+            $digits = preg_match_all('~\p{Nd}~u', $candidate);
+
+            // The digits of a `00` prefix are not part of the number.
+            if (str_starts_with($candidate, '00')) {
+                $digits -= 2;
+            }
+
+            return $digits >= self::MIN_DIGITS && $digits <= self::MAX_DIGITS;
+        }));
+    }
 
     public function analyze(string $content, User $user, array $context = []): SpamScore
     {
@@ -48,11 +94,10 @@ class PhoneDetector extends AbstractDetector
         // Strip formatting but preserve numbers
         $cleanContent = $this->stripFormatting($content);
 
-        // Detect phone numbers
-        $matches = [];
-        $count = preg_match_all(self::PHONE_PATTERN, $cleanContent, $matches);
+        $phoneNumbers = self::extractPhoneNumbers($cleanContent);
+        $count = count($phoneNumbers);
 
-        if ($count === false || $count === 0) {
+        if ($count === 0) {
             return new SpamScore();
         }
 
@@ -61,7 +106,7 @@ class PhoneDetector extends AbstractDetector
         $score = min(80, $count * 50); // 50 points per phone, cap at 80
 
         $reasons = [];
-        $phoneNumbers = array_unique($matches[0]);
+        $phoneNumbers = array_unique($phoneNumbers);
 
         if ($count === 1) {
             $reasons[] = 'Contains a phone number';
@@ -87,6 +132,6 @@ class PhoneDetector extends AbstractDetector
 
     public function getDescription(): string
     {
-        return 'Detects international phone numbers in content (format: +/00 followed by 9+ digits)';
+        return 'Detects international phone numbers in content (format: +/00 followed by 9 to 15 digits)';
     }
 }
