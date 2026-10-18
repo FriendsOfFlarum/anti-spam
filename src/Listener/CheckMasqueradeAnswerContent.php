@@ -12,12 +12,12 @@
 namespace FoF\AntiSpam\Listener;
 
 use Flarum\Foundation\ValidationException;
+use Flarum\Locale\TranslatorInterface;
 use FoF\AntiSpam\ContentFilter\Analyzer;
 use FoF\AntiSpam\ContentFilter\Detectors\EmailDetector;
 use FoF\AntiSpam\ContentFilter\Detectors\UrlDetector;
 use FoF\Masquerade\Answer;
 use Psr\Log\LoggerInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Runs the content filter over a fof/masquerade answer as it is saved.
