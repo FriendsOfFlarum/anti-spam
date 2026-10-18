@@ -80,7 +80,7 @@ class MonitorAllUsersTest extends TestCase
                         'type' => 'discussions',
                         'attributes' => [
                             'title' => 'Cheap deals',
-                            'content' => 'Call me on 07700 900123 or visit https://suspicious-site.example for cheap deals',
+                            'content' => 'Call me on 07700 900123 or visit https://suspicious-site.com for cheap deals',
                         ],
                     ],
                 ],

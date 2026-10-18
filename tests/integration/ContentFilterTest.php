@@ -89,7 +89,7 @@ class ContentFilterTest extends TestCase
                         'type' => 'discussions',
                         'attributes' => [
                             'title' => 'Test Discussion',
-                            'content' => 'Email me at spam@example.com for more info',
+                            'content' => 'Email me at spam@suspicious-site.com for more info',
                         ],
                     ],
                 ],
@@ -364,6 +364,94 @@ class ContentFilterTest extends TestCase
         $this->assertStringContainsString('url', strtolower($flag->reason_detail), 'Flag reason should mention URL');
     }
 
+    /**
+     * Start a discussion as the fresh user 3, at the default thresholds, and return its first post.
+     */
+    private function freshUserPosts(string $content): Post
+    {
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => ['data' => ['type' => 'discussions', 'attributes' => [
+                    'title' => 'Hello there',
+                    'content' => $content,
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode(), (string) $response->getBody());
+
+        return Post::where('user_id', 3)->orderBy('id', 'desc')->firstOrFail();
+    }
+
+    #[Test]
+    public function a_bare_hostname_is_flagged_but_left_visible()
+    {
+        // Nobody can click a bare hostname. It is worth a moderator's look, not taking the post down.
+        $post = $this->freshUserPosts('Great deals at cheap-pills.xyz today');
+
+        $this->assertTrue((bool) $post->is_approved);
+        $this->assertNotNull(Flag::where('post_id', $post->id)->where('type', 'spam')->first());
+    }
+
+    #[Test]
+    public function a_bare_hostname_in_a_title_is_hidden()
+    {
+        // A title is shown on every discussion list, where a domain is the payload whether or not
+        // anyone can click it. Only a post body gets the softer weight.
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => ['data' => ['type' => 'discussions', 'attributes' => [
+                    'title' => 'Cheap pills at cheap-pills.xyz',
+                    'content' => 'Hello everyone, nice to meet you.',
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $id = json_decode((string) $response->getBody(), true)['data']['id'];
+        $this->assertFalse((bool) Discussion::find($id)->is_approved);
+    }
+
+    #[Test]
+    public function a_clickable_link_is_hidden_at_the_default_thresholds()
+    {
+        $post = $this->freshUserPosts('Great deals at https://cheap-pills.xyz today');
+
+        $this->assertFalse((bool) $post->is_approved);
+    }
+
+    #[Test]
+    public function an_email_on_an_allowed_domain_is_not_held_against_the_poster()
+    {
+        // The allowlist says those addresses are this forum's own, or ones it trusts. A member
+        // pointing at the support address must not be held for approval.
+        $this->setting('fof-anti-spam.content-filter.allowed_domains', 'mycompany.com');
+
+        $post = $this->freshUserPosts('Please write to support@mycompany.com about it');
+
+        $this->assertTrue((bool) $post->is_approved);
+        $this->assertNull(Flag::where('post_id', $post->id)->where('type', 'spam')->first());
+    }
+
+    #[Test]
+    public function an_email_on_a_reserved_example_domain_is_not_held_against_the_poster()
+    {
+        $post = $this->freshUserPosts('Set MAIL_FROM to someone@example.com in your .env');
+
+        $this->assertTrue((bool) $post->is_approved);
+        $this->assertNull(Flag::where('post_id', $post->id)->where('type', 'spam')->first());
+    }
+
+    #[Test]
+    public function an_email_on_any_other_domain_still_counts()
+    {
+        $post = $this->freshUserPosts('Mail me at spammer@suspicious-site.com');
+
+        $this->assertFalse((bool) $post->is_approved);
+    }
+
     #[Test]
     public function fresh_user_talking_about_source_files_is_not_flagged()
     {
@@ -482,7 +570,7 @@ class ContentFilterTest extends TestCase
                         'type' => 'discussions',
                         'attributes' => [
                             'title' => 'Test Discussion',
-                            'content' => 'Contact me at +1234567890 and spam@example.com',
+                            'content' => 'Contact me at +1234567890 and spam@suspicious-site.com',
                         ],
                     ],
                 ],
@@ -510,7 +598,7 @@ class ContentFilterTest extends TestCase
                         'type' => 'discussions',
                         'attributes' => [
                             'title' => 'Test Discussion',
-                            'content' => 'Contact me at +1234567890 and spam@example.com',
+                            'content' => 'Contact me at +1234567890 and spam@suspicious-site.com',
                         ],
                     ],
                 ],
@@ -629,7 +717,7 @@ class ContentFilterTest extends TestCase
                         'type' => 'discussions',
                         'attributes' => [
                             'title' => 'Test Discussion',
-                            'content' => 'Contact me at +1234567890 or email spam@example.com or visit http://suspicious-site.com',
+                            'content' => 'Contact me at +1234567890 or email spam@suspicious-site.com or visit http://suspicious-site.com',
                         ],
                     ],
                 ],

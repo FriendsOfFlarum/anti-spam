@@ -32,15 +32,35 @@ class UrlDetector extends AbstractDetector
      * match from starting mid-token, which is also what stops an email address from being counted
      * here as well as by the EmailDetector.
      */
-    private const URL_PATTERN = '~
+    protected const string URL_PATTERN = '~
         (?<! [\w@.\-] )
         (?:
-            [a-z][a-z0-9+.\-]* :// [-\w]+ (?: \. [-\w]+ )*      # scheme://host
-          | // [-\w]+ (?: \. [-\w]+ )*                          # protocol-relative //host
-          | www \. [-\w]+ (?: \. [-\w]+ )*                      # www.host
-          | (?: [a-z0-9] [-a-z0-9]* \. )+ (?: __TLDS__ ) (?! [-\w] )   # bare host.tld
+            [a-z][a-z0-9+.\-]* :// [-\w]++ (?: \. [-\w]++ )*+      # scheme://host
+          | // [-\w]++ (?: \. [-\w]++ )*+                          # protocol-relative //host
+          | www \. [-\w]++ (?: \. [-\w]++ )*+                      # www.host
+          | LABELS (?: __TLDS__ ) (?! [-\w] | \(\) )                # bare host.tld, not foo.top()
+          | LABELS (?: __PATH_TLDS__ ) (?= / [-\w%] )                # t.me/… : a word-like TLD, with a path
         )
     ~ixu';
+
+    /**
+     * Hostname labels. Possessive, so a long dotted run is read once rather than exhausting the
+     * regex engine's stack; a label only repeats when another follows its dot, so a sentence's
+     * full stop is not taken for one.
+     */
+    protected const string LABELS = '(?: [a-z0-9] [-a-z0-9]*+ \. (?= [a-z0-9] ) )++';
+
+    /**
+     * Country codes left out of TLDS because they are English words or identifiers, still counted
+     * once a path follows: `t.me/…`, `wa.me/…`, `youtu.be/…` and `amzn.to/…` are the short hosts
+     * spam leans on most, and `user.id` or `that.It` never carry a path.
+     *
+     * @var array<string>
+     */
+    protected const array PATH_TLDS = [
+        'ai', 'am', 'as', 'at', 'be', 'by', 'do', 'id', 'im', 'in', 'is', 'it', 'me', 'my', 'no',
+        'pl', 'pm', 'to', 'us',
+    ];
 
     /**
      * TLDs a bare, schemeless hostname is allowed to end in.
@@ -55,6 +75,10 @@ class UrlDetector extends AbstractDetector
      *  - New gTLDs that are ordinary English words (`app`, `info`, `name`, `link`, `click`,
      *    `style`, `support`, `news`, …). Each one turns a property access or a method call —
      *    `this.app`, `user.name`, `el.style`, `logger.info(…)` — into a "spam link".
+     *  - ccTLDs that are English words or common identifiers (`it`, `in`, `is`, `to`, `me`, `id`,
+     *    `at`, …). A sentence missing its space after a full stop — `that.It`, `done.it` — and a
+     *    property such as `user.id` or `arr.at` would otherwise read as links, as would Perl's
+     *    `.pl` and `.pm` files and Illustrator's `.ai`.
      *
      * What is left is the classic gTLDs, the ccTLDs, and the new gTLDs spam actually leans on,
      * which between them cover the overwhelming majority of real spam domains. A false positive
@@ -65,7 +89,7 @@ class UrlDetector extends AbstractDetector
      *
      * @var array<string>
      */
-    private const TLDS = [
+    protected const array TLDS = [
         // Classic gTLDs
         'com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'biz', 'mobi', 'asia', 'travel', 'jobs',
         'coop', 'aero', 'museum', 'xxx',
@@ -76,32 +100,47 @@ class UrlDetector extends AbstractDetector
         'cloud',
 
         // ccTLDs
-        'ac', 'ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'ao', 'ar', 'as', 'at', 'au', 'aw', 'ax',
-        'az', 'ba', 'bb', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bm', 'bn', 'bo', 'br', 'bs',
-        'bt', 'bw', 'by', 'bz', 'ca', 'cd', 'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co',
-        'cr', 'cu', 'cv', 'cw', 'cy', 'cz', 'de', 'dj', 'dk', 'dm', 'do', 'dz', 'ec', 'ee', 'eg',
-        'es', 'et', 'eu', 'fi', 'fj', 'fk', 'fm', 'fo', 'fr', 'ga', 'gd', 'ge', 'gf', 'gg', 'gh',
-        'gi', 'gl', 'gm', 'gn', 'gp', 'gq', 'gr', 'gs', 'gt', 'gu', 'gw', 'gy', 'hk', 'hn', 'hr',
-        'ht', 'hu', 'id', 'ie', 'il', 'im', 'in', 'io', 'iq', 'ir', 'is', 'it', 'je', 'jm', 'jo',
-        'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kr', 'kw', 'ky', 'kz', 'la', 'lb', 'lc', 'li',
-        'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'me', 'mg', 'mh', 'mk', 'ml', 'mm',
-        'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz', 'na', 'nc',
-        'ne', 'nf', 'ng', 'ni', 'nl', 'no', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg',
-        'ph', 'pk', 'pl', 'pm', 'pn', 'pr', 'ps', 'pt', 'pw', 'qa', 're', 'ro', 'ru', 'rw', 'sa',
-        'sb', 'sc', 'sd', 'se', 'sg', 'si', 'sk', 'sl', 'sm', 'sn', 'sr', 'st', 'su', 'sv', 'sx',
-        'sy', 'sz', 'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tr', 'tt',
-        'tv', 'tw', 'tz', 'ua', 'ug', 'uk', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn',
-        'vu', 'wf', 'ws', 'ye', 'yt', 'za', 'zm', 'zw',
+        'ac', 'ad', 'ae', 'af', 'ag', 'al', 'ao', 'ar', 'au', 'aw', 'ax', 'az', 'ba', 'bb', 'bd',
+        'bf', 'bg', 'bh', 'bi', 'bj', 'bm', 'bn', 'bo', 'br', 'bs', 'bt', 'bw', 'bz', 'ca', 'cd',
+        'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co', 'cr', 'cu', 'cv', 'cw', 'cy', 'cz',
+        'de', 'dj', 'dk', 'dm', 'dz', 'ec', 'ee', 'eg', 'es', 'et', 'eu', 'fi', 'fj', 'fk', 'fm',
+        'fo', 'fr', 'ga', 'gd', 'ge', 'gf', 'gg', 'gh', 'gi', 'gl', 'gm', 'gn', 'gp', 'gq', 'gr',
+        'gs', 'gt', 'gu', 'gw', 'gy', 'hk', 'hn', 'hr', 'ht', 'hu', 'ie', 'il', 'io', 'iq', 'ir',
+        'je', 'jm', 'jo', 'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kr', 'kw', 'ky', 'kz', 'la',
+        'lb', 'lc', 'li', 'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'mg', 'mh', 'mk',
+        'ml', 'mm', 'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'mz', 'na',
+        'nc', 'ne', 'nf', 'ng', 'ni', 'nl', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg',
+        'ph', 'pk', 'pn', 'pr', 'ps', 'pt', 'pw', 'qa', 're', 'ro', 'ru', 'rw', 'sa', 'sb', 'sc',
+        'sd', 'se', 'sg', 'si', 'sk', 'sl', 'sm', 'sn', 'sr', 'st', 'su', 'sv', 'sx', 'sy', 'sz',
+        'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'tr', 'tt', 'tv', 'tw', 'tz',
+        'ua', 'ug', 'uk', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'wf', 'ws', 'ye',
+        'yt', 'za', 'zm', 'zw',
     ];
+
+    protected const int CLICKABLE_SCORE = 50;
+
+    protected const int BARE_SCORE = 30;
 
     private static ?string $pattern = null;
 
     /**
+     * Whether a matched token renders as a link: it carries a scheme, `//` or `www.`.
+     */
+    protected static function isClickable(string $url): bool
+    {
+        return (bool) preg_match('~^(?:[a-z][a-z0-9+.\-]*://|//|www\.)~i', $url);
+    }
+
+    /**
      * Build the URL regex, once per process.
      */
-    private static function pattern(): string
+    protected static function pattern(): string
     {
-        return self::$pattern ??= str_replace('__TLDS__', implode('|', self::TLDS), self::URL_PATTERN);
+        return self::$pattern ??= str_replace(
+            ['LABELS', '__PATH_TLDS__', '__TLDS__'],
+            [self::LABELS, implode('|', self::PATH_TLDS), implode('|', self::TLDS)],
+            self::URL_PATTERN
+        );
     }
 
     /**
@@ -111,8 +150,10 @@ class UrlDetector extends AbstractDetector
      */
     public static function extractUrls(string $content): array
     {
-        if (! preg_match_all(self::pattern(), $content, $matches)) {
-            return [];
+        $found = preg_match_all(self::pattern(), $content, $matches);
+
+        if ($found === false) {
+            throw new \RuntimeException('URL pattern failed: '.preg_last_error_msg());
         }
 
         return $matches[0];
@@ -121,7 +162,7 @@ class UrlDetector extends AbstractDetector
     /**
      * Give a matched token a scheme so it can be parsed as a URI.
      */
-    private static function normalizeUrl(string $url): string
+    protected static function normalizeUrl(string $url): string
     {
         if (str_starts_with($url, '//')) {
             return 'http:'.$url;
@@ -190,9 +231,15 @@ class UrlDetector extends AbstractDetector
             return new SpamScore();
         }
 
-        // Calculate score based on number of flagged URLs
         $flaggedCount = count($flaggedUrls);
-        $score = min(80, $flaggedCount * 50); // 50 points per URL, cap at 80
+        $explicit = count(array_filter($flaggedUrls, [self::class, 'isClickable']));
+
+        // A bare hostname cannot be clicked, so in a post one on its own lands between the flag
+        // and spam thresholds: in front of a moderator, without the post being taken down.
+        // Anywhere else it counts in full. A profile field can only be refused, and a title or a
+        // display name is shown on every list, where a domain is the payload either way.
+        $bareScore = ($context['type'] ?? null) === 'post' ? self::BARE_SCORE : self::CLICKABLE_SCORE;
+        $score = min(80, $explicit * self::CLICKABLE_SCORE + ($flaggedCount - $explicit) * $bareScore);
 
         $reasons = [];
         if ($flaggedCount === 1) {
@@ -216,7 +263,7 @@ class UrlDetector extends AbstractDetector
     /**
      * Check if a URL is allowed based on domain allowlist and callbacks.
      */
-    private function isUrlAllowed(
+    protected function isUrlAllowed(
         UriInterface $uri,
         User $user,
         array $allowedDomains,
@@ -224,12 +271,12 @@ class UrlDetector extends AbstractDetector
     ): bool {
         $host = strtolower($uri->getHost());
 
-        // Check against allowlist
-        foreach ($allowedDomains as $allowedDomain) {
-            // Exact match or subdomain match
-            if ($host === $allowedDomain || str_ends_with($host, '.'.$allowedDomain)) {
-                return true;
-            }
+        if (self::isLocalOrReserved($host)) {
+            return true;
+        }
+
+        if (self::hostIsAllowed($host, $allowedDomains)) {
+            return true;
         }
 
         // Check custom callbacks
@@ -245,6 +292,45 @@ class UrlDetector extends AbstractDetector
         }
 
         return false;
+    }
+
+    /**
+     * Whether a host is an allowed domain or one of its subdomains.
+     *
+     * @param array<string> $allowedDomains
+     */
+    public static function hostIsAllowed(string $host, array $allowedDomains): bool
+    {
+        foreach ($allowedDomains as $allowed) {
+            if ($host === $allowed || str_ends_with($host, '.'.$allowed)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Hosts that cannot send a reader anywhere: their own machine, a private network, or a name
+     * reserved for examples (RFC 2606 and RFC 6761). Developers paste these constantly.
+     */
+    public static function isLocalOrReserved(string $host): bool
+    {
+        $host = strtolower(trim($host, '[]'));
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+        }
+
+        foreach (['example.com', 'example.net', 'example.org'] as $domain) {
+            if ($host === $domain || str_ends_with($host, '.'.$domain)) {
+                return true;
+            }
+        }
+
+        $tld = substr((string) strrchr('.'.$host, '.'), 1);
+
+        return in_array($tld, ['localhost', 'test', 'example', 'invalid'], true);
     }
 
     public function getName(): string
