@@ -20,6 +20,7 @@ use Flarum\User\User;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
 use FoF\AntiSpam\ContentFilter\Analyzer;
 use FoF\AntiSpam\ContentFilter\ConfigurationManager;
+use FoF\AntiSpam\ContentFilter\FlagAccount;
 use FoF\AntiSpam\Event\PostWasFlaggedAsSpam;
 use Illuminate\Contracts\Events\Dispatcher;
 use Psr\Log\LoggerInterface;
@@ -31,7 +32,8 @@ abstract class AbstractContentCheck
         protected LoggerInterface $log,
         protected SettingsRepositoryInterface $settings,
         protected ConfigurationManager $config,
-        protected Dispatcher $events
+        protected Dispatcher $events,
+        protected FlagAccount $flagAccount
     ) {
     }
 
@@ -198,17 +200,24 @@ abstract class AbstractContentCheck
     }
 
     /**
-     * Get the system actor to use for automatic flags.
-     *
-     * Code configuration wins, as it does everywhere else: assignFlagsToModerator() in extend.php
-     * takes precedence over the admin setting. The two use different keys for historical reasons —
-     * the admin one predates the content filter's own configuration prefix.
+     * The account automatic flags are raised by. See FlagAccount.
      */
     protected function getSystemActor(): ?User
     {
-        $actorId = $this->config->getCodeValue('flag_moderator_id')
-            ?? $this->settings->get('fof-anti-spam.moderation.system_user_id');
+        $chosen = $this->flagAccount->chosen();
 
-        return User::where('id', $actorId)->first() ?? null;
+        if ($chosen !== null) {
+            return $chosen;
+        }
+
+        $admin = $this->flagAccount->firstAdmin();
+
+        // Left alone, the setting means the first admin. Only an account that was chosen and has
+        // since gone is worth an admin's attention.
+        if ($admin !== null && ($chosenId = $this->flagAccount->chosenId()) !== null) {
+            $this->log->warning("[FoF Anti Spam] The account chosen to raise spam flags (ID {$chosenId}) does not exist; administrator {$admin->id} raised it instead.");
+        }
+
+        return $admin;
     }
 }

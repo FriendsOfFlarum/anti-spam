@@ -91,7 +91,8 @@ return [
         ->default('fof-anti-spam.reportToStopForumSpam', true)
         ->default('fof-anti-spam.report_blocked_registrations', true)
         // Content filter defaults
-        ->default('fof-anti-spam.moderation.system_user_id', 1)
+        // Empty means no account was chosen, and automatic flags are raised by the first admin.
+        ->default('fof-anti-spam.moderation.system_user_id', '')
         ->default('fof-anti-spam.content-filter.enabled', true)
         // Off by default: turning it on changes behaviour for every existing member, which is
         // an admin's decision to make rather than one to inherit on upgrade.
