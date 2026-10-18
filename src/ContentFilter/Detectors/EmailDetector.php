@@ -23,9 +23,31 @@ use FoF\AntiSpam\ContentFilter\SpamScore;
 class EmailDetector extends AbstractDetector
 {
     /**
-     * Regex pattern for detecting email addresses.
+     * An address whose domain ends in a TLD of letters.
+     *
+     * - The local part may not follow a word character, `/` or `@`, so `flarum/core@2.0.2` and
+     *   `@scope/pkg@1.0` never start a match, and a version after the `@` has no TLD to end in.
+     * - A `:path` straight after the domain is a git remote such as `git@github.com:org/repo`.
+     * - Letters are any script's: a spammer is as happy with `пример.рф` as with `example.com`.
      */
-    private const EMAIL_PATTERN = '~\S+@\S+\.\S+~';
+    protected const string EMAIL_PATTERN = '~
+        (?<! [\p{L}\p{N}_.%+\-/@] )
+        [\p{L}\p{N}_.%+\-]+
+        @
+        (?: [\p{L}\p{N}] (?: [\p{L}\p{N}\-]* [\p{L}\p{N}] )? \. )+
+        \p{L}{2,63}
+        (?! [\p{L}\p{N}_\-@] | :\S )
+    ~xu';
+
+    /**
+     * Extract every email address from content that has already had its formatting stripped.
+     *
+     * @return array<string> The matched addresses, in the order they appear.
+     */
+    public static function extractEmails(string $content): array
+    {
+        return preg_match_all(self::EMAIL_PATTERN, $content, $matches) ? $matches[0] : [];
+    }
 
     public function analyze(string $content, User $user, array $context = []): SpamScore
     {
@@ -47,11 +69,17 @@ class EmailDetector extends AbstractDetector
         // Strip formatting
         $cleanContent = $this->stripFormatting($content);
 
-        // Detect email addresses
-        $matches = [];
-        $count = preg_match_all(self::EMAIL_PATTERN, $cleanContent, $matches);
+        $allowed = $this->config->getAllowedDomains();
 
-        if ($count === false || $count === 0) {
+        // An address on an allowed domain is one this forum already trusts, and one on a reserved
+        // example domain cannot reach anybody.
+        $emails = array_values(array_filter(
+            self::extractEmails($cleanContent),
+            fn (string $email) => ! self::domainIsTrusted(substr($email, strrpos($email, '@') + 1), $allowed)
+        ));
+        $count = count($emails);
+
+        if ($count === 0) {
             return new SpamScore();
         }
 
@@ -59,7 +87,7 @@ class EmailDetector extends AbstractDetector
         $score = min(80, $count * 50); // 50 points per email, cap at 80
 
         $reasons = [];
-        $emails = array_unique($matches[0]);
+        $emails = array_unique($emails);
 
         if ($count === 1) {
             $reasons[] = 'Contains an email address';
@@ -76,6 +104,26 @@ class EmailDetector extends AbstractDetector
                 'emails' => array_values($emails),
             ]
         );
+    }
+
+    /**
+     * @param array<string> $allowedDomains
+     */
+    protected static function domainIsTrusted(string $domain, array $allowedDomains): bool
+    {
+        $domain = mb_strtolower($domain);
+
+        if (UrlDetector::isLocalOrReserved($domain)) {
+            return true;
+        }
+
+        foreach ($allowedDomains as $allowed) {
+            if ($domain === $allowed || str_ends_with($domain, '.'.$allowed)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getName(): string
