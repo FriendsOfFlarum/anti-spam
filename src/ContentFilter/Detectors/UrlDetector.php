@@ -38,7 +38,7 @@ class UrlDetector extends AbstractDetector
             [a-z][a-z0-9+.\-]* :// [-\w]+ (?: \. [-\w]+ )*      # scheme://host
           | // [-\w]+ (?: \. [-\w]+ )*                          # protocol-relative //host
           | www \. [-\w]+ (?: \. [-\w]+ )*                      # www.host
-          | (?: [a-z0-9] [-a-z0-9]* \. )+ (?: __TLDS__ ) (?! [-\w] )   # bare host.tld
+          | (?: [a-z0-9] [-a-z0-9]* \. )+ (?: __TLDS__ ) (?! [-\w(] )  # bare host.tld, not a call
         )
     ~ixu';
 
@@ -55,6 +55,10 @@ class UrlDetector extends AbstractDetector
      *  - New gTLDs that are ordinary English words (`app`, `info`, `name`, `link`, `click`,
      *    `style`, `support`, `news`, …). Each one turns a property access or a method call —
      *    `this.app`, `user.name`, `el.style`, `logger.info(…)` — into a "spam link".
+     *  - ccTLDs that are English words or common identifiers (`it`, `in`, `is`, `to`, `me`, `id`,
+     *    `at`, …). A sentence missing its space after a full stop — `that.It`, `done.it` — and a
+     *    property such as `user.id` or `arr.at` would otherwise read as links, as would Perl's
+     *    `.pl` and `.pm` files and Illustrator's `.ai`.
      *
      * What is left is the classic gTLDs, the ccTLDs, and the new gTLDs spam actually leans on,
      * which between them cover the overwhelming majority of real spam domains. A false positive
@@ -76,25 +80,36 @@ class UrlDetector extends AbstractDetector
         'cloud',
 
         // ccTLDs
-        'ac', 'ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'ao', 'ar', 'as', 'at', 'au', 'aw', 'ax',
-        'az', 'ba', 'bb', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bm', 'bn', 'bo', 'br', 'bs',
-        'bt', 'bw', 'by', 'bz', 'ca', 'cd', 'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co',
-        'cr', 'cu', 'cv', 'cw', 'cy', 'cz', 'de', 'dj', 'dk', 'dm', 'do', 'dz', 'ec', 'ee', 'eg',
-        'es', 'et', 'eu', 'fi', 'fj', 'fk', 'fm', 'fo', 'fr', 'ga', 'gd', 'ge', 'gf', 'gg', 'gh',
-        'gi', 'gl', 'gm', 'gn', 'gp', 'gq', 'gr', 'gs', 'gt', 'gu', 'gw', 'gy', 'hk', 'hn', 'hr',
-        'ht', 'hu', 'id', 'ie', 'il', 'im', 'in', 'io', 'iq', 'ir', 'is', 'it', 'je', 'jm', 'jo',
-        'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kr', 'kw', 'ky', 'kz', 'la', 'lb', 'lc', 'li',
-        'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'me', 'mg', 'mh', 'mk', 'ml', 'mm',
-        'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz', 'na', 'nc',
-        'ne', 'nf', 'ng', 'ni', 'nl', 'no', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg',
-        'ph', 'pk', 'pl', 'pm', 'pn', 'pr', 'ps', 'pt', 'pw', 'qa', 're', 'ro', 'ru', 'rw', 'sa',
-        'sb', 'sc', 'sd', 'se', 'sg', 'si', 'sk', 'sl', 'sm', 'sn', 'sr', 'st', 'su', 'sv', 'sx',
-        'sy', 'sz', 'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tr', 'tt',
-        'tv', 'tw', 'tz', 'ua', 'ug', 'uk', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn',
-        'vu', 'wf', 'ws', 'ye', 'yt', 'za', 'zm', 'zw',
+        'ac', 'ad', 'ae', 'af', 'ag', 'al', 'ao', 'ar', 'au', 'aw', 'ax', 'az', 'ba', 'bb', 'bd',
+        'bf', 'bg', 'bh', 'bi', 'bj', 'bm', 'bn', 'bo', 'br', 'bs', 'bt', 'bw', 'bz', 'ca', 'cd',
+        'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co', 'cr', 'cu', 'cv', 'cw', 'cy', 'cz',
+        'de', 'dj', 'dk', 'dm', 'dz', 'ec', 'ee', 'eg', 'es', 'et', 'eu', 'fi', 'fj', 'fk', 'fm',
+        'fo', 'fr', 'ga', 'gd', 'ge', 'gf', 'gg', 'gh', 'gi', 'gl', 'gm', 'gn', 'gp', 'gq', 'gr',
+        'gs', 'gt', 'gu', 'gw', 'gy', 'hk', 'hn', 'hr', 'ht', 'hu', 'ie', 'il', 'io', 'iq', 'ir',
+        'je', 'jm', 'jo', 'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kr', 'kw', 'ky', 'kz', 'la',
+        'lb', 'lc', 'li', 'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'mg', 'mh', 'mk',
+        'ml', 'mm', 'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'mz', 'na',
+        'nc', 'ne', 'nf', 'ng', 'ni', 'nl', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg',
+        'ph', 'pk', 'pn', 'pr', 'ps', 'pt', 'pw', 'qa', 're', 'ro', 'ru', 'rw', 'sa', 'sb', 'sc',
+        'sd', 'se', 'sg', 'si', 'sk', 'sl', 'sm', 'sn', 'sr', 'st', 'su', 'sv', 'sx', 'sy', 'sz',
+        'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'tr', 'tt', 'tv', 'tw', 'tz',
+        'ua', 'ug', 'uk', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'wf', 'ws', 'ye',
+        'yt', 'za', 'zm', 'zw',
     ];
 
+    protected const int CLICKABLE_SCORE = 50;
+
+    protected const int BARE_SCORE = 30;
+
     private static ?string $pattern = null;
+
+    /**
+     * Whether a matched token renders as a link: it carries a scheme, `//` or `www.`.
+     */
+    protected static function isClickable(string $url): bool
+    {
+        return (bool) preg_match('~^(?:[a-z][a-z0-9+.\-]*://|//|www\.)~i', $url);
+    }
 
     /**
      * Build the URL regex, once per process.
@@ -190,9 +205,15 @@ class UrlDetector extends AbstractDetector
             return new SpamScore();
         }
 
-        // Calculate score based on number of flagged URLs
         $flaggedCount = count($flaggedUrls);
-        $score = min(80, $flaggedCount * 50); // 50 points per URL, cap at 80
+        $explicit = count(array_filter($flaggedUrls, [self::class, 'isClickable']));
+
+        // A bare hostname cannot be clicked, so in a post one on its own lands between the flag
+        // and spam thresholds: in front of a moderator, without the post being taken down. A
+        // profile field has no such middle ground, only refusal, and a domain in a display name
+        // shown beside every post is the payload whether or not it is clickable.
+        $bareScore = ($context['type'] ?? null) === 'profile' ? self::CLICKABLE_SCORE : self::BARE_SCORE;
+        $score = min(80, $explicit * self::CLICKABLE_SCORE + ($flaggedCount - $explicit) * $bareScore);
 
         $reasons = [];
         if ($flaggedCount === 1) {
@@ -224,6 +245,10 @@ class UrlDetector extends AbstractDetector
     ): bool {
         $host = strtolower($uri->getHost());
 
+        if (self::isLocalOrReserved($host)) {
+            return true;
+        }
+
         // Check against allowlist
         foreach ($allowedDomains as $allowedDomain) {
             // Exact match or subdomain match
@@ -245,6 +270,29 @@ class UrlDetector extends AbstractDetector
         }
 
         return false;
+    }
+
+    /**
+     * Hosts that cannot send a reader anywhere: their own machine, a private network, or a name
+     * reserved for examples (RFC 2606 and RFC 6761). Developers paste these constantly.
+     */
+    public static function isLocalOrReserved(string $host): bool
+    {
+        $host = strtolower(trim($host, '[]'));
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+        }
+
+        foreach (['example.com', 'example.net', 'example.org'] as $domain) {
+            if ($host === $domain || str_ends_with($host, '.'.$domain)) {
+                return true;
+            }
+        }
+
+        $tld = substr((string) strrchr('.'.$host, '.'), 1);
+
+        return in_array($tld, ['localhost', 'test', 'example', 'invalid'], true);
     }
 
     public function getName(): string
