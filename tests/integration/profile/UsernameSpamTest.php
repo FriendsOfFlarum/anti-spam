@@ -96,7 +96,7 @@ class UsernameSpamTest extends ProfileFieldTestCase
     {
         // Treating `_` as a separator must not turn the match into a substring search, which
         // would refuse `classic_cars` over a word list containing "ass".
-        $this->setting('fof-anti-spam.content-filter.blocked_words', "ass");
+        $this->setting('fof-anti-spam.content-filter.blocked_words', 'ass');
 
         $response = $this->send(
             $this->request('POST', '/api/users', [
