@@ -181,6 +181,99 @@ class CheckRegistrationMiddlewareTest extends TestCase
     }
 
     #[Test]
+    public function a_token_only_registration_is_checked_against_the_identity_the_token_carries()
+    {
+        // With a token, core makes username and email optional and fills them in from the
+        // provider afterwards. A body carrying nothing but the token must still be looked up.
+        $this->app();
+
+        $token = RegistrationToken::generate('github', '5678', [
+            'username' => 'xrumer',
+            'email' => 'testing@xrumer.ru',
+        ], ['username' => 'xrumer', 'email' => 'testing@xrumer.ru']);
+        $token->save();
+
+        $response = $this->registerViaApi(['token' => $token->token]);
+
+        $this->assertEquals(422, $response->getStatusCode());
+        $this->assertNull(User::where('username', 'xrumer')->first(), 'No account should have been created');
+    }
+
+    #[Test]
+    public function clean_values_in_the_body_do_not_hide_a_spam_identity_in_the_token()
+    {
+        // Core lets the token's attributes overwrite the body's, so the body is not what the
+        // account ends up with and cannot be what gets checked.
+        $this->app();
+
+        $token = RegistrationToken::generate('github', '9012', [
+            'username' => 'xrumer',
+            'email' => 'testing@xrumer.ru',
+        ], ['username' => 'xrumer', 'email' => 'testing@xrumer.ru']);
+        $token->save();
+
+        $response = $this->registerViaApi([
+            'token' => $token->token,
+            'username' => 'gentle_gardener',
+            'email' => 'gardener@example.com',
+        ]);
+
+        $this->assertEquals(422, $response->getStatusCode());
+        $this->assertNull(User::where('username', 'xrumer')->first(), 'No account should have been created');
+        $lookups = $this->sfsLookups();
+        $this->assertSame('xrumer', end($lookups)['username'], 'The lookup should use the identity in the token');
+    }
+
+    #[Test]
+    public function a_clean_token_registration_still_goes_through()
+    {
+        $this->app();
+
+        $token = RegistrationToken::generate('github', '3456', [
+            'username' => 'gentle_gardener',
+            'email' => 'gardener@example.com',
+        ], ['username' => 'gentle_gardener', 'email' => 'gardener@example.com']);
+        $token->save();
+
+        $response = $this->registerViaApi(['token' => $token->token]);
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertNotNull(User::where('username', 'gentle_gardener')->first());
+    }
+
+    #[Test]
+    public function a_plain_sign_up_after_an_oauth_one_is_not_attributed_to_the_provider()
+    {
+        // The middleware instance outlives a request. Nothing from one registration may leak
+        // into the record of the next. Both come from one address, so the interval between
+        // registrations has to be off for the second to reach the lookup at all.
+        $this->setting('fof-anti-spam.registrationThrottleSeconds', 0);
+        $this->app();
+        $this->knownSpammer('spamhaus_bot');
+
+        $token = RegistrationToken::generate('github', '7890', [
+            'username' => 'xrumer',
+            'email' => 'testing@xrumer.ru',
+        ], ['username' => 'xrumer', 'email' => 'testing@xrumer.ru']);
+        $token->save();
+
+        $this->registerViaApi(['token' => $token->token, 'username' => 'xrumer', 'email' => 'testing@xrumer.ru']);
+
+        $response = $this->registerViaApi([
+            'username' => 'spamhaus_bot',
+            'password' => 'too-obscure',
+            'email' => 'bot@example.com',
+        ]);
+
+        $this->assertEquals(422, $response->getStatusCode());
+
+        $blocked = BlockedRegistration::where('username', 'spamhaus_bot')->first();
+
+        $this->assertNotNull($blocked);
+        $this->assertSame('flarum', $blocked->provider);
+    }
+
+    #[Test]
     public function it_skips_the_api_spam_check_when_sfs_lookup_disabled()
     {
         $this->setting('fof-anti-spam.sfs-lookup', false);
