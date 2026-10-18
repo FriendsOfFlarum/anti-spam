@@ -14,13 +14,13 @@ namespace FoF\AntiSpam\Listener;
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Flags\Flag;
-use Flarum\Group\Group;
 use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
 use FoF\AntiSpam\ContentFilter\Analyzer;
 use FoF\AntiSpam\ContentFilter\ConfigurationManager;
+use FoF\AntiSpam\ContentFilter\FlagAccount;
 use FoF\AntiSpam\Event\PostWasFlaggedAsSpam;
 use Illuminate\Contracts\Events\Dispatcher;
 use Psr\Log\LoggerInterface;
@@ -32,7 +32,8 @@ abstract class AbstractContentCheck
         protected LoggerInterface $log,
         protected SettingsRepositoryInterface $settings,
         protected ConfigurationManager $config,
-        protected Dispatcher $events
+        protected Dispatcher $events,
+        protected FlagAccount $flagAccount
     ) {
     }
 
@@ -199,30 +200,22 @@ abstract class AbstractContentCheck
     }
 
     /**
-     * The account automatic flags are raised by: the one set in code, else the admin setting.
-     * The two use different keys for historical reasons — the admin one predates the content
-     * filter's own configuration prefix.
-     *
-     * Falls back to the first administrator when that account does not exist. The setting
-     * defaults to user 1, which many forums have since deleted, and skipping the flag then left
-     * nothing in the moderation queue while the post was quietly held.
+     * The account automatic flags are raised by. See FlagAccount.
      */
     protected function getSystemActor(): ?User
     {
-        $actorId = $this->config->getCodeValue('flag_moderator_id')
-            ?? $this->settings->get('fof-anti-spam.moderation.system_user_id');
+        $chosen = $this->flagAccount->chosen();
 
-        if ($actor = User::find($actorId)) {
-            return $actor;
+        if ($chosen !== null) {
+            return $chosen;
         }
 
-        $admin = User::query()
-            ->whereHas('groups', fn ($groups) => $groups->where('groups.id', Group::ADMINISTRATOR_ID))
-            ->orderBy('id')
-            ->first();
+        $admin = $this->flagAccount->firstAdmin();
 
-        if ($admin) {
-            $this->log->warning("[FoF Anti Spam] The account set to raise spam flags (ID {$actorId}) does not exist; administrator {$admin->id} raised it instead.");
+        // Left alone, the setting means the first admin. Only an account that was chosen and has
+        // since gone is worth an admin's attention.
+        if ($admin !== null && ($chosenId = $this->flagAccount->chosenId()) !== null) {
+            $this->log->warning("[FoF Anti Spam] The account chosen to raise spam flags (ID {$chosenId}) does not exist; administrator {$admin->id} raised it instead.");
         }
 
         return $admin;

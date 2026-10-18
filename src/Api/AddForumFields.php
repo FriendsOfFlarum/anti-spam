@@ -14,6 +14,7 @@ namespace FoF\AntiSpam\Api;
 use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Settings\SettingsRepositoryInterface;
+use FoF\AntiSpam\ContentFilter\FlagAccount;
 use FoF\AntiSpam\Search\BlockedRegistrationGambits;
 use FoF\AntiSpam\StopForumSpam;
 
@@ -21,7 +22,8 @@ class AddForumFields
 {
     public function __construct(
         protected SettingsRepositoryInterface $settings,
-        protected StopForumSpam $stopForumSpam
+        protected StopForumSpam $stopForumSpam,
+        protected FlagAccount $flagAccount
     ) {
     }
 
@@ -38,6 +40,25 @@ class AddForumFields
                     BlockedRegistrationGambits::registerDefaults();
 
                     return BlockedRegistrationGambits::$filters;
+                }),
+
+            // Who raises automatic spam flags, by name, so the setting can be shown and chosen
+            // without anyone knowing a user ID. Admin-only, like the setting itself.
+            Schema\Arr::make('fof-anti-spam.flagAccount')
+                ->visible(fn (mixed $resource, Context $context) => $context->getActor()->isAdmin())
+                ->get(function () {
+                    $chosen = $this->flagAccount->chosen();
+                    $account = $chosen ?? $this->flagAccount->firstAdmin();
+
+                    return [
+                        'id' => $account ? (string) $account->id : null,
+                        'displayName' => $account?->display_name,
+                        'username' => $account?->username,
+                        'avatarUrl' => $account?->avatar_url,
+                        'isDefault' => $chosen === null,
+                        'configuredMissing' => $chosen === null && $this->flagAccount->chosenId() !== null,
+                        'chosenInCode' => $this->flagAccount->chosenInCode(),
+                    ];
                 }),
 
             Schema\Arr::make('fof-anti-spam')
