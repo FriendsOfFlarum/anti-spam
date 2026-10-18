@@ -374,6 +374,35 @@ class HoneypotTest extends TestCase
     }
 
     #[Test]
+    public function a_trapped_sign_up_is_not_told_it_was_found_in_a_spam_database()
+    {
+        // A person whose password manager filled the hidden field was never listed anywhere, so the
+        // trap answers neutrally. StopForumSpam blocks keep their own message.
+        $this->enable();
+        $this->knownSpammer('listed_spammer');
+        $token = $this->tokenSubmittedAfter(20);
+
+        $listed = json_decode((string) $this->register('listed_spammer', [self::TOKEN => $token])->getBody(), true)['errors'][0]['detail'] ?? null;
+        $trapped = json_decode((string) $this->register('autofilled', [self::HONEYPOT => 'filled', self::TOKEN => $token])->getBody(), true)['errors'][0]['detail'] ?? null;
+
+        $this->assertNotNull($trapped);
+        $this->assertNotSame($listed, $trapped);
+    }
+
+    #[Test]
+    public function a_sign_up_that_came_back_too_fast_is_answered_like_the_trap()
+    {
+        $this->enable();
+        $slow = $this->tokenSubmittedAfter(20);
+        $trapped = json_decode((string) $this->register('autofilled', [self::HONEYPOT => 'filled', self::TOKEN => $slow])->getBody(), true)['errors'][0]['detail'] ?? null;
+
+        $fast = $this->tokenSubmittedAfter(1);
+        $tooFast = json_decode((string) $this->register('too_quick', [self::TOKEN => $fast])->getBody(), true)['errors'][0]['detail'] ?? null;
+
+        $this->assertSame($trapped, $tooFast);
+    }
+
+    #[Test]
     public function a_stale_form_is_answered_differently_from_a_trap()
     {
         // A person on a page left open, or loaded before strict mode was turned on, is told to

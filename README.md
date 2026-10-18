@@ -144,6 +144,8 @@ form-filling bots** in the settings.
   form, are not held to the minimum time
 - Both checks run before the StopForumSpam lookup, so a trapped bot costs no request off-site.
   Nothing is sent anywhere and nothing is asked of real people
+- A sign-up the trap refuses is told only that it could not be completed, not that it was found
+  in a spam database: a person whose password manager filled the hidden field never was
 - Refused attempts are recorded in the blocked registrations list with the reason (`honeypot`,
   `tooFast`, `formToken`, `noForm`), and are never reported to StopForumSpam: they say something
   about the client, nothing about the identity it typed in

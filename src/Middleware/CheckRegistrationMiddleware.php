@@ -83,10 +83,12 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
                 );
 
                 // A form the server cannot vouch for is most often a page left open, or loaded
-                // before strict mode was turned on: worth a reload, not a refusal.
+                // before strict mode was turned on: worth a reload, not a refusal. The trap itself
+                // answers neutrally, since a person whose password manager filled it was never
+                // found in any spam database.
                 return in_array($reason, [BlockReasons::NO_FORM, BlockReasons::FORM_TOKEN], true)
                     ? $this->refuse($request, 'fof-anti-spam.forum.message.honeypot.reload')
-                    : $this->refuse($request);
+                    : $this->refuse($request, 'fof-anti-spam.forum.message.honeypot.refused');
             }
 
             // Skip spam check if essential data is missing (let normal validation handle it)

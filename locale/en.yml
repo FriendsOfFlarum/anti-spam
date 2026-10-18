@@ -224,6 +224,7 @@ fof-anti-spam:
         blocked: This looks like spam, so it has not been saved. Please remove any links or contact details and try again.
 
       honeypot:
+        refused: "We couldn't complete your registration."
         reload: "Something went wrong with the sign-up form. Please reload the page and try again."
       stopforumspam:
         blocked: Details of your registration have been found in a spam prevention database, therefore your registration has been blocked.
