@@ -133,7 +133,7 @@ interval to `0` to switch it off.
 ### Sign-up Honeypot
 
 A trap for form-filling bots StopForumSpam has not seen yet. Off by default; turn on **Trap
-form-filling bots** in the settings.
+form-filling bots** on the **Sign-ups** tab.
 
 - The sign-up form gets a field people never see: moved off-screen, hidden from screen readers and
   skipped by the keyboard. A bot filling in every input fills it, and the sign-up is refused
@@ -166,15 +166,25 @@ StopForumSpam and the content filter are there for those.
 
 ### Basic Setup (Admin UI)
 
-All settings can be configured through the admin panel:
+All settings are in the admin panel under Extensions → FoF Anti Spam, on five tabs. Each settings
+tab has its own Save button, and you are asked before leaving a tab with unsaved changes.
 
-1. Navigate to Extensions → FoF Anti Spam → Settings
-2. Enable content filtering
-3. Configure user targeting (monitor everyone, or a post count and account age)
-4. Enable detectors (phones, emails, URLs)
-5. Set spam score thresholds
-6. Configure automatic actions (flag/unapprove)
-7. Add allowed domains and blocked words
+- **Sign-ups**: the honeypot, and the interval between registrations from one address
+- **StopForumSpam**: the registration lookup, what it checks and when it blocks, Tor and network
+  blocks, and reporting with an API key
+- **Content Filter**: who is checked, the detectors, thresholds and automatic actions, allowed
+  domains, blocked words and advanced patterns
+- **Spammer Actions**: the defaults offered when a moderator marks a user as a spammer
+- **Blocked Registrations**: every refused sign-up, with the reason
+
+To set up the content filter, on the **Content Filter** tab:
+
+1. Enable content filtering
+2. Configure user targeting (monitor everyone, or a post count and account age)
+3. Enable detectors (phones, emails, URLs)
+4. Set spam score thresholds
+5. Configure automatic actions (flag/unapprove)
+6. Add allowed domains and blocked words
 
 ### Advanced Configuration (extend.php)
 

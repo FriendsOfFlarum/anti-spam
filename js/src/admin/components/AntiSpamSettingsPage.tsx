@@ -8,17 +8,28 @@ import type Mithril from 'mithril';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import BlockedRegistration from '../../common/models/BlockedRegistration';
 import ItemList from 'flarum/common/utils/ItemList';
+import extractText from 'flarum/common/utils/extractText';
 import fullTime from 'flarum/common/helpers/fullTime';
 import humanTime from 'flarum/common/helpers/humanTime';
 import IPAddress from 'flarum/common/components/IPAddress';
 import Pagination from 'flarum/common/components/Pagination';
+import type { GeneralIndexItem } from 'flarum/admin/states/GeneralSearchIndex';
 import BlockedRegistrationSearch from './BlockedRegistrationSearch';
 import parseBlockedRegistrationQuery from '../utils/parseBlockedRegistrationQuery';
 import BlockEvidenceSummary from './BlockEvidenceSummary';
 import FlagAccountSetting from './FlagAccountSetting';
 
+export type AntiSpamTab = {
+  icon: string;
+  label: Mithril.Children;
+  content: () => Mithril.Children;
+};
+
 export default class AntiSpamSettingsPage extends ExtensionPage {
   private static readonly ITEMS_PER_PAGE: number = 20;
+
+  /** Shown when the URL names no tab, or one that no longer exists. */
+  static readonly DEFAULT_TAB: string = 'sign-ups';
 
   blockedLoading: boolean = false;
   blockedRegistrations: BlockedRegistration[] | null | undefined = null;
@@ -33,102 +44,250 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   /** Total with no filters applied, to tell "nothing recorded" from "nothing matched". */
   totalUnfiltered: number = 0;
 
-  static register() {
-    app.registry.for('fof-anti-spam');
+  /**
+   * Every setting, for the admin search. `tree` names the tab, because a result opens the first
+   * tab whatever its `link` says: core does not read an item's own link yet.
+   */
+  static searchIndex(): GeneralIndexItem[] {
+    const tab = (page: string, label: Mithril.Children) => ({
+      tree: [extractText(label)],
+      link: app.route('extension', { id: 'fof-anti-spam', page }),
+    });
 
-    // For search: Register settings with minimal info (label + help)
-    // These are used by GeneralSearchSource for search indexing
-    app.registry
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.content-filter.enabled',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_help'),
-      })
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.content-filter.monitor_all_users',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_help'),
-      })
-      .registerSetting({
-        type: 'number',
-        setting: 'fof-anti-spam.content-filter.monitor_post_count',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help'),
-      })
-      .registerSetting({
-        type: 'number',
-        setting: 'fof-anti-spam.content-filter.monitor_hours_old',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help'),
-      })
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.content-filter.detect_phones',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_help'),
-      })
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.content-filter.detect_emails',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help'),
-      })
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.content-filter.detect_urls',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help'),
-      })
-      .registerSetting({
-        type: 'number',
-        setting: 'fof-anti-spam.content-filter.flag_threshold',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_help'),
-      })
-      .registerSetting({
-        type: 'number',
-        setting: 'fof-anti-spam.content-filter.spam_threshold',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_help'),
-      })
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.content-filter.auto_unapprove',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_help'),
-      })
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.content-filter.auto_flag',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
-      })
-      .registerSetting({
-        type: 'text',
-        setting: 'fof-anti-spam.moderation.system_user_id',
-        label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_help'),
-      })
-      .registerSetting({
-        type: 'switch',
-        setting: 'fof-anti-spam.sfs-lookup',
-        label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_help'),
-      })
-      .registerSetting({
-        type: 'number',
-        setting: 'fof-anti-spam.frequency',
-        label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_help'),
-      })
-      .registerSetting({
-        type: 'number',
-        setting: 'fof-anti-spam.confidence',
-        label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_label'),
-        help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_help'),
-      });
+    // Core's search calls `visible` whenever the key exists, so it is left off rather than undefined.
+    const item = (
+      where: ReturnType<typeof tab>,
+      setting: string,
+      label: Mithril.Children,
+      help?: Mithril.Children,
+      visible?: () => boolean
+    ): GeneralIndexItem => ({
+      id: setting,
+      label: extractText(label),
+      ...(help ? { help: extractText(help) } : {}),
+      ...(visible ? { visible } : {}),
+      ...where,
+    });
+
+    const signUps = tab('sign-ups', app.translator.trans('fof-anti-spam.admin.tabs.sign_ups'));
+    const stopForumSpam = tab('stopforumspam', app.translator.trans('fof-anti-spam.admin.tabs.stopforumspam'));
+    const contentFilter = tab('content-filter', app.translator.trans('fof-anti-spam.admin.tabs.content_filter'));
+    const spammerActions = tab('spammer-actions', app.translator.trans('fof-anti-spam.admin.tabs.spammer_actions'));
+
+    const approvalEnabled = () => app.initializers.has('flarum-approval');
+    const flagsEnabled = () => app.initializers.has('flarum-flags');
+    const tagsEnabled = () => app.initializers.has('flarum-tags');
+
+    return [
+      item(
+        signUps,
+        'fof-anti-spam.honeypot.enabled',
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_help')
+      ),
+      item(
+        signUps,
+        'fof-anti-spam.honeypot.minSeconds',
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_min_seconds_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_min_seconds_help')
+      ),
+      item(
+        signUps,
+        'fof-anti-spam.honeypot.strict',
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_strict_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_strict_help')
+      ),
+      item(
+        signUps,
+        'fof-anti-spam.registrationThrottleSeconds',
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.registration_throttle_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.sign_ups.registration_throttle_help')
+      ),
+
+      item(
+        stopForumSpam,
+        'fof-anti-spam.sfs-lookup',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_help')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.regionalEndpoint',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_help')
+      ),
+      item(stopForumSpam, 'fof-anti-spam.username', app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.username_label')),
+      item(stopForumSpam, 'fof-anti-spam.ip', app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.ip_label')),
+      item(stopForumSpam, 'fof-anti-spam.email', app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_label')),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.emailhash',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_help')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.frequency',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_help')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.confidence',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_help')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.maxListingAgeDays',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_help')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.blockTorExitNodes',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_help')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.blockedAsns',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_help')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.api_key',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_text')
+      ),
+      item(
+        stopForumSpam,
+        'fof-anti-spam.report_blocked_registrations',
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_help')
+      ),
+
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.enabled',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.monitor_all_users',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.monitor_post_count',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.monitor_hours_old',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.detect_phones',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.detect_emails',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.detect_urls',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.allowed_domains',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.flag_threshold',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.spam_threshold',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.auto_unapprove',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_help'),
+        approvalEnabled
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.auto_flag',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
+        flagsEnabled
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.moderation.system_user_id',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_help'),
+        flagsEnabled
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.blocked_words',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.advanced_block_patterns',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_help')
+      ),
+
+      item(
+        spammerActions,
+        'fof-anti-spam.actions.deleteUser',
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_user_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_user_help')
+      ),
+      item(
+        spammerActions,
+        'fof-anti-spam.actions.deletePosts',
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_posts_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_posts_help')
+      ),
+      item(
+        spammerActions,
+        'fof-anti-spam.actions.deleteDiscussions',
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_help')
+      ),
+      item(
+        spammerActions,
+        'fof-anti-spam.actions.moveDiscussionsToTags',
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_help'),
+        tagsEnabled
+      ),
+    ];
   }
 
   /**
@@ -158,48 +317,119 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   oninit(vnode: Mithril.Vnode<any, this>) {
     super.oninit(vnode);
 
-    // Landing straight on the tab — a reload, or a bookmarked link — has to fetch as well,
-    // since no menu click went through to start it.
-    if (m.route.param('page') === 'blocked-registrations') {
+    // Every tab is its own route and rebuilds the page, so this is where the list has to load,
+    // whether the admin clicked through or landed here from a reload or a bookmark.
+    if (this.currentTab(this.tabs()) === 'blocked-registrations') {
       this.loadData();
     }
   }
 
+  /**
+   * Each tab is a `page` route parameter, so it survives a reload and can be linked to.
+   */
+  tabs(): ItemList<AntiSpamTab> {
+    const items = new ItemList<AntiSpamTab>();
+
+    items.add(
+      'sign-ups',
+      {
+        icon: 'fas fa-user-plus',
+        label: app.translator.trans('fof-anti-spam.admin.tabs.sign_ups'),
+        content: () => this.signUpsContent(),
+      },
+      50
+    );
+
+    items.add(
+      'stopforumspam',
+      {
+        icon: 'fas fa-database',
+        label: app.translator.trans('fof-anti-spam.admin.tabs.stopforumspam'),
+        content: () => this.stopForumSpamContent(),
+      },
+      40
+    );
+
+    items.add(
+      'content-filter',
+      {
+        icon: 'fas fa-filter',
+        label: app.translator.trans('fof-anti-spam.admin.tabs.content_filter'),
+        content: () => this.contentFilterContent(),
+      },
+      30
+    );
+
+    items.add(
+      'spammer-actions',
+      {
+        icon: 'fas fa-user-slash',
+        label: app.translator.trans('fof-anti-spam.admin.tabs.spammer_actions'),
+        content: () => this.spammerActionsContent(),
+      },
+      20
+    );
+
+    items.add(
+      'blocked-registrations',
+      {
+        icon: 'fas fa-ban',
+        label: app.translator.trans('fof-anti-spam.admin.blocked_registrations.button'),
+        content: () => this.blockedRegistrationsContent(),
+      },
+      10
+    );
+
+    return items;
+  }
+
+  currentTab(tabs: ItemList<AntiSpamTab>): string {
+    const page = m.route.param('page');
+
+    return page && tabs.has(page) ? page : AntiSpamSettingsPage.DEFAULT_TAB;
+  }
+
   content() {
-    // The route is the source of truth, so the tab survives a reload and can be linked to.
-    // Holding it in component state meant every refresh dropped the admin back on Settings.
-    const page = m.route.param('page') || 'settings';
+    const tabs = this.tabs();
+    const current = this.currentTab(tabs);
 
     return (
       <div className="FoFAntiSpamSettings">
         <div className="container">
-          {this.menuButtons(page)}
-          {page === 'settings' && this.settingsContent()}
-          {page === 'blocked-registrations' && this.blockedRegistrationsContent()}
+          {this.menuButtons(tabs, current)}
+          {tabs.get(current).content()}
         </div>
       </div>
     );
   }
 
-  menuButtons(page: string): Mithril.Children {
+  menuButtons(tabs: ItemList<AntiSpamTab>, current: string): Mithril.Children {
     return (
       <div className="MenuButtons">
-        <LinkButton
-          className={`Button ${page === 'settings' ? 'active' : ''}`}
-          icon="fas fa-cog"
-          href={app.route('extension', { id: 'fof-anti-spam' })}
-        >
-          {app.translator.trans('fof-anti-spam.admin.settings.button')}
-        </LinkButton>
-        <LinkButton
-          className={`Button ${page === 'blocked-registrations' ? 'active' : ''}`}
-          icon="fas fa-ban"
-          href={app.route('extension', { id: 'fof-anti-spam', page: 'blocked-registrations' })}
-        >
-          {app.translator.trans('fof-anti-spam.admin.blocked_registrations.button')}
-        </LinkButton>
+        {tabs.toArray().map((tab) => (
+          <LinkButton
+            className={`Button ${tab.itemName === current ? 'active' : ''}`}
+            icon={tab.icon}
+            href={app.route('extension', { id: 'fof-anti-spam', page: tab.itemName })}
+            onclick={(e: MouseEvent) => this.confirmLeave(e)}
+          >
+            {tab.label}
+          </LinkButton>
+        ))}
       </div>
     );
+  }
+
+  /**
+   * Moving to another tab rebuilds the page, which would otherwise drop unsaved edits without a word.
+   */
+  confirmLeave(e: MouseEvent) {
+    // A modified click opens the tab somewhere else and leaves this page, edits and all, as it is.
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+
+    if (this.isChanged() && !confirm(extractText(app.translator.trans('fof-anti-spam.admin.unsaved_changes')))) {
+      e.preventDefault();
+    }
   }
 
   /**
@@ -211,343 +441,386 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     return !!value && value !== '0';
   }
 
-  settingsContent(): Mithril.Children {
-    const apiRegions = ['closest', 'europe', 'us'];
-    const tagsEnabled = app.initializers.has('flarum-tags');
-    const approvalEnabled = app.initializers.has('flarum-approval');
-    const flagsEnabled = app.initializers.has('flarum-flags');
-
+  /**
+   * Every settings tab saves on its own. The page is rebuilt for each tab, so only the settings
+   * shown here can be waiting to save.
+   */
+  settingsForm(section: Mithril.Children): Mithril.Children {
     return (
       <div className="FoFAntiSpamSettings--settings">
         <Form>
-          <div className="Section Section--contentFilter">
-            <h3>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.heading')}</h3>
-            <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.introduction')}</p>
-
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.content-filter.enabled',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_help'),
-            })}
-
-            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.user_targeting_heading')}</h4>
-            {this.buildSettingComponent({
-              type: 'switch',
-              setting: 'fof-anti-spam.content-filter.monitor_all_users',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_help'),
-            })}
-
-            {/*
-              The two windows below only apply when everyone is not being monitored; leaving
-              them enabled would suggest they still narrow anything.
-            */}
-            {!this.monitoringEveryone() && [
-              this.buildSettingComponent({
-                type: 'number',
-                setting: 'fof-anti-spam.content-filter.monitor_post_count',
-                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
-                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help'),
-                placeholder: '5',
-                min: 0,
-              }),
-              this.buildSettingComponent({
-                type: 'number',
-                setting: 'fof-anti-spam.content-filter.monitor_hours_old',
-                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
-                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help'),
-                placeholder: '24',
-                min: 0,
-              }),
-            ]}
-
-            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.detectors_heading')}</h4>
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.content-filter.detect_phones',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_help'),
-            })}
-
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.content-filter.detect_emails',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help'),
-            })}
-
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.content-filter.detect_urls',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help'),
-            })}
-
-            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.thresholds_heading')}</h4>
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.content-filter.flag_threshold',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_help'),
-              placeholder: '50',
-              min: 0,
-              max: 100,
-            })}
-
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.content-filter.spam_threshold',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_help'),
-              placeholder: '70',
-              min: 0,
-              max: 100,
-            })}
-
-            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.actions_heading')}</h4>
-            {approvalEnabled &&
-              this.buildSettingComponent({
-                type: 'boolean',
-                setting: 'fof-anti-spam.content-filter.auto_unapprove',
-                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_label'),
-                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_help'),
-              })}
-
-            {flagsEnabled &&
-              this.buildSettingComponent({
-                type: 'boolean',
-                setting: 'fof-anti-spam.content-filter.auto_flag',
-                label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_label'),
-                help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
-              })}
-
-            {flagsEnabled && <FlagAccountSetting setting={this.setting('fof-anti-spam.moderation.system_user_id')} />}
-
-            {!approvalEnabled && !flagsEnabled && (
-              <p className="helpText Alert">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.no_action_extensions')}</p>
-            )}
-
-            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowlist_heading')}</h4>
-            {this.buildSettingComponent({
-              type: 'textarea',
-              setting: 'fof-anti-spam.content-filter.allowed_domains',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_help'),
-              placeholder: 'example.com\nyoutube.com\ngithub.com',
-              rows: 5,
-            })}
-
-            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_heading')}</h4>
-            {this.buildSettingComponent({
-              type: 'textarea',
-              setting: 'fof-anti-spam.content-filter.blocked_words',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_help'),
-              placeholder: 'viagra\ncialis\ncrypto pump',
-              rows: 15,
-            })}
-
-            <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_patterns_heading')}</h4>
-            {this.buildSettingComponent({
-              type: 'textarea',
-              setting: 'fof-anti-spam.content-filter.advanced_block_patterns',
-              label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_help'),
-              placeholder: '[{"pattern": "/\\\\b(viagra|cialis)\\\\b/i", "description": "Pharmaceutical spam"}]',
-              rows: 5,
-            })}
-          </div>
-          <div className="Section Section--defaultActions">
-            <h3>{app.translator.trans('fof-anti-spam.admin.settings.default-actions.heading')}</h3>
-            <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.default-actions.introduction')}</p>
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.actions.deleteUser',
-              label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_user_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_user_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.actions.deletePosts',
-              label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_posts_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_posts_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.actions.deleteDiscussions',
-              label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_help'),
-            })}
-            {tagsEnabled &&
-              this.buildSettingComponent({
-                type: 'flarum-tags.select-tags',
-                setting: 'fof-anti-spam.actions.moveDiscussionsToTags',
-
-                label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_label'),
-
-                help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_help'),
-
-                options: {
-                  requireParentTag: true,
-
-                  limits: {
-                    max: {
-                      primary: 1,
-                    },
-
-                    min: {
-                      primary: 1,
-                    },
-                  },
-                },
-              })}
-          </div>
-          <div className="Section Section--stopforumspam">
-            <h3>StopForumSpam</h3>
-            <div className="Introduction">
-              <p className="helpText">
-                {app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.introduction', {
-                  a: <Link href="https://stopforumspam.com" target="_blank" external={true} />,
-                })}
-              </p>
-            </div>
-            {this.lookupFailureWarning()}
-            {this.buildSettingComponent({
-              type: 'select',
-              setting: 'fof-anti-spam.regionalEndpoint',
-
-              options: apiRegions.reduce(
-                (
-                  o: {
-                    [key: string]: string;
-                  },
-                  p
-                ) => {
-                  o[p] = app.translator.trans(`fof-anti-spam.admin.settings.stopforumspam.region_${p}_label`) as string;
-                  return o;
-                },
-                {}
-              ),
-
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.sfs-lookup',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.frequency',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_help'),
-              placeholder: '5',
-              required: true,
-            })}
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.confidence',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_help'),
-              min: 0,
-              max: 100,
-              placeholder: '50.0',
-              required: true,
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.report_blocked_registrations',
-
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_label'),
-
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.username',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.username_label'),
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.ip',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.ip_label'),
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.email',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_label'),
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.emailhash',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.maxListingAgeDays',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_help'),
-              min: 0,
-            })}
-            {this.buildSettingComponent({
-              type: 'textarea',
-              setting: 'fof-anti-spam.blockedAsns',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_help'),
-            })}
-            {this.buildSettingComponent({
-              type: 'number',
-              setting: 'fof-anti-spam.registrationThrottleSeconds',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.registration_throttle_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.registration_throttle_help'),
-              min: 0,
-            })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.honeypot.enabled',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_help'),
-            })}
-            {this.honeypotOn() &&
-              this.buildSettingComponent({
-                type: 'number',
-                setting: 'fof-anti-spam.honeypot.minSeconds',
-                label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_min_seconds_label'),
-                help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_min_seconds_help'),
-                min: 0,
-              })}
-            {this.honeypotOn() &&
-              this.buildSettingComponent({
-                type: 'boolean',
-                setting: 'fof-anti-spam.honeypot.strict',
-                label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_strict_label'),
-                help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.honeypot_strict_help'),
-              })}
-            {this.buildSettingComponent({
-              type: 'boolean',
-              setting: 'fof-anti-spam.blockTorExitNodes',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_label'),
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_help'),
-            })}
-            <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_text')}</p>
-            {this.buildSettingComponent({
-              type: 'string',
-              setting: 'fof-anti-spam.api_key',
-              label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_label'),
-
-              help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_instructions_text', {
-                register: <a href="https://www.stopforumspam.com/forum/register.php" />,
-                key: <a href="https://www.stopforumspam.com/keys" />,
-              }),
-            })}
-          </div>
+          {section}
           <hr />
           {this.submitButton()}
         </Form>
+      </div>
+    );
+  }
+
+  signUpsContent(): Mithril.Children {
+    return this.settingsForm(
+      <div className="Section Section--signUps">
+        <h3>{app.translator.trans('fof-anti-spam.admin.settings.sign_ups.heading')}</h3>
+        <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.sign_ups.introduction')}</p>
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.honeypot.enabled',
+          label: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_help'),
+        })}
+        {this.honeypotOn() &&
+          this.buildSettingComponent({
+            type: 'number',
+            setting: 'fof-anti-spam.honeypot.minSeconds',
+            label: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_min_seconds_label'),
+            help: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_min_seconds_help'),
+            min: 0,
+          })}
+        {this.honeypotOn() &&
+          this.buildSettingComponent({
+            type: 'boolean',
+            setting: 'fof-anti-spam.honeypot.strict',
+            label: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_strict_label'),
+            help: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.honeypot_strict_help'),
+          })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.sign_ups.throttle_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.registrationThrottleSeconds',
+          label: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.registration_throttle_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.sign_ups.registration_throttle_help'),
+          min: 0,
+        })}
+      </div>
+    );
+  }
+
+  stopForumSpamContent(): Mithril.Children {
+    const apiRegions = ['closest', 'europe', 'us'];
+
+    return this.settingsForm(
+      <div className="Section Section--stopforumspam">
+        <h3>StopForumSpam</h3>
+        <div className="Introduction">
+          <p className="helpText">
+            {app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.introduction', {
+              a: <Link href="https://stopforumspam.com" target="_blank" external={true} />,
+            })}
+          </p>
+        </div>
+        {this.lookupFailureWarning()}
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.sfs-lookup',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.sfs_lookup_help'),
+        })}
+        {this.buildSettingComponent({
+          type: 'select',
+          setting: 'fof-anti-spam.regionalEndpoint',
+
+          options: apiRegions.reduce(
+            (
+              o: {
+                [key: string]: string;
+              },
+              p
+            ) => {
+              o[p] = app.translator.trans(`fof-anti-spam.admin.settings.stopforumspam.region_${p}_label`) as string;
+              return o;
+            },
+            {}
+          ),
+
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.regional_endpoint_help'),
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.checks_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.username',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.username_label'),
+        })}
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.ip',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.ip_label'),
+        })}
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.email',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_label'),
+        })}
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.emailhash',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.email_hash_help'),
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.thresholds_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.frequency',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.frequency_help'),
+          placeholder: '5',
+          required: true,
+        })}
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.confidence',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.confidence_help'),
+          min: 0,
+          max: 100,
+          placeholder: '50.0',
+          required: true,
+        })}
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.maxListingAgeDays',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.max_listing_age_help'),
+          min: 0,
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.also_block_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.blockTorExitNodes',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.block_tor_exit_nodes_help'),
+        })}
+        {this.buildSettingComponent({
+          type: 'textarea',
+          setting: 'fof-anti-spam.blockedAsns',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.blocked_asns_help'),
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.reporting_heading')}</h4>
+        <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_text')}</p>
+        {this.buildSettingComponent({
+          type: 'string',
+          setting: 'fof-anti-spam.api_key',
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_label'),
+
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.api_key_instructions_text', {
+            register: <a href="https://www.stopforumspam.com/forum/register.php" />,
+            key: <a href="https://www.stopforumspam.com/keys" />,
+          }),
+        })}
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.report_blocked_registrations',
+
+          label: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_label'),
+
+          help: app.translator.trans('fof-anti-spam.admin.settings.stopforumspam.report_blocked_registrations_help'),
+        })}
+      </div>
+    );
+  }
+
+  contentFilterContent(): Mithril.Children {
+    const approvalEnabled = app.initializers.has('flarum-approval');
+    const flagsEnabled = app.initializers.has('flarum-flags');
+
+    return this.settingsForm(
+      <div className="Section Section--contentFilter">
+        <h3>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.heading')}</h3>
+        <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.introduction')}</p>
+
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.content-filter.enabled',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.enabled_help'),
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.user_targeting_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'switch',
+          setting: 'fof-anti-spam.content-filter.monitor_all_users',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_all_users_help'),
+        })}
+
+        {/*
+          The two windows below only apply when everyone is not being monitored; leaving
+          them enabled would suggest they still narrow anything.
+        */}
+        {!this.monitoringEveryone() && [
+          this.buildSettingComponent({
+            type: 'number',
+            setting: 'fof-anti-spam.content-filter.monitor_post_count',
+            label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_label'),
+            help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_post_count_help'),
+            placeholder: '5',
+            min: 0,
+          }),
+          this.buildSettingComponent({
+            type: 'number',
+            setting: 'fof-anti-spam.content-filter.monitor_hours_old',
+            label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_label'),
+            help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_hours_old_help'),
+            placeholder: '24',
+            min: 0,
+          }),
+        ]}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.detectors_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.content-filter.detect_phones',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_help'),
+        })}
+
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.content-filter.detect_emails',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help'),
+        })}
+
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.content-filter.detect_urls',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help'),
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.thresholds_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.content-filter.flag_threshold',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_threshold_help'),
+          placeholder: '50',
+          min: 0,
+          max: 100,
+        })}
+
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.content-filter.spam_threshold',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.spam_threshold_help'),
+          placeholder: '70',
+          min: 0,
+          max: 100,
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.actions_heading')}</h4>
+        {approvalEnabled &&
+          this.buildSettingComponent({
+            type: 'boolean',
+            setting: 'fof-anti-spam.content-filter.auto_unapprove',
+            label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_label'),
+            help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_unapprove_help'),
+          })}
+
+        {flagsEnabled &&
+          this.buildSettingComponent({
+            type: 'boolean',
+            setting: 'fof-anti-spam.content-filter.auto_flag',
+            label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_label'),
+            help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.auto_flag_help'),
+          })}
+
+        {flagsEnabled && <FlagAccountSetting setting={this.setting('fof-anti-spam.moderation.system_user_id')} />}
+
+        {!approvalEnabled && !flagsEnabled && (
+          <p className="helpText Alert">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.no_action_extensions')}</p>
+        )}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowlist_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'textarea',
+          setting: 'fof-anti-spam.content-filter.allowed_domains',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.allowed_domains_help'),
+          placeholder: 'example.com\nyoutube.com\ngithub.com',
+          rows: 5,
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'textarea',
+          setting: 'fof-anti-spam.content-filter.blocked_words',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.blocked_words_help'),
+          placeholder: 'viagra\ncialis\ncrypto pump',
+          rows: 8,
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_patterns_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'textarea',
+          setting: 'fof-anti-spam.content-filter.advanced_block_patterns',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.advanced_block_patterns_help'),
+          placeholder: '[{"pattern": "/\\\\b(viagra|cialis)\\\\b/i", "description": "Pharmaceutical spam"}]',
+          rows: 5,
+        })}
+      </div>
+    );
+  }
+
+  spammerActionsContent(): Mithril.Children {
+    const tagsEnabled = app.initializers.has('flarum-tags');
+
+    return this.settingsForm(
+      <div className="Section Section--defaultActions">
+        <h3>{app.translator.trans('fof-anti-spam.admin.settings.default-actions.heading')}</h3>
+        <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.default-actions.introduction')}</p>
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.actions.deleteUser',
+          label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_user_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_user_help'),
+        })}
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.actions.deletePosts',
+          label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_posts_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_posts_help'),
+        })}
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.actions.deleteDiscussions',
+          label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.delete_discussions_help'),
+        })}
+        {tagsEnabled &&
+          this.buildSettingComponent({
+            type: 'flarum-tags.select-tags',
+            setting: 'fof-anti-spam.actions.moveDiscussionsToTags',
+
+            label: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_label'),
+
+            help: app.translator.trans('fof-anti-spam.admin.settings.default-actions.move_discussions_to_tags_help'),
+
+            options: {
+              requireParentTag: true,
+
+              limits: {
+                max: {
+                  primary: 1,
+                },
+
+                min: {
+                  primary: 1,
+                },
+              },
+            },
+          })}
       </div>
     );
   }
