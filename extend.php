@@ -21,6 +21,7 @@ use Flarum\User\User;
 use FoF\AntiSpam\Event\MarkedUserAsSpammer;
 use FoF\AntiSpam\Event\PostWasFlaggedAsSpam;
 use FoF\AntiSpam\Event\RegistrationWasBlocked;
+use FoF\Masquerade\Answer as MasqueradeAnswer;
 
 return [
     (new Extend\Frontend('forum'))
@@ -130,6 +131,11 @@ return [
         ->whenExtensionEnabled('fof-user-bio', fn () => [
             (new Extend\Event())
                 ->listen(UserSaving::class, Listener\CheckBioContent::class),
+        ])
+        // On-bio answers are shown beside every post their author makes.
+        ->whenExtensionEnabled('fof-masquerade', fn () => [
+            (new Extend\Event())
+                ->listen('eloquent.saving: '.MasqueradeAnswer::class, Listener\CheckMasqueradeAnswerContent::class),
         ])
         ->whenExtensionEnabled('flarum-audit', fn () => [
             (new Audit())

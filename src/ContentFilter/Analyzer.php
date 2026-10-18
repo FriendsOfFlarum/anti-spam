@@ -64,10 +64,14 @@ class Analyzer
         $detectorScores = [];
         $totalScore = 0;
 
+        // A field whose whole purpose is a link or an address can name the detectors that would
+        // only ever object to it doing its job.
+        $ignored = $context['ignore_detectors'] ?? [];
+
         // Run all detectors
         foreach ($this->detectors as $detector) {
             try {
-                if (! $detector->isEnabled()) {
+                if (! $detector->isEnabled() || in_array($detector::class, $ignored, true)) {
                     continue;
                 }
 
