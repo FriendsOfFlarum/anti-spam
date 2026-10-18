@@ -242,6 +242,57 @@ class CheckRegistrationMiddlewareTest extends TestCase
     }
 
     #[Test]
+    public function a_token_carrying_only_an_email_is_merged_with_the_username_in_the_body()
+    {
+        $this->app();
+
+        $token = RegistrationToken::generate('github', '2468', ['email' => 'provider@example.com'], []);
+        $token->save();
+
+        $this->registerViaApi(['token' => $token->token, 'username' => 'chosen_name', 'email' => 'typed@example.com']);
+
+        $lookups = $this->sfsLookups();
+        $this->assertSame('provider@example.com', end($lookups)['email'], 'The provider email is what the account gets');
+        $this->assertSame('chosen_name', end($lookups)['username'], 'The token carried no username, so the body\'s stands');
+    }
+
+    #[Test]
+    public function an_unknown_token_falls_back_to_checking_the_body()
+    {
+        $this->knownSpammer('spamhaus_bot');
+
+        $response = $this->registerViaApi([
+            'token' => 'not-a-real-token',
+            'username' => 'spamhaus_bot',
+            'email' => 'bot@example.com',
+            'password' => 'too-obscure',
+        ]);
+
+        $this->assertEquals(422, $response->getStatusCode());
+        $this->assertNull(User::where('username', 'spamhaus_bot')->first());
+    }
+
+    #[Test]
+    public function a_token_that_is_not_a_string_is_ignored_rather_than_crashing_the_check()
+    {
+        $this->knownSpammer('spamhaus_bot');
+
+        $response = $this->send(
+            $this->request('POST', '/api/users', [
+                'json' => ['data' => ['type' => 'users', 'attributes' => [
+                    'token' => ['nested' => 'value'],
+                    'username' => 'spamhaus_bot',
+                    'email' => 'bot@example.com',
+                    'password' => 'too-obscure',
+                ]]],
+            ])
+        );
+
+        $this->assertNotEquals(500, $response->getStatusCode());
+        $this->assertNull(User::where('username', 'spamhaus_bot')->first());
+    }
+
+    #[Test]
     public function a_plain_sign_up_after_an_oauth_one_is_not_attributed_to_the_provider()
     {
         // The middleware instance outlives a request. Nothing from one registration may leak
