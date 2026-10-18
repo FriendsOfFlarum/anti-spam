@@ -273,6 +273,33 @@ class ContentFilterTest extends TestCase
     }
 
     #[Test]
+    public function a_moderator_renaming_a_discussion_is_not_checked()
+    {
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+        $this->prepareDatabase([
+            Discussion::class => [
+                ['id' => 51, 'title' => 'Fresh thread', 'created_at' => Carbon::now(), 'user_id' => 3, 'first_post_id' => 51, 'comment_count' => 1, 'is_approved' => 1],
+            ],
+            Post::class => [
+                ['id' => 51, 'number' => 1, 'discussion_id' => 51, 'created_at' => Carbon::now(), 'user_id' => 3, 'type' => 'comment', 'content' => '<t>Hi</t>'],
+            ],
+        ]);
+
+        $response = $this->send(
+            $this->request('PATCH', '/api/discussions/51', [
+                'authenticatedAs' => 1,
+                'json' => ['data' => ['type' => 'discussions', 'id' => '51', 'attributes' => [
+                    'title' => 'Moved: see http://suspicious-site.com',
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertTrue((bool) Discussion::find(51)->is_approved);
+    }
+
+    #[Test]
     public function an_established_member_renaming_their_discussion_is_not_checked()
     {
         $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
