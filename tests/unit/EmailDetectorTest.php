@@ -30,6 +30,15 @@ class EmailDetectorTest extends TestCase
         yield 'end of sentence' => ['My address is spammer@suspicious-site.com.', ['spammer@suspicious-site.com']];
         yield 'unicode domain' => ['Пишите spam@пример.рф', ['spam@пример.рф']];
         yield 'two' => ['a@one-site.com or b@two-site.net', ['a@one-site.com', 'b@two-site.net']];
+
+        // Trailing characters a spammer can add for free.
+        yield 'smiley after' => ['Mail bob@spam-site.com:) now', ['bob@spam-site.com']];
+        yield 'colon note after' => ['bob@spam-site.com:ok', ['bob@spam-site.com']];
+        yield 'digit after' => ['bob@spam-site.com2', ['bob@spam-site.com']];
+        yield 'underscore after' => ['bob@spam-site.com_', ['bob@spam-site.com']];
+        yield 'at sign after' => ['bob@spam-site.com@', ['bob@spam-site.com']];
+        yield 'zero for an o' => ['bob@spam-site.c0m', ['bob@spam-site.c0m']];
+        yield 'punycode tld' => ['bob@spam-site.xn--p1ai', ['bob@spam-site.xn--p1ai']];
     }
 
     #[Test]
@@ -49,10 +58,19 @@ class EmailDetectorTest extends TestCase
         yield 'npm version' => ['yarn add flarum-webpack-config@3.0.7 and react@18.3.1'];
         yield 'scoped npm package' => ['Install @flarum/core@2.0.2'];
         yield 'git remote' => ['git clone git@github.com:FriendsOfFlarum/anti-spam.git'];
+        yield 'git remote with a tilde' => ['git clone git@gitlab.com:~me/repo.git'];
         yield 'docker digest' => ['Pull image@sha256:abc123def456'];
         yield 'mention' => ['Thanks @"Ian M"#p123.'];
         yield 'handle' => ['Ping @IanM about it'];
         yield 'no tld' => ['Logged in as root@localhost'];
+    }
+
+    #[Test]
+    public function a_huge_dotted_run_neither_errors_nor_hides_an_earlier_address(): void
+    {
+        $content = 'Mail bob@spam-site.com now. x@'.str_repeat('a.', 50000);
+
+        $this->assertSame(['bob@spam-site.com'], EmailDetector::extractEmails($content));
     }
 
     #[Test]

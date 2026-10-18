@@ -23,20 +23,25 @@ use FoF\AntiSpam\ContentFilter\SpamScore;
 class EmailDetector extends AbstractDetector
 {
     /**
-     * An address whose domain ends in a TLD of letters.
+     * An address whose domain ends in a TLD.
      *
      * - The local part may not follow a word character, `/` or `@`, so `flarum/core@2.0.2` and
      *   `@scope/pkg@1.0` never start a match, and a version after the `@` has no TLD to end in.
-     * - A `:path` straight after the domain is a git remote such as `git@github.com:org/repo`.
+     * - A TLD starts and ends with a letter, so `.c0m` still counts but a trailing digit,
+     *   `_` or `@` added to evade a stricter match is simply left off. Punycode TLDs count too.
+     * - `:path/` straight after the domain is a git remote such as `git@github.com:org/repo`.
      * - Letters are any script's: a spammer is as happy with `пример.рф` as with `example.com`.
+     * - Repetitions are possessive, so a long dotted run is read once rather than exhausting the
+     *   regex engine's stack. A label only repeats when another follows its dot, so the full
+     *   stop ending a sentence is not mistaken for one.
      */
     protected const string EMAIL_PATTERN = '~
         (?<! [\p{L}\p{N}_.%+\-/@] )
-        [\p{L}\p{N}_.%+\-]+
+        [\p{L}\p{N}_.%+\-]++
         @
-        (?: [\p{L}\p{N}] (?: [\p{L}\p{N}\-]* [\p{L}\p{N}] )? \. )+
-        \p{L}{2,63}
-        (?! [\p{L}\p{N}_\-@] | :\S )
+        (?: [\p{L}\p{N}] (?: [\p{L}\p{N}\-]* [\p{L}\p{N}] )? \. (?= [\p{L}\p{N}] ) )++
+        (?: xn-- [a-z0-9\-]++ | \p{L} (?: [\p{L}\p{N}]* \p{L} ) )
+        (?! \p{L} ) (?! : [\w.\~\-]++ / )
     ~xu';
 
     /**
@@ -46,7 +51,13 @@ class EmailDetector extends AbstractDetector
      */
     public static function extractEmails(string $content): array
     {
-        return preg_match_all(self::EMAIL_PATTERN, $content, $matches) ? $matches[0] : [];
+        $found = preg_match_all(self::EMAIL_PATTERN, $content, $matches);
+
+        if ($found === false) {
+            throw new \RuntimeException('Email pattern failed: '.preg_last_error_msg());
+        }
+
+        return $matches[0];
     }
 
     public function analyze(string $content, User $user, array $context = []): SpamScore
@@ -113,17 +124,7 @@ class EmailDetector extends AbstractDetector
     {
         $domain = mb_strtolower($domain);
 
-        if (UrlDetector::isLocalOrReserved($domain)) {
-            return true;
-        }
-
-        foreach ($allowedDomains as $allowed) {
-            if ($domain === $allowed || str_ends_with($domain, '.'.$allowed)) {
-                return true;
-            }
-        }
-
-        return false;
+        return UrlDetector::isLocalOrReserved($domain) || UrlDetector::hostIsAllowed($domain, $allowedDomains);
     }
 
     public function getName(): string
