@@ -11,6 +11,7 @@
 
 namespace FoF\AntiSpam\Tests\integration;
 
+use Carbon\Carbon;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\Testing\integration\TestCase;
 use FoF\AntiSpam\Api\SfsClient;
@@ -73,6 +74,24 @@ class LookupHealthTest extends TestCase
             $this->settings()->get(self::FAILURE_KEY),
             'An unreachable API must leave a trace an admin can be shown'
         );
+    }
+
+    #[Test]
+    public function an_outage_is_dated_from_its_first_failure()
+    {
+        // The admin is told how long registrations have been going through unchecked, which a
+        // timestamp overwritten by every later failure cannot say.
+        Carbon::setTestNow('2026-03-01 10:00:00');
+        $this->client([new ConnectException('timeout', new Request('POST', 'api'))])
+            ->check('1.2.3.4', 'a@example.com', 'someone');
+
+        Carbon::setTestNow('2026-03-01 10:45:00');
+        $this->client([new ConnectException('timeout', new Request('POST', 'api'))])
+            ->check('5.6.7.8', 'b@example.com', 'someone-else');
+
+        Carbon::setTestNow();
+
+        $this->assertSame('2026-03-01T10:00:00+00:00', $this->settings()->get(self::FAILURE_KEY));
     }
 
     #[Test]

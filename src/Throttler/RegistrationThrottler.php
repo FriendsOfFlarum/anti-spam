@@ -13,7 +13,7 @@ namespace FoF\AntiSpam\Throttler;
 
 use Flarum\Settings\SettingsRepositoryInterface;
 use FoF\AntiSpam\Http\ClientIp;
-use Illuminate\Contracts\Cache\Store;
+use Illuminate\Contracts\Cache\Repository;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -34,11 +34,11 @@ class RegistrationThrottler
 {
     public const SETTING = 'fof-anti-spam.registrationThrottleSeconds';
 
-    private const CACHE_PREFIX = 'fof-anti-spam.registration-throttle.';
+    protected const string CACHE_PREFIX = 'fof-anti-spam.registration-throttle.';
 
     public function __construct(
         protected SettingsRepositoryInterface $settings,
-        protected Store $cache
+        protected Repository $cache
     ) {
     }
 
@@ -67,14 +67,39 @@ class RegistrationThrottler
             return null;
         }
 
-        $key = self::CACHE_PREFIX.md5($ip);
+        $key = self::CACHE_PREFIX.self::network($ip);
 
-        if ($this->cache->get($key) !== null) {
-            return true;
+        // One atomic claim: a separate read and write let concurrent requests all see the slot
+        // free and all go through.
+        return $this->cache->add($key, 1, $seconds) ? null : true;
+    }
+
+    /**
+     * The part of an address that identifies one subscriber.
+     *
+     * An IPv6 subscriber is routinely given a whole /64, so the full address would let every
+     * registration arrive from a fresh one. IPv4 stays per address: a /24 is commonly shared by
+     * unrelated households behind one provider. An IPv4-mapped IPv6 address is its IPv4 address.
+     *
+     * Someone holding a /56 or /48 can still rotate through /64s; going wider would start to
+     * throttle unrelated customers of providers that assign from a shared /48.
+     */
+    protected static function network(string $ip): string
+    {
+        $packed = inet_pton($ip);
+
+        // ClientIp only passes validated addresses, but an unparseable one must not share a key
+        // with every other.
+        if ($packed === false) {
+            return md5($ip);
         }
 
-        $this->cache->put($key, 1, $seconds);
+        if (strlen($packed) === 16 && str_starts_with($packed, str_repeat("\0", 10)."\xff\xff")) {
+            $packed = substr($packed, 12);
+        } elseif (strlen($packed) === 16) {
+            $packed = substr($packed, 0, 8);
+        }
 
-        return null;
+        return bin2hex($packed);
     }
 }

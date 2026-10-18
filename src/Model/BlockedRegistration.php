@@ -31,6 +31,11 @@ class BlockedRegistration extends AbstractModel
 {
     use ScopeVisibilityTrait;
 
+    /**
+     * Stored for a field the attempt did not carry, since the columns are not nullable.
+     */
+    public const string MISSING = 'unknown';
+
     public $table = 'blocked_registrations';
 
     public $casts = [

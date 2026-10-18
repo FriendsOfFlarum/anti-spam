@@ -34,19 +34,9 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
      * enabled — completely unchecked. Both routes reach this endpoint, so both are covered, and
      * neither is checked twice.
      */
-    private const REGISTER_ROUTE = 'users.create';
+    protected const string REGISTER_ROUTE = 'users.create';
 
-    /**
-     * @var string
-     */
-    private $provider = 'flarum';
-
-    /**
-     * @var array
-     */
-    private $providerData = [];
-
-    public function __construct(private StopForumSpam $sfs)
+    public function __construct(protected StopForumSpam $sfs)
     {
     }
 
@@ -63,22 +53,31 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
 
             $email = Arr::get($attributes, 'email');
             $username = Arr::get($attributes, 'username');
+            $provider = 'flarum';
+            $providerData = $attributes;
+
+            if ($token = $this->registrationToken($attributes)) {
+                $provider = $token->provider;
+                $providerData = $token->payload;
+
+                // Core applies the token's attributes over the body's after validation, so these
+                // are what the account will really carry. Checking the body alone let a request
+                // send clean values, or none at all, beside a token holding the spammer's.
+                $email = Arr::get($token->user_attributes, 'email', $email);
+                $username = Arr::get($token->user_attributes, 'username', $username);
+            }
 
             // Skip spam check if essential data is missing (let normal validation handle it)
             if (empty($email) && empty($username)) {
                 return $handler->handle($request);
             }
 
-            if (! $this->isOAuthRegistration($attributes)) {
-                $this->providerData = $attributes;
-            }
-
             $shouldPrevent = $this->sfs->shouldPreventRegistration(
                 $this->getIpAddress($request),
                 $email,
                 $username,
-                $this->provider,
-                $this->providerData
+                $provider,
+                $providerData
             );
 
             if ($shouldPrevent) {
@@ -112,15 +111,10 @@ class CheckRegistrationMiddleware implements MiddlewareInterface
         return ClientIp::fromRequest($request);
     }
 
-    protected function isOAuthRegistration(array $data): bool
+    protected function registrationToken(array $attributes): ?RegistrationToken
     {
-        if (Arr::has($data, 'token') && $registration = RegistrationToken::find(Arr::get($data, 'token'))) {
-            $this->provider = $registration->provider;
-            $this->providerData = $registration->payload;
+        $token = Arr::get($attributes, 'token');
 
-            return true;
-        }
-
-        return false;
+        return is_string($token) && $token !== '' ? RegistrationToken::find($token) : null;
     }
 }

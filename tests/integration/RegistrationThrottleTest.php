@@ -15,7 +15,7 @@ use Flarum\Extend;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
 use FoF\AntiSpam\Throttler\RegistrationThrottler;
-use Illuminate\Contracts\Cache\Store;
+use Illuminate\Contracts\Cache\Repository;
 use Laminas\Diactoros\ServerRequest;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\ResponseInterface;
@@ -81,7 +81,7 @@ class RegistrationThrottleTest extends TestCase
         // Driven directly: every request the harness builds carries the same REMOTE_ADDR, so two
         // distinct addresses cannot be told apart over HTTP.
         $container = $this->app()->getContainer();
-        $throttle = new RegistrationThrottler($container->make('flarum.settings'), $container->make(Store::class));
+        $throttle = new RegistrationThrottler($container->make('flarum.settings'), $container->make(Repository::class));
 
         $first = $this->creationRequestFrom('203.0.113.9');
 
@@ -91,12 +91,49 @@ class RegistrationThrottleTest extends TestCase
     }
 
     #[Test]
+    public function ipv6_addresses_share_a_window_across_their_64_bit_network()
+    {
+        $this->setting('fof-anti-spam.registrationThrottleSeconds', 30);
+
+        // A single IPv6 subscriber is routinely handed a whole /64. Keyed on the full address,
+        // every registration could come from a fresh one and the interval would never apply.
+        $container = $this->app()->getContainer();
+        $throttle = new RegistrationThrottler($container->make('flarum.settings'), $container->make(Repository::class));
+
+        $this->assertNull($throttle($this->creationRequestFrom('2001:db8:aaaa:bbbb::1')));
+        $this->assertTrue(
+            $throttle($this->creationRequestFrom('2001:db8:aaaa:bbbb:ffff:1234:5678:9abc')),
+            'Another address in the same /64 is the same subscriber'
+        );
+        $this->assertNull(
+            $throttle($this->creationRequestFrom('2001:db8:aaaa:cccc::1')),
+            'A different /64 is a different network'
+        );
+    }
+
+    #[Test]
+    public function an_ipv4_mapped_address_shares_a_window_with_its_ipv4_form()
+    {
+        $this->setting('fof-anti-spam.registrationThrottleSeconds', 30);
+
+        $container = $this->app()->getContainer();
+        $throttle = new RegistrationThrottler($container->make('flarum.settings'), $container->make(Repository::class));
+
+        $this->assertNull($throttle($this->creationRequestFrom('203.0.113.9')));
+        $this->assertTrue($throttle($this->creationRequestFrom('::ffff:203.0.113.9')));
+        $this->assertNull(
+            $throttle($this->creationRequestFrom('203.0.113.10')),
+            'IPv4 is still keyed per address, not per network'
+        );
+    }
+
+    #[Test]
     public function other_endpoints_are_left_alone_by_the_throttler()
     {
         $this->setting('fof-anti-spam.registrationThrottleSeconds', 30);
 
         $container = $this->app()->getContainer();
-        $throttle = new RegistrationThrottler($container->make('flarum.settings'), $container->make(Store::class));
+        $throttle = new RegistrationThrottler($container->make('flarum.settings'), $container->make(Repository::class));
 
         $request = (new ServerRequest(['REMOTE_ADDR' => '203.0.113.9'], [], '/api/posts', 'POST'))
             ->withAttribute('routeName', 'posts.create');

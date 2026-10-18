@@ -223,9 +223,9 @@ class StopForumSpam
 
     private function buildAndDispatchEvents(array $data, string $sfsData, ?string $provider = null, ?array $providerData = null, ?BlockReasons $reasons = null): void
     {
-        $ip = Arr::get($data, 'ip') ?? 'unknown';
-        $email = Arr::get($data, 'email') ?? 'unknown';
-        $username = Arr::get($data, 'username') ?? 'unknown';
+        $ip = Arr::get($data, 'ip') ?? Model\BlockedRegistration::MISSING;
+        $email = Arr::get($data, 'email') ?? Model\BlockedRegistration::MISSING;
+        $username = Arr::get($data, 'username') ?? Model\BlockedRegistration::MISSING;
 
         // If there's a password in the provider data, we remove it from the data we send to the event.
         if ($providerData !== null) {
