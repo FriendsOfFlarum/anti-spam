@@ -70,6 +70,96 @@ class ReportBlockedRegistrationTest extends TestCase
     }
 
     #[Test]
+    public function evidence_against_the_address_alone_does_not_report_the_person()
+    {
+        // A VPN or carrier-grade NAT address can carry a high score while the person behind it
+        // is innocent. Reporting would list their clean email and name for every other forum.
+        $this->knownSpammer('vpn_user', [
+            'ip' => ['appears' => 1, 'frequency' => 40, 'confidence' => 95.0, 'blacklisted' => 0],
+            'email' => ['appears' => 0, 'frequency' => 0, 'confidence' => 0.0, 'blacklisted' => 0],
+            'username' => ['appears' => 0, 'frequency' => 0, 'confidence' => 0.0, 'blacklisted' => 0],
+        ]);
+
+        $this->assertEquals(422, $this->register('vpn_user', 'vpn_user@example.com')->getStatusCode());
+
+        $this->assertSame([], $this->sfsReports());
+    }
+
+    #[Test]
+    public function a_tor_exit_block_is_not_reported()
+    {
+        $this->setting('fof-anti-spam.blockTorExitNodes', true);
+        $this->knownSpammer('tor_visitor', [
+            'ip' => ['appears' => 0, 'frequency' => 0, 'confidence' => 0.0, 'blacklisted' => 0, 'torexit' => 1],
+            'email' => ['appears' => 0, 'frequency' => 0, 'confidence' => 0.0, 'blacklisted' => 0],
+            'username' => ['appears' => 0, 'frequency' => 0, 'confidence' => 0.0, 'blacklisted' => 0],
+        ]);
+
+        $this->assertEquals(422, $this->register('tor_visitor', 'tor_visitor@example.com')->getStatusCode());
+
+        $this->assertSame([], $this->sfsReports());
+    }
+
+    #[Test]
+    public function a_listed_email_is_reported_even_when_a_network_rule_also_fired()
+    {
+        $this->setting('fof-anti-spam.blockedAsns', '64500');
+        $this->knownSpammer('listed_mail', [
+            'ip' => ['appears' => 0, 'frequency' => 0, 'confidence' => 0.0, 'blacklisted' => 0, 'asn' => 64500],
+            'email' => ['appears' => 1, 'frequency' => 30, 'confidence' => 90.0, 'blacklisted' => 0],
+            'username' => ['appears' => 0, 'frequency' => 0, 'confidence' => 0.0, 'blacklisted' => 0],
+        ]);
+
+        $this->assertEquals(422, $this->register('listed_mail', 'listed@example.com')->getStatusCode());
+
+        $this->assertCount(1, $this->sfsReports());
+    }
+
+    #[Test]
+    public function nothing_is_reported_when_the_setting_is_off()
+    {
+        $this->setting('fof-anti-spam.report_blocked_registrations', false);
+        $this->knownSpammer('xrumer');
+
+        $this->register('xrumer', 'testing@xrumer.ru');
+
+        $this->assertSame([], $this->sfsReports());
+    }
+
+    #[Test]
+    public function nothing_is_reported_without_an_api_key()
+    {
+        $this->setting(SfsClient::KEY, '');
+        $this->knownSpammer('xrumer');
+
+        $this->register('xrumer', 'testing@xrumer.ru');
+
+        $this->assertSame([], $this->sfsReports());
+    }
+
+    #[Test]
+    public function a_bot_retrying_the_same_identity_is_reported_once()
+    {
+        $this->setting('fof-anti-spam.registrationThrottleSeconds', 0);
+        $this->knownSpammer('xrumer');
+
+        $this->register('xrumer', 'testing@xrumer.ru');
+        $this->register('xrumer', 'testing@xrumer.ru');
+        $this->register('xrumer', 'testing@xrumer.ru');
+
+        $this->assertCount(1, $this->sfsReports());
+    }
+
+    #[Test]
+    public function a_queue_that_cannot_take_the_report_does_not_turn_the_block_into_an_error()
+    {
+        $this->extend((new Extend\ServiceProvider())->register(FailingQueueProvider::class));
+        $this->knownSpammer('xrumer');
+
+        $this->assertEquals(422, $this->register('xrumer', 'testing@xrumer.ru')->getStatusCode());
+    }
+
+    #[Test]
     public function a_block_from_the_forums_own_network_rules_is_not_reported()
     {
         // Denying a hosting network or Tor is this forum's policy, not evidence that the person
