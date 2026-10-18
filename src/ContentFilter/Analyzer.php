@@ -45,7 +45,9 @@ class Analyzer
      *
      * @param string $content The content to analyze
      * @param User $user The user who created the content
-     * @param array<string, mixed> $context Additional context
+     * @param array<string, mixed> $context Additional context. `ignore_detectors` lists detector
+     *                                       classes to skip for this call, for a field whose purpose
+     *                                       is the very thing one of them looks for
      * @return AnalysisResult
      */
     public function analyze(string $content, User $user, array $context = []): AnalysisResult
@@ -64,10 +66,14 @@ class Analyzer
         $detectorScores = [];
         $totalScore = 0;
 
+        // A field whose whole purpose is a link or an address can name the detectors that would
+        // only ever object to it doing its job.
+        $ignored = $context['ignore_detectors'] ?? [];
+
         // Run all detectors
         foreach ($this->detectors as $detector) {
             try {
-                if (! $detector->isEnabled()) {
+                if (! $detector->isEnabled() || in_array($detector::class, $ignored, true)) {
                     continue;
                 }
 

@@ -44,6 +44,14 @@ abstract class AbstractProfileFieldCheck
      */
     abstract protected function attribute(): string;
 
+    /**
+     * The value as the detectors should read it.
+     */
+    protected function textToAnalyze(string $value): string
+    {
+        return $value;
+    }
+
     public function handle(Saving $event): void
     {
         $user = $event->user;
@@ -66,7 +74,7 @@ abstract class AbstractProfileFieldCheck
             return;
         }
 
-        $result = $this->analyzer->analyze($value, $user, [
+        $result = $this->analyzer->analyze($this->textToAnalyze($value), $user, [
             'type' => 'profile',
             'field' => $attribute,
             'user_id' => $user->id,

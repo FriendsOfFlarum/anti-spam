@@ -233,6 +233,104 @@ class ContentFilterTest extends TestCase
     }
 
     #[Test]
+    public function renaming_a_discussion_to_a_spam_title_unapproves_it()
+    {
+        // Authors may rename their own discussions for a while after starting them, so a clean
+        // title can be swapped for the payload once the discussion is through.
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $response = $this->send(
+            $this->request('POST', '/api/discussions', [
+                'authenticatedAs' => 3,
+                'json' => ['data' => ['type' => 'discussions', 'attributes' => [
+                    'title' => 'Hello from a new member',
+                    'content' => 'Hello everyone, nice to meet you.',
+                ]]],
+            ])
+        );
+        $this->assertEquals(201, $response->getStatusCode());
+        $id = json_decode((string) $response->getBody(), true)['data']['id'];
+        $this->assertTrue((bool) Discussion::find($id)->is_approved, 'The clean discussion starts out approved');
+
+        $response = $this->send(
+            $this->request('PATCH', '/api/discussions/'.$id, [
+                'authenticatedAs' => 3,
+                'json' => ['data' => ['type' => 'discussions', 'id' => $id, 'attributes' => [
+                    'title' => 'Buy cheap stuff at http://suspicious-site.com',
+                ]]],
+            ])
+        );
+        $this->assertEquals(200, $response->getStatusCode());
+
+        $discussion = Discussion::find($id);
+        $this->assertFalse((bool) $discussion->is_approved, 'A spam rename should take the discussion down');
+        $this->assertFalse((bool) Post::find($discussion->first_post_id)->is_approved, 'Its first post goes with it');
+        $this->assertNotNull(Flag::where('post_id', $discussion->first_post_id)->where('type', 'spam')->first());
+
+        $response = $this->send($this->request('GET', '/api/discussions/'.$id, ['authenticatedAs' => 4]));
+        $this->assertEquals(404, $response->getStatusCode(), 'Others should no longer see it');
+    }
+
+    #[Test]
+    public function a_moderator_renaming_a_discussion_is_not_checked()
+    {
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+        $this->prepareDatabase([
+            Discussion::class => [
+                ['id' => 51, 'title' => 'Fresh thread', 'created_at' => Carbon::now(), 'user_id' => 3, 'first_post_id' => 51, 'comment_count' => 1, 'is_approved' => 1],
+            ],
+            Post::class => [
+                ['id' => 51, 'number' => 1, 'discussion_id' => 51, 'created_at' => Carbon::now(), 'user_id' => 3, 'type' => 'comment', 'content' => '<t>Hi</t>'],
+            ],
+        ]);
+
+        $response = $this->send(
+            $this->request('PATCH', '/api/discussions/51', [
+                'authenticatedAs' => 1,
+                'json' => ['data' => ['type' => 'discussions', 'id' => '51', 'attributes' => [
+                    'title' => 'Moved: see http://suspicious-site.com',
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertTrue((bool) Discussion::find(51)->is_approved);
+    }
+
+    #[Test]
+    public function an_established_member_renaming_their_discussion_is_not_checked()
+    {
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+        $this->prepareDatabase([
+            Discussion::class => [
+                ['id' => 50, 'title' => 'Old thread', 'created_at' => Carbon::now(), 'user_id' => 4, 'first_post_id' => 50, 'comment_count' => 1, 'is_approved' => 1],
+            ],
+            Post::class => [
+                ['id' => 50, 'number' => 1, 'discussion_id' => 50, 'created_at' => Carbon::now(), 'user_id' => 4, 'type' => 'comment', 'content' => '<t>Hi</t>'],
+            ],
+        ]);
+
+        // Past the account age window already; past the post count window too.
+        $this->app();
+        User::query()->where('id', 4)->update(['comment_count' => 50]);
+
+        $response = $this->send(
+            $this->request('PATCH', '/api/discussions/50', [
+                'authenticatedAs' => 4,
+                'json' => ['data' => ['type' => 'discussions', 'id' => '50', 'attributes' => [
+                    'title' => 'See http://suspicious-site.com',
+                ]]],
+            ])
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertTrue((bool) Discussion::find(50)->is_approved);
+    }
+
+    #[Test]
     public function fresh_user_post_with_schemeless_url_is_detected()
     {
         // Dropping the scheme used to make a link invisible to the detector, which is free for a

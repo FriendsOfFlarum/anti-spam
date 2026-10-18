@@ -11,23 +11,31 @@
 
 namespace FoF\AntiSpam\Listener;
 
+use Flarum\Discussion\Event\Renamed;
 use Flarum\Discussion\Event\Started;
 use Illuminate\Contracts\Events\Dispatcher;
 
 /**
- * Checks discussion titles for spam when created.
+ * Checks discussion titles for spam when created and when renamed.
  */
 class CheckDiscussionContent extends AbstractContentCheck
 {
     public function subscribe(Dispatcher $events): void
     {
         $events->listen(Started::class, [$this, 'checkDiscussion']);
+        // Authors may rename their own discussions for a while after starting them, which would
+        // otherwise let a clean title be swapped for the payload once it is through.
+        $events->listen(Renamed::class, [$this, 'checkDiscussion']);
     }
 
-    public function checkDiscussion(Started $event): void
+    public function checkDiscussion(Started|Renamed $event): void
     {
         $discussion = $event->discussion;
         $actor = $event->actor;
+
+        if ($actor === null) {
+            return;
+        }
 
         // Don't check if actor is staff
         if ($this->isStaff($actor)) {
