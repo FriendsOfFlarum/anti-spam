@@ -200,7 +200,7 @@ return [
         ->enableAutoFlag(true)        // Requires flarum/flags
 
         // Which account raises automatic flags
-        ->assignFlagsToModerator(1)  // User ID (defaults to 1)
+        ->assignFlagsToModerator(1)  // User ID (defaults to 1; the first administrator if it doesn't exist)
 
         // Disable specific detectors if needed
         ->disableDetector(PhoneDetector::class),
@@ -243,6 +243,8 @@ This extension uses a custom `spam` flag type for automatic detections:
 - **Spam score** is stored in the flag's `reason` field
 - **Detection details** are stored in the `reason_detail` field
 - **Display format**: "Automatic Spam Detection - score {score}"
+- **Raised by** the account chosen in the admin panel or with `assignFlagsToModerator()`. If that
+  account no longer exists, the first administrator raises the flag instead and a warning is logged
 - Provides clear visual distinction from user-reported flags
 
 ### Detection Methods

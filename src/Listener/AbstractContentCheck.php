@@ -14,6 +14,7 @@ namespace FoF\AntiSpam\Listener;
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Flags\Flag;
+use Flarum\Group\Group;
 use Flarum\Post\Post;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
@@ -198,17 +199,32 @@ abstract class AbstractContentCheck
     }
 
     /**
-     * Get the system actor to use for automatic flags.
+     * The account automatic flags are raised by: the one set in code, else the admin setting.
+     * The two use different keys for historical reasons — the admin one predates the content
+     * filter's own configuration prefix.
      *
-     * Code configuration wins, as it does everywhere else: assignFlagsToModerator() in extend.php
-     * takes precedence over the admin setting. The two use different keys for historical reasons —
-     * the admin one predates the content filter's own configuration prefix.
+     * Falls back to the first administrator when that account does not exist. The setting
+     * defaults to user 1, which many forums have since deleted, and skipping the flag then left
+     * nothing in the moderation queue while the post was quietly held.
      */
     protected function getSystemActor(): ?User
     {
         $actorId = $this->config->getCodeValue('flag_moderator_id')
             ?? $this->settings->get('fof-anti-spam.moderation.system_user_id');
 
-        return User::where('id', $actorId)->first() ?? null;
+        if ($actor = User::find($actorId)) {
+            return $actor;
+        }
+
+        $admin = User::query()
+            ->whereHas('groups', fn ($groups) => $groups->where('groups.id', Group::ADMINISTRATOR_ID))
+            ->orderBy('id')
+            ->first();
+
+        if ($admin) {
+            $this->log->warning("[FoF Anti Spam] The account set to raise spam flags (ID {$actorId}) does not exist; administrator {$admin->id} raised it instead.");
+        }
+
+        return $admin;
     }
 }
