@@ -1,4 +1,3 @@
-/// <reference types="mithril" />
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import type BlockedRegistration from '../../common/models/BlockedRegistration';
 export interface RawDataModalAttrs extends IInternalModalAttrs {
