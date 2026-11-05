@@ -15,6 +15,10 @@ Combines previously seperate extentions (`fof/stopforumspam`, `fof/spamblock`) i
 - Option to submit spammer details to the [StopForumSpam database](https://www.stopforumspam.com/)
 - Check new registrations agains the [StopForumSpam database](https://www.stopforumspam.com/) to block spammers before they can register on your forum (also supports OAuth registrations)
 
+### Behind a reverse proxy
+
+Registrations are checked against the address of the connection (`REMOTE_ADDR`), the same address Flarum records everywhere else. Headers such as `X-Forwarded-For` or `CF-Connecting-IP` are not trusted, because any client can send them. If your forum sits behind Cloudflare, a load balancer or another reverse proxy, configure your web server to restore the visitor's address (for example nginx's `real_ip` module or Apache's `mod_remoteip`). Otherwise every registration is checked against the proxy's address.
+
 ## More integrations
 
 Future integrations with extensions such as:
