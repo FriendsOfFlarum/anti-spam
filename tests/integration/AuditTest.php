@@ -13,6 +13,7 @@ namespace FoF\AntiSpam\Tests\integration;
 
 use Flarum\Audit\AuditLog;
 use Flarum\Audit\AuditLogger;
+use Flarum\Extend;
 use Flarum\Group\Group;
 use Flarum\Testing\integration\TestCase;
 use FoF\AntiSpam\Event\RegistrationWasBlocked;
@@ -21,6 +22,9 @@ use Illuminate\Contracts\Events\Dispatcher;
 
 class AuditTest extends TestCase
 {
+    use FakesStopForumSpam;
+    use MakesClientRequests;
+
     protected function setup(): void
     {
         parent::setup();
@@ -86,5 +90,48 @@ class AuditTest extends TestCase
             'email' => 'spammer@example.com',
             'username' => 'spammer',
         ], $log->payload);
+    }
+
+    public function registrationRoutes(): array
+    {
+        return [
+            'form' => ['/register', ['username' => 'spammer', 'email' => 'listed@machine.local', 'password' => 'too-obscure']],
+            'api' => ['/api/users', ['data' => ['attributes' => ['username' => 'spammer', 'email' => 'listed@machine.local', 'password' => 'too-obscure']]]],
+        ];
+    }
+
+    /**
+     * @test
+     * @dataProvider registrationRoutes
+     */
+    public function a_refused_registration_is_logged_with_the_address_it_came_from(string $path, array $body)
+    {
+        $this->extend(
+            (new Extend\Csrf())
+                ->exemptRoute('register')
+                ->exemptRoute('users.create')
+        );
+
+        $this->fakeSfs();
+
+        $request = $this->requestWithJsonBody(
+            $this->clientRequest('POST', $path, '10.0.0.5', ['Client-IP' => '1.1.1.1', 'X-Forwarded-For' => '1.1.1.1']),
+            $body
+        );
+
+        $response = $this->send($request);
+
+        $this->assertEquals(422, $response->getStatusCode());
+
+        $log = AuditLog::query()->where('action', 'registration.blocked')->first();
+
+        $this->assertNotNull($log, 'A refused registration should be audit logged');
+        $this->assertNull($log->actor_id, 'A guest registered');
+        $this->assertEquals('10.0.0.5', $log->ip_address);
+        $this->assertEquals([
+            'ip' => '10.0.0.5',
+            'email' => 'listed@machine.local',
+            'username' => 'spammer',
+        ], $log->payload, 'The payload should name the address the entry was logged from');
     }
 }

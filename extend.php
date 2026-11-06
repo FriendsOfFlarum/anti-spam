@@ -43,7 +43,7 @@ return [
     (new Extend\Policy())
         ->modelPolicy(User::class, Access\UserPolicy::class),
 
-    (new Extend\Middleware('forum'))
+    (new Extend\Middleware('api'))
         ->add(Middleware\CheckLoginMiddleware::class),
 
     (new Extend\Settings())
