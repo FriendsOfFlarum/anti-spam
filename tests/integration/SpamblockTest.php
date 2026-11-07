@@ -12,6 +12,7 @@
 namespace FoF\AntiSpam\Tests\integration;
 
 use Carbon\Carbon;
+use Flarum\Discussion\Discussion;
 use Flarum\Group\Group;
 use Flarum\Post\CommentPost;
 use Flarum\Testing\integration\TestCase;
@@ -38,11 +39,14 @@ class SpamblockTest extends TestCase
                 ['group_id' => Group::MODERATOR_ID, 'permission' => 'user.spamblock'],
             ],
             'discussions' => [
-                ['id' => 2, 'title' => __CLASS__, 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 5, 'first_post_id' => 4, 'comment_count' => 2, 'last_post_id' => 5],
+                ['id' => 2, 'title' => __CLASS__, 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 5, 'first_post_id' => 4, 'comment_count' => 2, 'last_post_id' => 5, 'last_post_number' => 3],
+                ['id' => 3, 'title' => 'normal discussion', 'created_at' => Carbon::now(), 'last_posted_at' => Carbon::now(), 'user_id' => 4, 'first_post_id' => 6, 'comment_count' => 2, 'last_post_id' => 7, 'last_post_number' => 2, 'last_posted_user_id' => 5],
             ],
             'posts' => [
                 ['id' => 4, 'number' => 2, 'discussion_id' => 2, 'created_at' => Carbon::now(), 'user_id' => 5, 'type' => 'comment', 'content' => '<r>Some spammy content</r>'],
                 ['id' => 5, 'number' => 3, 'discussion_id' => 2, 'created_at' => Carbon::now(), 'user_id' => 4, 'type' => 'comment', 'content' => '<r>Some regular content</r>'],
+                ['id' => 6, 'number' => 1, 'discussion_id' => 3, 'created_at' => Carbon::now(), 'user_id' => 4, 'type' => 'comment', 'content' => '<r>Some regular content</r>'],
+                ['id' => 7, 'number' => 2, 'discussion_id' => 3, 'created_at' => Carbon::now(), 'user_id' => 5, 'type' => 'comment', 'content' => '<r>Some spammy content</r>'],
             ],
         ]);
     }
@@ -150,5 +154,33 @@ class SpamblockTest extends TestCase
 
         $this->assertNotNull($user->suspended_until, 'User should be suspended');
         $this->assertTrue(Carbon::parse($user->suspended_until)->greaterThan(Carbon::now()->addYears(19)), 'User should be suspended for 20 years');
+    }
+
+    /**
+     * @test
+     */
+    public function deleting_spammer_posts_reconciles_the_discussion_metadata()
+    {
+        $response = $this->send(
+            $this->request('POST', 'api/users/5/spamblock', [
+                'authenticatedAs' => 3,
+                'json' => [
+                    'options' => [
+                        'deletePosts' => true,
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(204, $response->getStatusCode(), (string) $response->getBody());
+
+        $this->assertNull(CommentPost::find(7), 'The spammer post must be deleted.');
+
+        $discussion = Discussion::find(3);
+
+        $this->assertSame(1, (int) $discussion->comment_count, 'The deleted spam reply must not be counted.');
+        $this->assertSame(1, (int) $discussion->last_post_number, 'The last post number must be that of the last remaining post.');
+        $this->assertSame(6, (int) $discussion->last_post_id, 'The last post must point at the remaining post 6.');
+        $this->assertSame(4, (int) $discussion->last_posted_user_id, 'The last poster must be the author of the remaining post.');
     }
 }
