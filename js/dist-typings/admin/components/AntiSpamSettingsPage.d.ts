@@ -70,6 +70,10 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
      * windows no longer narrow anything.
      */
     monitoringEveryone(): boolean;
+    /**
+     * Whether any email domain is held in the admin panel. Domains held in code are not known here.
+     */
+    holdingEmailDomains(): boolean;
     hasActiveFilters(): boolean;
     renderPagination(): Mithril.Children;
     detailItems(blockedRegistration: BlockedRegistration): ItemList<Mithril.Children>;
