@@ -58,7 +58,12 @@ class BioSpamTest extends ProfileFieldTestCase
         $response = $this->patchUser(3, ['bio' => 'Forum regular, mostly here for the tags discussion.'], 3);
 
         $this->assertEquals(200, $response->getStatusCode(), (string) $response->getBody());
-        $this->assertEquals('Forum regular, mostly here for the tags discussion.', User::find(3)->bio);
+
+        // fof/user-bio stores the bio as parsed formatter XML, so the saved bio is read back
+        // through its API, which unparses it for the bio's owner.
+        $body = json_decode((string) $response->getBody(), true);
+        $this->assertEquals('Forum regular, mostly here for the tags discussion.', $body['data']['attributes']['bio']);
+        $this->assertStringContainsString('Forum regular, mostly here for the tags discussion.', User::find(3)->bio);
     }
 
     #[Test]
