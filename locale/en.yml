@@ -27,7 +27,7 @@ fof-anti-spam:
 
       content-filter:
         heading: Content Filter
-        introduction: Automatically detect and flag spam content from new users. This system monitors posts and discussions from recently registered users for common spam indicators like phone numbers, email addresses, and suspicious URLs.
+        introduction: Automatically detect and flag spam content from new users. This system monitors posts and discussions from new accounts for common spam indicators like phone numbers, email addresses, and suspicious URLs.
         enabled_label: Enable content filtering
         enabled_help: When enabled, posts and discussions from new users will be analyzed for spam indicators.
 
@@ -36,14 +36,21 @@ fof-anti-spam:
         monitor_all_users_help: >
           Check every post, not just those from new accounts. Without this, an account is never
           examined again once it passes the limits below — which is exactly the case for a
-          member whose account is compromised, or one that waits the limits out before posting
-          spam. Administrators, and anyone whose group can hide discussions, are never monitored
+          member whose account is compromised, or one that posts harmlessly for a while before
+          posting spam. Administrators, and anyone whose group can hide discussions, are never monitored
           either way. Expect more false positives from established members, so review your
           thresholds before turning this on.
         monitor_post_count_label: Monitor users up to post count
-        monitor_post_count_help: Only analyze content from users who have made fewer than this many posts. Set to 0 to disable post count checking.
-        monitor_hours_old_label: Monitor users up to hours old
-        monitor_hours_old_help: Only analyze content from users whose accounts are newer than this many hours. Set to 0 to disable age checking.
+        monitor_post_count_help: >
+          An account is monitored until it has made more than this many public posts and is also
+          past the age limit below. Posts waiting for approval do not count until they are
+          approved.
+        monitor_hours_old_label: Monitor users up to hours after their first post
+        monitor_hours_old_help: >
+          An account is monitored until this many hours after it wrote its first post that is now
+          public, and is also past the post count above. The hours count from that post, not from
+          registration, so an account gains nothing by sitting unused before it starts posting.
+          With 0, only the post count decides.
 
         held_email_domains_heading: Hold New Accounts by Email Domain
         held_email_domains_label: Email domains to hold
