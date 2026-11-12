@@ -24,50 +24,14 @@ abstract class AbstractDetector implements DetectorInterface
     }
 
     /**
-     * Check if user should be monitored.
+     * Check if user should be monitored. See MonitoredUsers.
      *
-     * By default only new accounts are — up to a post count or an age — unless the admin has
-     * turned on monitoring for everyone.
-     *
-     * Administrators and anyone who can hide discussions are exempt either way. That is a
-     * proxy for trust rather than a designation of it: the exemption follows whoever holds
-     * `discussion.hide`, which a forum may have granted for unrelated reasons.
+     * Built here rather than injected, so a detector written against this class keeps its
+     * constructor.
      */
     protected function shouldMonitorUser(User $user): bool
     {
-        // Administrators, and whoever can hide discussions — moderators on a default forum,
-        // though the permission can be granted more widely than that.
-        if ($user->isAdmin() || $user->can('discussion.hide')) {
-            return false;
-        }
-
-        // Always monitor guests (shouldn't post, but just in case)
-        if ($user->isGuest()) {
-            return true;
-        }
-
-        // The window below is one-way: an account that clears it is never examined again. That
-        // is the wrong answer for a member whose credentials are stolen, or one that waits the
-        // thresholds out before starting, so an admin can opt into checking everyone. The
-        // exemption above still applies.
-        if ($this->config->get('monitor_all_users')) {
-            return true;
-        }
-
-        $monitorPostCount = $this->config->get('monitor_post_count');
-        $monitorHoursOld = $this->config->get('monitor_hours_old');
-
-        // Check post count threshold
-        if ($user->comment_count <= $monitorPostCount) {
-            return true;
-        }
-
-        // Check account age threshold
-        if ($user->joined_at && $user->joined_at->diffInHours() <= $monitorHoursOld) {
-            return true;
-        }
-
-        return false;
+        return (new MonitoredUsers($this->config))->shouldMonitor($user);
     }
 
     /**

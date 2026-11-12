@@ -20,6 +20,11 @@ export default function addSpamFlagType() {
       ];
     }
 
+    // A post held because of its author's email domain, which the flag's reason names.
+    if (flag.type() === 'held_email_domain') {
+      return app.translator.trans('fof-anti-spam.forum.post.held_email_domain_text', { domain: flag.reason() });
+    }
+
     // Otherwise, return the original result
     return originalReason(flag);
   });

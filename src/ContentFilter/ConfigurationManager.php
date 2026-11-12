@@ -181,6 +181,43 @@ class ConfigurationManager
     }
 
     /**
+     * Email domains whose new accounts have every post held for approval (code + database),
+     * normalized. See HeldEmailDomains.
+     *
+     * @return array<string>
+     */
+    public function getHeldEmailDomains(): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->getCodeConfiguredHeldEmailDomains(),
+            $this->getDatabaseConfiguredHeldEmailDomains()
+        )));
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getCodeConfiguredHeldEmailDomains(): array
+    {
+        return $this->codeConfig['held_email_domains'] ?? [];
+    }
+
+    /**
+     * One domain per line, as the admin panel saves it.
+     *
+     * @return array<string>
+     */
+    public function getDatabaseConfiguredHeldEmailDomains(): array
+    {
+        $raw = (string) $this->settings->get(self::PREFIX.'held_email_domains');
+
+        return array_values(array_filter(array_map(
+            fn (string $line) => HeldEmailDomains::normalize($line),
+            explode("\n", $raw)
+        )));
+    }
+
+    /**
      * Get domain validation callbacks.
      *
      * @return array<callable>
@@ -345,6 +382,11 @@ class ConfigurationManager
                 'code' => $this->getCodeConfiguredDomains(),
                 'database' => $this->getDatabaseConfiguredDomains(),
                 'merged' => $this->getAllowedDomains(),
+            ],
+            'heldEmailDomains' => [
+                'code' => $this->getCodeConfiguredHeldEmailDomains(),
+                'database' => $this->getDatabaseConfiguredHeldEmailDomains(),
+                'merged' => $this->getHeldEmailDomains(),
             ],
             'blockPatterns' => [
                 'code' => $this->getCodeConfiguredPatterns(),

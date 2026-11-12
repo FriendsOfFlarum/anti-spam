@@ -14,6 +14,7 @@ namespace FoF\AntiSpam\Extend;
 use Flarum\Extend\ExtenderInterface;
 use Flarum\Extension\Extension;
 use FoF\AntiSpam\ContentFilter\ConfigurationManager;
+use FoF\AntiSpam\ContentFilter\HeldEmailDomains;
 use Illuminate\Contracts\Container\Container;
 
 /**
@@ -95,6 +96,24 @@ class ContentFilter implements ExtenderInterface
         foreach ($domains as $domain) {
             $this->allowDomain($domain);
         }
+
+        return $this;
+    }
+
+    /**
+     * Hold every post from a new account for approval when its email address is on one of
+     * these domains (or a subdomain of one). "New" is the monitoring window set by
+     * monitorUsersUpToPostCount() and monitorUsersUpToHoursOld(); monitorAllUsers() does not
+     * extend it. Added to any domains listed in the admin panel.
+     *
+     * @param array<string> $domains
+     */
+    public function holdPostsFromEmailDomains(array $domains): self
+    {
+        $this->config['held_email_domains'] = array_values(array_filter(array_merge(
+            $this->config['held_email_domains'] ?? [],
+            array_map(fn (string $domain) => HeldEmailDomains::normalize($domain), $domains)
+        )));
 
         return $this;
     }

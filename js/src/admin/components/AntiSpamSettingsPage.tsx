@@ -194,6 +194,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       ),
       item(
         contentFilter,
+        'fof-anti-spam.content-filter.held_email_domains',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.held_email_domains_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.held_email_domains_help')
+      ),
+      item(
+        contentFilter,
         'fof-anti-spam.content-filter.detect_phones',
         app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_label'),
         app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_phones_help')
@@ -652,10 +658,14 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
         })}
 
         {/*
-          The two windows below only apply when everyone is not being monitored; leaving
-          them enabled would suggest they still narrow anything.
+          The two windows below only narrow the content filter when everyone is not being
+          monitored; leaving them shown would suggest they still do. Holding by email domain
+          always uses them, so they stay while any domain is held.
         */}
-        {!this.monitoringEveryone() && [
+        {this.monitoringEveryone() && this.holdingEmailDomains() && (
+          <p className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.monitor_window_held_only')}</p>
+        )}
+        {(!this.monitoringEveryone() || this.holdingEmailDomains()) && [
           this.buildSettingComponent({
             type: 'number',
             setting: 'fof-anti-spam.content-filter.monitor_post_count',
@@ -673,6 +683,16 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
             min: 0,
           }),
         ]}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.held_email_domains_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'textarea',
+          setting: 'fof-anti-spam.content-filter.held_email_domains',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.held_email_domains_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.held_email_domains_help'),
+          placeholder: 'example.com\nexample.org',
+          rows: 4,
+        })}
 
         <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.detectors_heading')}</h4>
         {this.buildSettingComponent({
@@ -931,6 +951,13 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
    */
   monitoringEveryone(): boolean {
     return Boolean(this.setting('fof-anti-spam.content-filter.monitor_all_users')());
+  }
+
+  /**
+   * Whether any email domain is held in the admin panel. Domains held in code are not known here.
+   */
+  holdingEmailDomains(): boolean {
+    return String(this.setting('fof-anti-spam.content-filter.held_email_domains')() ?? '').trim() !== '';
   }
 
   hasActiveFilters(): boolean {

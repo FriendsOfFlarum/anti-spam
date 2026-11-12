@@ -25,6 +25,16 @@ Automatically detect and hold spam content from new users before it becomes visi
   **Monitor all users** prevents. Administrators, and anyone whose
   group can hide discussions, are exempt either way
 
+- **Hold New Accounts by Email Domain**: List email domains whose new accounts have every post
+  held for approval, whatever it says. A listed domain covers its subdomains. "New" is the post
+  count and age window above; **Monitor all users** does not extend it, so an account can still
+  get out of the hold. Held posts count towards the post count only once approved, so an account
+  leaves the hold once moderators have approved enough of its posts and it is old enough. Only new
+  posts are held: edits, including edits to a post once it is approved, are left to the content
+  filter. It applies with the content filter switched off, and the same accounts are exempt. Held
+  posts carry a `held_email_domain` flag naming the domain that matched, which moderators who can
+  see flags will see
+
 - **Flexible Actions**:
   - Automatically flag suspicious content for moderator review
   - Send suspicious content to the approval queue
@@ -213,6 +223,10 @@ return [
         // User targeting: monitor users within first N hours
         ->monitorUsersUpToHoursOld(24)
 
+        // Hold every post from new accounts on these email domains (and their subdomains)
+        // for approval. Added to the domains listed in the admin panel
+        ->holdPostsFromEmailDomains(['example.com', 'example.org'])
+
         // Domain allowlist
         ->allowDomain('youtube.com')
         ->allowDomain('github.com')
@@ -290,6 +304,10 @@ This extension uses a custom `spam` flag type for automatic detections:
   raises them. If a chosen account no longer exists, the first administrator raises the flag
   instead, the settings page says so, and a warning is logged
 - Provides clear visual distinction from user-reported flags
+
+Posts held because of their author's email domain carry a `held_email_domain` flag instead. It has
+no author, like the approval extension's own flag, and its `reason` is the listed domain that
+matched: "Held for approval: new account with an email address on {domain}".
 
 ### Detection Methods
 
