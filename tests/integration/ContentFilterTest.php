@@ -306,14 +306,16 @@ class ContentFilterTest extends TestCase
         $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
         $this->prepareDatabase([
             Discussion::class => [
+                ['id' => 49, 'title' => 'Earlier thread', 'created_at' => Carbon::now()->subDays(7), 'user_id' => 4, 'first_post_id' => 49, 'comment_count' => 1, 'is_approved' => 1],
                 ['id' => 50, 'title' => 'Old thread', 'created_at' => Carbon::now(), 'user_id' => 4, 'first_post_id' => 50, 'comment_count' => 1, 'is_approved' => 1],
             ],
             Post::class => [
+                ['id' => 49, 'number' => 1, 'discussion_id' => 49, 'created_at' => Carbon::now()->subDays(7), 'user_id' => 4, 'type' => 'comment', 'content' => '<t>Hello</t>'],
                 ['id' => 50, 'number' => 1, 'discussion_id' => 50, 'created_at' => Carbon::now(), 'user_id' => 4, 'type' => 'comment', 'content' => '<t>Hi</t>'],
             ],
         ]);
 
-        // Past the account age window already; past the post count window too.
+        // Posting for a week already, so past the age window; past the post count window too.
         $this->app();
         User::query()->where('id', 4)->update(['comment_count' => 50]);
 
@@ -585,6 +587,94 @@ class ContentFilterTest extends TestCase
 
         $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
         $this->assertNull($flag, 'Spam should NOT be detected for established users');
+    }
+
+    /**
+     * An account that clears the post count with posts it made a moment ago, by a member who
+     * registered long before.
+     */
+    private function postHistory(int $userId, Carbon $since): void
+    {
+        $this->setting('fof-anti-spam.content-filter.flag_threshold', 20);
+        $this->setting('fof-anti-spam.content-filter.spam_threshold', 20);
+
+        $this->prepareDatabase([
+            Discussion::class => [
+                ['id' => 90, 'title' => 'Warm-up', 'created_at' => $since, 'user_id' => $userId, 'first_post_id' => 90, 'comment_count' => 6, 'is_approved' => 1],
+            ],
+            Post::class => array_map(fn (int $n) => [
+                'id' => 89 + $n,
+                'discussion_id' => 90,
+                'user_id' => $userId,
+                'type' => 'comment',
+                'content' => '<t><p>Nice one</p></t>',
+                'number' => $n,
+                'created_at' => $since->copy()->addMinutes($n),
+                'is_approved' => 1,
+            ], range(1, 6)),
+        ]);
+
+        $this->app();
+
+        User::query()->where('id', $userId)->update(['comment_count' => 6]);
+    }
+
+    private function postSpam(int $userId): ?Flag
+    {
+        $response = $this->send(
+            $this->request('POST', '/api/posts', [
+                'authenticatedAs' => $userId,
+                'json' => [
+                    'data' => [
+                        'type' => 'posts',
+                        'attributes' => ['content' => 'Contact me at +1234567890 for details'],
+                        'relationships' => ['discussion' => ['data' => ['type' => 'discussions', 'id' => '90']]],
+                    ],
+                ],
+            ])
+        );
+
+        $this->assertEquals(201, $response->getStatusCode(), (string) $response->getBody());
+
+        $post = Post::where('user_id', $userId)->orderBy('id', 'desc')->first();
+
+        return Flag::where('post_id', $post->id)->where('type', 'spam')->first();
+    }
+
+    #[Test]
+    public function a_dormant_account_is_monitored_for_a_day_after_its_first_post()
+    {
+        // Registered a week ago, silent until an hour ago, then six quick posts. Waiting before
+        // posting must not count towards the age limit.
+        $this->postHistory(4, Carbon::now()->subHour());
+
+        $this->assertNotNull($this->postSpam(4), 'A dormant account past the post count should still be monitored');
+    }
+
+    #[Test]
+    public function a_post_still_held_for_approval_does_not_start_the_age_limit()
+    {
+        // A week-old post that was held and never approved is private, and does not count.
+        $this->prepareDatabase([
+            Discussion::class => [
+                ['id' => 91, 'title' => 'Held', 'created_at' => Carbon::now()->subWeek(), 'user_id' => 4, 'first_post_id' => 99, 'comment_count' => 0, 'is_approved' => 0, 'is_private' => 1],
+            ],
+            Post::class => [
+                ['id' => 99, 'discussion_id' => 91, 'user_id' => 4, 'type' => 'comment', 'content' => '<t><p>Held</p></t>', 'number' => 1, 'created_at' => Carbon::now()->subWeek(), 'is_approved' => 0, 'is_private' => 1],
+            ],
+        ]);
+
+        $this->postHistory(4, Carbon::now()->subHour());
+
+        $this->assertNotNull($this->postSpam(4), 'A held post should not count as the first post');
+    }
+
+    #[Test]
+    public function an_account_that_has_posted_for_longer_than_the_age_limit_is_not_monitored()
+    {
+        $this->postHistory(4, Carbon::now()->subDays(2));
+
+        $this->assertNull($this->postSpam(4), 'An account past both limits should not be monitored');
     }
 
     #[Test]

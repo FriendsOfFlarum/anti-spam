@@ -65,13 +65,10 @@ class HoldPostsByEmailDomain extends AbstractContentCheck
             return;
         }
 
-        if ($this->monitoredUsers->isExempt($actor) || ! $this->monitoredUsers->isNew($actor)) {
-            return;
-        }
-
+        // The domain first: it costs nothing, and on most forums no domain is listed at all.
         $domain = $this->heldEmailDomains->matching($actor);
 
-        if ($domain === null) {
+        if ($domain === null || $this->monitoredUsers->isExempt($actor) || ! $this->monitoredUsers->isNew($actor)) {
             return;
         }
 

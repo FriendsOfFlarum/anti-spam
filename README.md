@@ -10,17 +10,19 @@ A [Flarum](http://flarum.org) extension. Effective tools to manage spammers on y
 
 Automatically detect and hold spam content from new users before it becomes visible:
 
-- **Automatic Detection**: Monitors posts and discussion titles (including renames) from recently registered users for common spam indicators
+- **Automatic Detection**: Monitors posts and discussion titles (including renames) from new accounts for common spam indicators
   - Phone numbers in international format
   - Email addresses
   - URLs not on your allowlist, whether or not they carry a scheme
   - Custom blocked words and phrases
   - Advanced regex pattern matching
 
-- **Smart User Targeting**: By default, only monitors users within their first few posts or hours
-  after registration. That window is one-way — an account that clears it is never examined again —
-  so **Monitor all users** can be turned on to check every post instead. Useful against compromised
-  accounts and accounts that wait the window out before starting. Edits are judged the same way: an
+- **Smart User Targeting**: By default, only monitors new accounts: until they are past both a few
+  posts and a few hours since their first post. The hours run from the first post, not from
+  registration, so an account left unused before it starts posting gains nothing by waiting. That
+  window is one-way — an account that clears it is never examined again — so **Monitor all users**
+  can be turned on to check every post instead. Useful against compromised accounts and accounts
+  that post harmlessly for a while before starting. Edits are judged the same way: an
   account that has left the window can edit links into its earlier posts unchecked, which only
   **Monitor all users** prevents. Administrators, and anyone whose
   group can hide discussions, are exempt either way
@@ -190,7 +192,8 @@ tab has its own Save button, and you are asked before leaving a tab with unsaved
 To set up the content filter, on the **Content Filter** tab:
 
 1. Enable content filtering
-2. Configure user targeting (monitor everyone, or a post count and account age)
+2. Configure user targeting (monitor everyone, or new accounts: until both a post count and a number
+   of hours since the first post are passed)
 3. Enable detectors (phones, emails, URLs)
 4. Set spam score thresholds
 5. Configure automatic actions (flag/unapprove)
@@ -217,10 +220,10 @@ return [
         // windows below, which can only ever exempt an account permanently once it clears them
         ->monitorAllUsers()
 
-        // User targeting: monitor users within first N posts
+        // User targeting: an account is monitored until it is past both of these. Held posts
+        // do not count towards N, and the hours run from its first public post, not from
+        // registration, so leaving an account unused before posting gains nothing
         ->monitorUsersUpToPostCount(5)
-
-        // User targeting: monitor users within first N hours
         ->monitorUsersUpToHoursOld(24)
 
         // Hold every post from new accounts on these email domains (and their subdomains)

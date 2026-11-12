@@ -53,7 +53,8 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Monitor users up to their first N posts.
+     * Monitor users up to their first N public posts. An account leaves the window only once it
+     * is past both this and monitorUsersUpToHoursOld().
      */
     public function monitorUsersUpToPostCount(int $count): self
     {
@@ -63,7 +64,9 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
-     * Monitor users up to N hours after registration.
+     * Monitor users up to N hours after they wrote their first post that is now public (not after
+     * registration, so an account left unused before posting gains nothing). An account leaves
+     * the window only once it is past both this and monitorUsersUpToPostCount().
      */
     public function monitorUsersUpToHoursOld(int $hours): self
     {
