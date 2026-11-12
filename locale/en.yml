@@ -45,6 +45,18 @@ fof-anti-spam:
         monitor_hours_old_label: Monitor users up to hours old
         monitor_hours_old_help: Only analyze content from users whose accounts are newer than this many hours. Set to 0 to disable age checking.
 
+        held_email_domains_heading: Hold New Accounts by Email Domain
+        held_email_domains_label: Email domains to hold
+        held_email_domains_help: >
+          Every post from a new account whose email address is on one of these domains is held for
+          approval, whatever it says. Enter one domain per line; subdomains are included. An account
+          is new while it is inside the post count or age above, even when all users are monitored,
+          and held posts only count towards the post count once approved. Only new posts are held:
+          edits are left to the content filter. This applies even with the content filter switched
+          off. Administrators, and anyone whose group can hide discussions, are never held.
+          Moderators who can see flags are shown the domain that matched.
+        monitor_window_held_only: With all users monitored, the two limits below only decide which accounts the email domain hold applies to.
+
         detectors_heading: Detection Methods
         detect_phones_label: Detect phone numbers
         detect_phones_help: Flag content containing phone numbers in international format.
@@ -236,6 +248,7 @@ fof-anti-spam:
       trap_label: Leave this field empty
     post:
       flagged_as_spam_text: "Automatic Spam Detection - score {score}"
+      held_email_domain_text: "Held for approval: new account with an email address on {domain}"
 
     message:
       profile:

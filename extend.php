@@ -115,6 +115,8 @@ return [
         ->default('fof-anti-spam.content-filter.auto_unapprove', true)
         ->default('fof-anti-spam.content-filter.auto_flag', true)
         ->default('fof-anti-spam.content-filter.allowed_domains', '')
+        // Empty means no domain is held, which is the behaviour that shipped.
+        ->default('fof-anti-spam.content-filter.held_email_domains', '')
         ->default('fof-anti-spam.content-filter.blocked_words', '')
         ->default('fof-anti-spam.content-filter.advanced_block_patterns', '[]'),
 
@@ -125,6 +127,7 @@ return [
     (new Extend\Event())
         ->subscribe(Listener\CheckPostContent::class)
         ->subscribe(Listener\CheckDiscussionContent::class)
+        ->subscribe(Listener\HoldPostsByEmailDomain::class)
         ->listen(UserSaving::class, Listener\CheckUsernameContent::class)
         ->listen(RegistrationWasBlocked::class, Listener\ReportBlockedRegistration::class),
 
