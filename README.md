@@ -11,11 +11,13 @@ A [Flarum](http://flarum.org) extension. Effective tools to manage spammers on y
 Automatically detect and hold spam content from new users before it becomes visible:
 
 - **Automatic Detection**: Monitors posts and discussion titles (including renames) from new accounts for common spam indicators
-  - Phone numbers in international format
+  - Phone numbers in international format, and optionally in local format (`0811-2506-6288`)
   - Email addresses
   - URLs not on your allowlist, whether or not they carry a scheme
   - Custom blocked words and phrases
   - Advanced regex pattern matching
+  - Posting faster than a limit (by default, more than 5 posts within 10 minutes)
+  - Repeating an earlier post
 
 - **Smart User Targeting**: By default, only monitors new accounts: until they are past both a few
   posts and a few hours since their first post. The hours run from the first post, not from
@@ -194,7 +196,8 @@ To set up the content filter, on the **Content Filter** tab:
 1. Enable content filtering
 2. Configure user targeting (monitor everyone, or new accounts: until both a post count and a number
    of hours since the first post are passed)
-3. Enable detectors (phones, emails, URLs)
+3. Enable detectors (phones, local-format phones, emails, URLs, repeated posts) and set the
+   posting rate limit
 4. Set spam score thresholds
 5. Configure automatic actions (flag/unapprove)
 6. Add allowed domains and blocked words
@@ -246,8 +249,13 @@ return [
 
         // Enable/disable detectors
         ->blockPhoneNumbers(true)
+        ->blockLocalPhoneNumbers(true)  // Numbers with no country code; off by default
         ->blockEmailAddresses(true)
         ->blockUrls(true)
+        ->blockRepeatedPosts(true)
+
+        // A monitored account's posts beyond 5 within 10 minutes score as spam. 0 posts turns it off
+        ->limitNewAccountPosts(5, 10)
 
         // Spam score thresholds (0-100)
         // Most matches score 50 points; a bare hostname in a post scores 30
@@ -322,6 +330,28 @@ matched: "Held for approval: new account with an email address on {domain}".
   followed by more digits
 - Dates, times, large numbers, sums and the `00` inside numbers such as `1000` are not matched: the
   prefix must start a token, and a country code never begins with 0
+
+- **Local format** (off by default; **Also detect phone numbers in local format**, or
+  `blockLocalPhoneNumbers()`): numbers written for callers in the same country, with a leading `0`
+  and 10 to 13 digits: `0811-2506-6288`, `07700 900123`, `(021) 5555 1234`, `01 23 45 67 89`,
+  `081125066288`. They are harder to tell apart from dates and reference numbers, so the shape is
+  stricter: the area or operator code is 3 to 5 digits (unless the number is written entirely in
+  pairs), no group is a single digit, and anything glued to a word or after `#`, `:`, `/` or `-` is
+  left alone. Short codes such as `1500888` are not counted. A number with a country code counts
+  once, as an international number
+
+**Posting Rate Detector**
+- Counts a monitored account's posts, including ones waiting for approval or hidden, over the last
+  **10** minutes. Once it has made **5**, every further new post scores 50 until it slows down. Both are
+  set under **Posting Rate**, or with `limitNewAccountPosts()`; 0 posts turns it off
+- Edits are not posting again and are not counted. Discussion titles and profile fields are not
+  checked
+
+**Repeated Post Detector**
+- Scores 50 when a monitored account's post says the same as one of its 20 most recent posts,
+  including ones waiting for approval or hidden, after case, spacing, punctuation and formatting are
+  removed. An edit is compared with the account's other posts, not with itself
+- Posts shorter than 40 characters once normalised (`Thanks, that worked for me!`) may be repeated
 
 **Email Detector**
 - Matches email addresses, such as `spam@suspicious-site.com`

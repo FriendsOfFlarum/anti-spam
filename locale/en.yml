@@ -67,10 +67,28 @@ fof-anti-spam:
         detectors_heading: Detection Methods
         detect_phones_label: Detect phone numbers
         detect_phones_help: Flag content containing phone numbers in international format.
+        detect_local_phones_label: Also detect phone numbers in local format
+        detect_local_phones_help: >
+          Also count numbers written without a country code, starting with 0, such as
+          0811-2506-6288 or 020 7946 0958. Turn this on if spam on your forum gives local numbers.
+          They are harder to tell apart from dates and reference numbers than international ones, so
+          expect the odd ordinary post to be flagged. Needs phone number detection on.
         detect_emails_label: Detect email addresses
         detect_emails_help: Flag content containing email addresses.
         detect_urls_label: Detect URLs
         detect_urls_help: Flag content containing URLs not in the allowlist.
+        detect_repeats_label: Detect repeated posts
+        detect_repeats_help: >
+          Flag a post that says the same as one of the account's recent posts, ignoring case,
+          spacing, punctuation and formatting. Posts shorter than 40 characters may be repeated.
+
+        posting_rate_heading: Posting Rate
+        burst_post_count_label: Posts allowed in a short time
+        burst_post_count_help: >
+          Once a monitored account has made this many posts within the minutes below, every further
+          post scores as spam until it slows down. Posts waiting for approval count too, and edits
+          don't. With 0, there is no limit.
+        burst_minutes_label: Within how many minutes
 
         thresholds_heading: Spam Score Thresholds
         flag_threshold_label: Flag threshold (0-100)
