@@ -75,20 +75,22 @@ class PhoneDetector extends AbstractDetector
      * by short runs of separators, the first group optionally bracketed (`(021) 5555 1234`).
      *
      * The same characters as the international pattern's `00` may not come before it, for the
-     * same reason, and neither may `,` (`3,0811…` is a decimal) or `=` (`?ref=0811…`). Nor may a
-     * letter, digit or `_` come straight after it: `08123456789AB` is a reference, not a number.
-     * Every repetition is possessive, so a failed check after the digits fails the candidate
-     * rather than giving back its last group. extractLocalPhoneNumbers() and trimToLocalNumber()
-     * decide the rest.
+     * same reason, and neither may `,` (`3,0811…` is a decimal), `=` (`?ref=0811…`) or `(`, which
+     * only a candidate starting at the bracket may have (`Invoice:(0811…)`).
+     *
+     * A letter, digit or `_` straight after the last group is captured as `glued`, not refused
+     * here: a check that could fail after the run would make the engine read the rest of it
+     * again from every later `0`, which is quadratic in a crafted post. trimToLocalNumber() drops
+     * the glued group instead (`08123456789AB` is a reference, `… 24h` is not part of a number).
      */
     protected const string LOCAL_PATTERN = '~
-        (?<! [\p{L}\p{N}_+\x{FF0B}.,:=/\#\-] )
+        (?<! [\p{L}\p{N}_+\x{FF0B}.,:=/\#\-(] )
         (?<body>
             (?: \( (?= ZERO ) )?+
             ZERO (?! ZERO ) (?= \p{Nd} )
             GROUP (?: [\p{Zs}\-\p{Pd}.()]{1,3}+ GROUP )*+
         )
-        (?! [\p{L}\p{N}_] )
+        (?<glued> [\p{L}\p{N}_] )?+
     ~xu';
 
     /**
@@ -151,9 +153,15 @@ class PhoneDetector extends AbstractDetector
      */
     public static function extractLocalPhoneNumbers(string $content): array
     {
+        $masked = '';
+        $from = 0;
+
         foreach (self::matchInternational($content) as [$number, $offset]) {
-            $content = substr_replace($content, str_repeat(' ', strlen($number)), $offset, strlen($number));
+            $masked .= substr($content, $from, $offset - $from).str_repeat(' ', strlen($number));
+            $from = $offset + strlen($number);
         }
+
+        $content = $masked.substr($content, $from);
 
         $pattern = str_replace(['GROUP', 'ZERO'], [self::GROUP, self::ZERO], self::LOCAL_PATTERN);
 
@@ -164,7 +172,7 @@ class PhoneDetector extends AbstractDetector
         $numbers = [];
 
         foreach ($matches as $match) {
-            $number = self::trimToLocalNumber($match['body']);
+            $number = self::trimToLocalNumber($match['body'], ($match['glued'] ?? '') !== '');
 
             if ($number !== null) {
                 $numbers[] = $number;
@@ -183,10 +191,16 @@ class PhoneDetector extends AbstractDetector
      * - except that five pairs (`01 23 45 67 89`) is how France writes its numbers;
      * - or the whole number is one unbroken run (`081125066288`);
      * - no group is a single digit, and four short dotted groups are an IP address.
+     *
+     * A last group glued to a word is not part of the number and is dropped first.
      */
-    protected static function trimToLocalNumber(string $body): ?string
+    protected static function trimToLocalNumber(string $body, bool $glued = false): ?string
     {
         preg_match_all('~'.self::GROUP.'~xu', $body, $groups, PREG_OFFSET_CAPTURE);
+
+        if ($glued) {
+            array_pop($groups[0]);
+        }
 
         $digits = 0;
         $counts = [];

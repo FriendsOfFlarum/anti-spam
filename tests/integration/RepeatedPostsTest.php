@@ -171,9 +171,10 @@ class RepeatedPostsTest extends TestCase
     }
 
     #[Test]
-    public function an_edit_is_not_compared_with_later_posts()
+    public function an_edit_that_leaves_the_words_unchanged_is_not_checked_again()
     {
-        // The later copy was held as the repeat. Fixing a typo in the original must not hold it too.
+        // The later copy was held as the repeat. Fixing the punctuation of the original must not
+        // hold it too.
         $this->postedEarlier(3, self::TEXT);
         $this->prepareDatabase([
             Post::class => [
@@ -182,6 +183,52 @@ class RepeatedPostsTest extends TestCase
         ]);
 
         $this->assertTrue((bool) $this->edit(3, 100, rtrim(self::TEXT, '.').'!')->is_approved);
+    }
+
+    #[Test]
+    public function editing_older_posts_into_a_later_one_is_a_repeat()
+    {
+        // Post placeholders, then edit them into the pitch starting from the newest.
+        $this->prepareDatabase([
+            Post::class => [
+                ['id' => 100, 'discussion_id' => 1, 'user_id' => 3, 'type' => 'comment', 'content' => '<t><p>Placeholder one, nothing to see here at all, honestly.</p></t>', 'number' => 3, 'created_at' => Carbon::now()->subHour(), 'is_approved' => 1],
+                ['id' => 101, 'discussion_id' => 1, 'user_id' => 3, 'type' => 'comment', 'content' => '<t><p>'.self::TEXT.'</p></t>', 'number' => 4, 'created_at' => Carbon::now()->subMinutes(30), 'is_approved' => 1],
+            ],
+        ]);
+
+        $this->assertFalse((bool) $this->edit(3, 100, self::TEXT)->is_approved);
+    }
+
+    #[Test]
+    public function formatting_delimiters_do_not_hide_a_repeat()
+    {
+        // As BBCode stores bold: the delimiters are kept in the XML, and their letters are not words.
+        $this->prepareDatabase([
+            Post::class => [
+                ['id' => 100, 'discussion_id' => 1, 'user_id' => 3, 'type' => 'comment', 'content' => '<r><p><B><s>[b]</s>Segera<e>[/b]</e></B>'.substr(self::TEXT, 6).'</p></r>', 'number' => 3, 'created_at' => Carbon::now()->subHour(), 'is_approved' => 1],
+            ],
+        ]);
+
+        $this->assertFalse((bool) $this->reply(3, self::TEXT)->is_approved);
+    }
+
+    #[Test]
+    public function a_literal_tag_in_the_text_does_not_hide_a_repeat()
+    {
+        // The source strips it as markup; the stored XML has it escaped as text. Both are compared as stored.
+        $text = 'To fix it, wrap the <button> in a form and the bank page will submit correctly for you.';
+        $this->postedEarlier(3, $text);
+
+        $this->assertFalse((bool) $this->reply(3, $text)->is_approved);
+    }
+
+    #[Test]
+    public function monitoring_everyone_does_not_check_established_members_for_repeats()
+    {
+        $this->setting('fof-anti-spam.content-filter.monitor_all_users', true);
+        $this->postedEarlier(4, self::TEXT);
+
+        $this->assertTrue((bool) $this->reply(4, self::TEXT)->is_approved);
     }
 
     #[Test]
@@ -237,9 +284,11 @@ class RepeatedPostsTest extends TestCase
     }
 
     #[Test]
-    public function an_edit_by_someone_else_is_compared_with_the_author_s_posts()
+    public function an_edit_of_someone_else_s_post_is_not_checked_for_repeats()
     {
-        // A member allowed to edit others' posts is not exempt, but whose history counts is the author's.
+        // A member allowed to edit others' posts is not exempt. Comparing with the author's
+        // history would let them test guesses against posts they cannot see; comparing with
+        // their own says nothing about the post.
         $this->postedEarlier(3, self::TEXT);
         $this->prepareDatabase([
             'group_permission' => [

@@ -118,6 +118,8 @@ class PhoneDetectorTest extends TestCase
         yield 'fullwidth digits' => ['WA ０８１１-２５０６-６２８８', ['０８１１-２５０６-６２８８']];
         // An international candidate too long to be a number is not a number, and must not take
         // the local one after it down with it.
+        // Only the group glued to the word is lost, not the number before it.
+        yield 'followed by a group glued to a word' => ['Call 07700 900123 24h', ['07700 900123']];
         yield 'after an overlong international candidate' => ['Hash +1234567890123456 0811-2506-6288', ['0811-2506-6288']];
     }
 
@@ -153,6 +155,7 @@ class PhoneDetectorTest extends TestCase
         yield 'glued to letters after' => ['Ref 08123456789AB'];
         yield 'glued to an underscore after' => ['Ref 08123456789_x'];
         yield 'list of pairs' => ['Scores 05 12 23 34 45 56'];
+        yield 'bracketed labelled id' => ['Invoice:(081125066288)'];
         // International numbers are the other extractor's: counting them again would score them twice.
         yield 'international with a trunk zero' => ['Call +62 0811-2506-6288'];
         yield 'international' => ['Call +44 20 7946 0958'];
@@ -163,6 +166,28 @@ class PhoneDetectorTest extends TestCase
     public function it_leaves_other_numbers_alone_when_looking_for_local_ones(string $content): void
     {
         $this->assertSame([], PhoneDetector::extractLocalPhoneNumbers($content));
+    }
+
+    #[Test]
+    public function many_short_candidates_glued_to_a_word_are_read_in_linear_time(): void
+    {
+        // Each `0` after a space can start a candidate; a check that fails after the whole run
+        // would read the rest of it again from every one of them.
+        $content = rtrim(str_repeat('01 ', 21000)).'x';
+
+        $start = microtime(true);
+        $this->assertSame([], PhoneDetector::extractLocalPhoneNumbers($content));
+        $this->assertLessThan(0.5, microtime(true) - $start);
+    }
+
+    #[Test]
+    public function many_international_numbers_are_blanked_in_linear_time(): void
+    {
+        $content = str_repeat('+44 20 7946 0958 ', 3700);
+
+        $start = microtime(true);
+        $this->assertSame([], PhoneDetector::extractLocalPhoneNumbers($content));
+        $this->assertLessThan(1.0, microtime(true) - $start);
     }
 
     #[Test]

@@ -27,6 +27,9 @@ use FoF\AntiSpam\ContentFilter\SpamScore;
  *
  * Posts in the discussion being posted in are not counted. A new member going back and forth
  * with whoever is helping them posts quickly too, but in one place; spam goes everywhere.
+ *
+ * New accounts only, even when everyone is monitored: a regular answering six threads in ten
+ * minutes is helping.
  */
 class PostBurstDetector extends AbstractDetector
 {
@@ -43,7 +46,12 @@ class PostBurstDetector extends AbstractDetector
         $limit = $this->number('burst_post_count', self::DEFAULT_POSTS);
         $minutes = $this->number('burst_minutes', self::DEFAULT_MINUTES);
 
-        if ($limit <= 0 || $minutes <= 0 || ! $this->shouldMonitorUser($user)) {
+        // 0 posts is the way to turn it off. No window is meaningless, so it means the default.
+        if ($minutes <= 0) {
+            $minutes = self::DEFAULT_MINUTES;
+        }
+
+        if ($limit <= 0 || ! $this->isNewAccount($user)) {
             return new SpamScore();
         }
 

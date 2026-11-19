@@ -190,17 +190,23 @@ class PostBurstTest extends TestCase
     #[Test]
     public function editing_a_post_is_not_posting_again()
     {
+        // Five in another discussion, so the edited post's own discussion leaves none out.
         $this->postedEarlier(3, [1, 2, 3, 4, 5]);
+        $this->prepareDatabase([
+            Post::class => [
+                ['id' => 200, 'discussion_id' => 1, 'user_id' => 3, 'type' => 'comment', 'content' => '<t><p>Hello</p></t>', 'number' => 50, 'created_at' => Carbon::now()->subMinute(), 'is_approved' => 1],
+            ],
+        ]);
 
         $response = $this->send(
-            $this->request('PATCH', '/api/posts/101', [
+            $this->request('PATCH', '/api/posts/200', [
                 'authenticatedAs' => 3,
-                'json' => ['data' => ['type' => 'posts', 'id' => '101', 'attributes' => ['content' => 'Reply number 1, corrected']]],
+                'json' => ['data' => ['type' => 'posts', 'id' => '200', 'attributes' => ['content' => 'Hello, corrected']]],
             ])
         );
 
         $this->assertEquals(200, $response->getStatusCode(), (string) $response->getBody());
-        $this->assertTrue((bool) Post::findOrFail(101)->is_approved);
+        $this->assertTrue((bool) Post::findOrFail(200)->is_approved);
     }
 
     #[Test]
@@ -209,6 +215,25 @@ class PostBurstTest extends TestCase
         $this->postedEarlier(4, [1, 2, 3, 4, 5]);
 
         $this->assertTrue((bool) $this->reply(4)->is_approved);
+    }
+
+    #[Test]
+    public function monitoring_everyone_does_not_limit_established_members()
+    {
+        // A regular answering six threads in ten minutes is helping, not spamming.
+        $this->setting('fof-anti-spam.content-filter.monitor_all_users', true);
+        $this->postedEarlier(4, [1, 2, 3, 4, 5]);
+
+        $this->assertTrue((bool) $this->reply(4)->is_approved);
+    }
+
+    #[Test]
+    public function a_window_of_no_minutes_keeps_the_default()
+    {
+        $this->setting('fof-anti-spam.content-filter.burst_minutes', 0);
+        $this->postedEarlier(3, [1, 2, 3, 4, 5]);
+
+        $this->assertFalse((bool) $this->reply(3)->is_approved);
     }
 
     #[Test]

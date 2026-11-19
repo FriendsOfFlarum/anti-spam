@@ -35,6 +35,19 @@ abstract class AbstractDetector implements DetectorInterface
     }
 
     /**
+     * Whether a user is a new account: inside the post count or age window, and not exempt.
+     * Unlike shouldMonitorUser(), monitoring everyone does not widen it. For detectors that
+     * judge how an account behaves rather than what it says, where a regular doing the same is
+     * just being a regular.
+     */
+    protected function isNewAccount(User $user): bool
+    {
+        $users = new MonitoredUsers($this->config);
+
+        return ! $users->isExempt($user) && $users->isNew($user);
+    }
+
+    /**
      * Markup tags: `<r>`, `</p>`, `<br/>`, `<URL url="…">`, `<UPL-IMAGE-PREVIEW …>`.
      *
      * The tag name must start with a letter and run straight into whitespace, `/` or `>`. That is

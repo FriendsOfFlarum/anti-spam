@@ -70,6 +70,10 @@ class CheckPostContent extends AbstractContentCheck
             'discussion_id' => $post->discussion_id,
             // Not always the actor: someone allowed to edit others' posts may be editing it.
             'author_id' => $post->user_id,
+            // As stored, for comparing with stored posts: the source above has been through
+            // every formatter extension's unparse, which rewrites some of it.
+            'parsed_content' => $post->getAttributes()['content'] ?? null,
+            'original_parsed_content' => $post->exists ? $post->getRawOriginal('content') : null,
         ]);
 
         // No spam indicators detected at all

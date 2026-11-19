@@ -17,8 +17,9 @@ use FoF\AntiSpam\ContentFilter\AbstractDetector;
 use FoF\AntiSpam\ContentFilter\SpamScore;
 
 /**
- * Detects a monitored account posting the same thing again: the same words as one of its
- * recent posts, whatever the case, spacing, punctuation or formatting.
+ * Detects a new account posting the same thing again: the same words as one of its recent
+ * posts, whatever the case, spacing, punctuation or formatting. New accounts only, even when
+ * everyone is monitored: a regular pasting the same answer to the same question is helping.
  *
  * A person new to a community rarely says the same paragraph twice; an account pasting its
  * pitch into thread after thread does. Short replies are left alone, because people do say
@@ -43,38 +44,52 @@ class RepeatedPostDetector extends AbstractDetector
             return new SpamScore();
         }
 
-        if (! $this->config->get('detect_repeats') || ! $this->shouldMonitorUser($user)) {
+        // Someone allowed to edit others' posts is editing one. Their own history says nothing
+        // about it, and checking the author's would let them test guesses at posts they cannot see.
+        if (isset($context['author_id']) && (int) $context['author_id'] !== (int) $user->id) {
             return new SpamScore();
         }
 
-        $normalised = $this->normalise($content);
+        if (! $this->config->get('detect_repeats') || ! $this->isNewAccount($user)) {
+            return new SpamScore();
+        }
+
+        // Compared as stored, on both sides, when the caller has it.
+        $normalised = $this->normalise($context['parsed_content'] ?? $content);
 
         if (mb_strlen($normalised) < self::MIN_LENGTH) {
             return new SpamScore();
         }
 
-        $authorId = $context['author_id'] ?? $user->id;
+        // An edit that leaves the words as they were is not saying anything again: fixing the
+        // punctuation of a post whose later copy was held must not hold the original as well.
+        if (isset($context['original_parsed_content']) && $this->normalise((string) $context['original_parsed_content']) === $normalised) {
+            return new SpamScore();
+        }
+
         $postId = $context['post_id'] ?? null;
 
         // Held posts and posts moderators hid count: a held post is the one most likely to be
         // posted again. Posts the author deleted, or that are in a discussion they deleted, do
         // not: posting in the wrong place, deleting it and posting it again is not spam.
         //
-        // An edit is compared only with the posts before it: neither with itself, which it always
-        // repeats, nor with a later copy, which is the repeat and has already been judged.
+        // An edit is compared with every other post, later ones too: otherwise placeholders
+        // edited into the same text from the newest back would never meet a copy.
         //
         // Compared as stored, without rebuilding each post's source: that runs every formatter
         // extension's unparse callbacks, and mentions' query for the models they mention.
         $recent = Post::query()
-            ->where('user_id', $authorId)
-            ->where('type', 'comment')
-            ->where(fn ($query) => $query->whereNull('hidden_user_id')->orWhereColumn('hidden_user_id', '!=', 'user_id'))
-            ->whereNotIn('discussion_id', fn ($query) => $query->select('id')->from('discussions')->where('hidden_user_id', $authorId))
-            ->when($postId, fn ($query) => $query->where('id', '<', $postId))
-            ->latest()
+            ->where('posts.user_id', $user->id)
+            ->where('posts.type', 'comment')
+            ->where(fn ($query) => $query->whereNull('posts.hidden_user_id')->orWhereColumn('posts.hidden_user_id', '!=', 'posts.user_id'))
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('discussions')
+                ->whereColumn('discussions.id', 'posts.discussion_id')
+                ->where('discussions.hidden_user_id', $user->id))
+            ->when($postId, fn ($query) => $query->where('posts.id', '!=', $postId))
+            ->latest('posts.created_at')
             ->limit(self::RECENT_POSTS)
             ->toBase()
-            ->pluck('content', 'id');
+            ->pluck('posts.content', 'posts.id');
 
         foreach ($recent as $id => $stored) {
             if ($this->normalise((string) $stored) === $normalised) {
@@ -94,13 +109,17 @@ class RepeatedPostDetector extends AbstractDetector
 
     /**
      * The words alone: formatting, punctuation and case removed, whitespace collapsed. Works on
-     * both a post's source and its stored XML, whose tags are stripped the same way.
+     * both a post's source and its stored XML.
+     *
+     * In the XML, the characters that marked formatting up (`**`, `[b]`) are kept in `<s>` and
+     * `<e>` elements; they are dropped, or BBCode's tag names would read as words.
      *
      * Combining marks are kept: in scripts such as Devanagari they are the vowels, and words
      * that differ only in them are different words.
      */
     protected function normalise(string $content): string
     {
+        $content = (string) preg_replace('~<([se])>.*?</\1>~s', ' ', $content);
         $text = $this->stripFormatting($content);
 
         if (class_exists(\Normalizer::class)) {
