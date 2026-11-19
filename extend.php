@@ -106,6 +106,8 @@ return [
         ->default('fof-anti-spam.content-filter.monitor_post_count', 5)
         ->default('fof-anti-spam.content-filter.monitor_hours_old', 24)
         ->default('fof-anti-spam.content-filter.detect_phones', true)
+        // Opt in: without a country code, a number is harder to tell from a date or an ID.
+        ->default('fof-anti-spam.content-filter.detect_local_phones', false)
         ->default('fof-anti-spam.content-filter.detect_emails', true)
         ->default('fof-anti-spam.content-filter.detect_urls', true)
         ->default('fof-anti-spam.content-filter.spam_threshold', 50)
@@ -115,6 +117,10 @@ return [
         ->default('fof-anti-spam.content-filter.auto_unapprove', true)
         ->default('fof-anti-spam.content-filter.auto_flag', true)
         ->default('fof-anti-spam.content-filter.allowed_domains', '')
+        // A new account's posts beyond this many within burst_minutes are held. 0 turns it off.
+        ->default('fof-anti-spam.content-filter.burst_post_count', ContentFilter\Detectors\PostBurstDetector::DEFAULT_POSTS)
+        ->default('fof-anti-spam.content-filter.burst_minutes', ContentFilter\Detectors\PostBurstDetector::DEFAULT_MINUTES)
+        ->default('fof-anti-spam.content-filter.detect_repeats', true)
         // Empty means no domain is held, which is the behaviour that shipped.
         ->default('fof-anti-spam.content-filter.held_email_domains', '')
         ->default('fof-anti-spam.content-filter.blocked_words', '')

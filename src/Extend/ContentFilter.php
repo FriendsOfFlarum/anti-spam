@@ -183,6 +183,39 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
+     * Enable/disable detection of phone numbers in local format (`0811-2506-6288`), without a
+     * `+` or `00` country prefix. Needs phone number detection on.
+     */
+    public function blockLocalPhoneNumbers(bool $enabled = true): self
+    {
+        $this->config['detect_local_phones'] = $enabled;
+
+        return $this;
+    }
+
+    /**
+     * Hold a monitored account's posts once it has made this many within the given minutes.
+     * A count of 0 turns the limit off.
+     */
+    public function limitNewAccountPosts(int $posts, int $minutes): self
+    {
+        $this->config['burst_post_count'] = $posts;
+        $this->config['burst_minutes'] = $minutes;
+
+        return $this;
+    }
+
+    /**
+     * Enable/disable detection of a monitored account posting the same thing again.
+     */
+    public function blockRepeatedPosts(bool $enabled = true): self
+    {
+        $this->config['detect_repeats'] = $enabled;
+
+        return $this;
+    }
+
+    /**
      * Enable/disable email address detection in post content.
      */
     public function blockEmailAddresses(bool $enabled = true): self

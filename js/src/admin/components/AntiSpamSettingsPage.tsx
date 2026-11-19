@@ -206,6 +206,12 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
       ),
       item(
         contentFilter,
+        'fof-anti-spam.content-filter.detect_local_phones',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_local_phones_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_local_phones_help')
+      ),
+      item(
+        contentFilter,
         'fof-anti-spam.content-filter.detect_emails',
         app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
         app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help')
@@ -215,6 +221,23 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
         'fof-anti-spam.content-filter.detect_urls',
         app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
         app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.detect_repeats',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_repeats_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_repeats_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.burst_post_count',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.burst_post_count_label'),
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.burst_post_count_help')
+      ),
+      item(
+        contentFilter,
+        'fof-anti-spam.content-filter.burst_minutes',
+        app.translator.trans('fof-anti-spam.admin.settings.content-filter.burst_minutes_label')
       ),
       item(
         contentFilter,
@@ -704,6 +727,13 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
 
         {this.buildSettingComponent({
           type: 'boolean',
+          setting: 'fof-anti-spam.content-filter.detect_local_phones',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_local_phones_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_local_phones_help'),
+        })}
+
+        {this.buildSettingComponent({
+          type: 'boolean',
           setting: 'fof-anti-spam.content-filter.detect_emails',
           label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_label'),
           help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_emails_help'),
@@ -714,6 +744,31 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
           setting: 'fof-anti-spam.content-filter.detect_urls',
           label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_label'),
           help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_urls_help'),
+        })}
+
+        {this.buildSettingComponent({
+          type: 'boolean',
+          setting: 'fof-anti-spam.content-filter.detect_repeats',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_repeats_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.detect_repeats_help'),
+        })}
+
+        <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.posting_rate_heading')}</h4>
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.content-filter.burst_post_count',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.burst_post_count_label'),
+          help: app.translator.trans('fof-anti-spam.admin.settings.content-filter.burst_post_count_help'),
+          placeholder: '5',
+          min: 0,
+        })}
+
+        {this.buildSettingComponent({
+          type: 'number',
+          setting: 'fof-anti-spam.content-filter.burst_minutes',
+          label: app.translator.trans('fof-anti-spam.admin.settings.content-filter.burst_minutes_label'),
+          placeholder: '10',
+          min: 1,
         })}
 
         <h4>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.thresholds_heading')}</h4>

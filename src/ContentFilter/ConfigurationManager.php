@@ -350,6 +350,22 @@ class ConfigurationManager
                 'value' => $this->get('detect_phones'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_phones'),
             ],
+            'detectLocalPhones' => [
+                'value' => $this->get('detect_local_phones'),
+                'isCodeConfigured' => $this->isCodeConfigured('detect_local_phones'),
+            ],
+            'burstPostCount' => [
+                'value' => $this->get('burst_post_count'),
+                'isCodeConfigured' => $this->isCodeConfigured('burst_post_count'),
+            ],
+            'burstMinutes' => [
+                'value' => $this->get('burst_minutes'),
+                'isCodeConfigured' => $this->isCodeConfigured('burst_minutes'),
+            ],
+            'detectRepeats' => [
+                'value' => $this->get('detect_repeats'),
+                'isCodeConfigured' => $this->isCodeConfigured('detect_repeats'),
+            ],
             'detectEmails' => [
                 'value' => $this->get('detect_emails'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_emails'),
