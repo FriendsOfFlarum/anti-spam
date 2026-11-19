@@ -10,3 +10,11 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+// A spam flag's detail is one reason per line, and a note per edit after a blank line. Long
+// hostnames break rather than push the flag's controls out of view.
+.FoFAntiSpam-flagDetail {
+  display: block;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

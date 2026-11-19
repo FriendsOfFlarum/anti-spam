@@ -309,7 +309,14 @@ post scores 30, so it is flagged for a moderator but stays visible. Anywhere els
 This extension uses a custom `spam` flag type for automatic detections:
 
 - **Spam score** is stored in the flag's `reason` field
-- **Detection details** are stored in the `reason_detail` field
+- **Detection details** are stored in the `reason_detail` field, one reason per line, each naming
+  what tripped it: the links (scheme and host), email addresses or phone numbers, up to five of
+  each, or the text a pattern matched. The matches are shown to moderators on the flag only; the
+  log keeps the reasons without them
+- **Edits** to a flagged post do not clear the flag, even when the edit removes what tripped it.
+  The post's new text is checked again, and the result is added under the original detection
+  ("Edited … : the edited text trips no content check", or what it trips now). The latest five
+  notes are kept. A moderator still decides whether to approve the post or dismiss the flag
 - **Display format**: "Automatic Spam Detection - score {score}"
 - **Raised by** the account chosen in the admin panel, picked by name with a search-as-you-type
   selector, or with `assignFlagsToModerator()` in code. Left unchosen, the first administrator

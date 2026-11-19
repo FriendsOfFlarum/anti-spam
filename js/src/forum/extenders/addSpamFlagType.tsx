@@ -16,7 +16,7 @@ export default function addSpamFlagType() {
 
       return [
         app.translator.trans('fof-anti-spam.forum.post.flagged_as_spam_text', { score: reason }),
-        !!detail && <span className="Post-flagged-detail">{detail}</span>,
+        !!detail && <span className="Post-flagged-detail FoFAntiSpam-flagDetail">{detail}</span>,
       ];
     }
 

@@ -251,6 +251,7 @@ class UrlDetector extends AbstractDetector
         return new SpamScore(
             score: $score,
             reasons: $reasons,
+            evidence: [self::listMatches($flaggedUrls)],
             metadata: [
                 'detector' => 'url',
                 'total_urls' => $count,

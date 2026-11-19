@@ -20,11 +20,15 @@ class SpamScore
      * @param int $score Score contribution (0-100)
      * @param array<string> $reasons Human-readable reasons for the score
      * @param array<string, mixed> $metadata Additional metadata about the detection
+     * @param array<int, string> $evidence What tripped a reason, by the reason's index: shown on
+     *                                     the flag for moderators, and kept out of the reasons
+     *                                     themselves, which are logged
      */
     public function __construct(
         private int $score = 0,
         private array $reasons = [],
-        private array $metadata = []
+        private array $metadata = [],
+        private array $evidence = []
     ) {
         // Clamp score to 0-100 range
         $this->score = max(0, min(100, $score));
@@ -46,6 +50,16 @@ class SpamScore
     public function getReasons(): array
     {
         return $this->reasons;
+    }
+
+    /**
+     * What tripped each reason, by the reason's index. A reason may have none.
+     *
+     * @return array<int, string>
+     */
+    public function getEvidence(): array
+    {
+        return $this->evidence;
     }
 
     /**
@@ -92,6 +106,12 @@ class SpamScore
     public function merge(SpamScore $other): self
     {
         $this->score = min(100, $this->score + $other->getScore());
+
+        $offset = count($this->reasons);
+        foreach ($other->getEvidence() as $index => $evidence) {
+            $this->evidence[$offset + $index] = $evidence;
+        }
+
         $this->reasons = array_merge($this->reasons, $other->getReasons());
         $this->metadata = array_merge($this->metadata, $other->getMetadata());
 

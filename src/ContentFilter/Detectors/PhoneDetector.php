@@ -320,6 +320,7 @@ class PhoneDetector extends AbstractDetector
         return new SpamScore(
             score: $score,
             reasons: $reasons,
+            evidence: [self::listMatches($phoneNumbers)],
             metadata: [
                 'detector' => 'phone',
                 'count' => $count,

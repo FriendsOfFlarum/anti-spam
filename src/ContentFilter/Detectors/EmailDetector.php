@@ -109,6 +109,7 @@ class EmailDetector extends AbstractDetector
         return new SpamScore(
             score: $score,
             reasons: $reasons,
+            evidence: [self::listMatches($emails)],
             metadata: [
                 'detector' => 'email',
                 'count' => $count,
