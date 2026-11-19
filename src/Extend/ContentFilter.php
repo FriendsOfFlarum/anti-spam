@@ -206,6 +206,16 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
+     * Enable/disable detection of a monitored account posting the same thing again.
+     */
+    public function blockRepeatedPosts(bool $enabled = true): self
+    {
+        $this->config['detect_repeats'] = $enabled;
+
+        return $this;
+    }
+
+    /**
      * Enable/disable email address detection in post content.
      */
     public function blockEmailAddresses(bool $enabled = true): self

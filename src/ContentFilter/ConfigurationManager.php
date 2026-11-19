@@ -362,6 +362,10 @@ class ConfigurationManager
                 'value' => $this->get('burst_minutes'),
                 'isCodeConfigured' => $this->isCodeConfigured('burst_minutes'),
             ],
+            'detectRepeats' => [
+                'value' => $this->get('detect_repeats'),
+                'isCodeConfigured' => $this->isCodeConfigured('detect_repeats'),
+            ],
             'detectEmails' => [
                 'value' => $this->get('detect_emails'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_emails'),

@@ -73,6 +73,7 @@ class SettingsDefaultsTest extends TestCase
             'fof-anti-spam.content-filter.detect_local_phones',
             'fof-anti-spam.content-filter.burst_post_count',
             'fof-anti-spam.content-filter.burst_minutes',
+            'fof-anti-spam.content-filter.detect_repeats',
             'fof-anti-spam.content-filter.detect_emails',
             'fof-anti-spam.content-filter.detect_urls',
             'fof-anti-spam.content-filter.spam_threshold',
