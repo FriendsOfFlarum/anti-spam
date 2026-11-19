@@ -75,6 +75,40 @@ abstract class AbstractDetector implements DetectorInterface
         return trim($content);
     }
 
+    /**
+     * How many matches a flag names before it summarises the rest.
+     */
+    protected const int LISTED_MATCHES = 5;
+
+    /**
+     * The matches a flag names, so a moderator can see what tripped it after the author has
+     * edited it away: `a, b and 3 more`.
+     *
+     * @param array<string> $matches
+     */
+    protected static function listMatches(array $matches): string
+    {
+        $matches = array_values(array_unique(array_map([static::class, 'quotable'], $matches)));
+        $listed = implode(', ', array_slice($matches, 0, static::LISTED_MATCHES));
+        $rest = count($matches) - static::LISTED_MATCHES;
+
+        return $rest > 0 ? "{$listed} and {$rest} more" : $listed;
+    }
+
+    /**
+     * Matched text made safe to store and show: valid UTF-8, since a pattern without the `u`
+     * modifier can end a match inside a character, and short, since a post can hold a very long
+     * token and a flag's detail has a size limit.
+     */
+    protected static function quotable(string $matched): string
+    {
+        // Line and paragraph separators too: a flag shows one reason per line, and a match must
+        // not be able to start a line of its own.
+        $matched = trim(preg_replace('/[\p{Z}\p{Cc}]+/u', ' ', mb_scrub($matched, 'UTF-8')));
+
+        return mb_strlen($matched) > 100 ? mb_substr($matched, 0, 100).'…' : $matched;
+    }
+
     public function isEnabled(): bool
     {
         // Check if content filtering is globally enabled

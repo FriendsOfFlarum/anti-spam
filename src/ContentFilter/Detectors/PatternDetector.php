@@ -56,6 +56,7 @@ class PatternDetector extends AbstractDetector
         $totalScore = 0;
         $matchedPatterns = [];
         $reasons = [];
+        $evidence = [];
 
         // Test each pattern
         foreach ($patterns as $patternData) {
@@ -68,7 +69,7 @@ class PatternDetector extends AbstractDetector
 
             try {
                 // Test pattern
-                if (preg_match($pattern, $cleanContent)) {
+                if (preg_match($pattern, $cleanContent, $match)) {
                     $matchedPatterns[] = [
                         'pattern' => $pattern,
                         'description' => $description,
@@ -78,6 +79,14 @@ class PatternDetector extends AbstractDetector
                     $totalScore += 50;
 
                     $reasons[] = $description ?: "Matched pattern: {$pattern}";
+
+                    // A description says what the pattern looks for, not what it found, unless it
+                    // already names it, as a blocked word's does.
+                    $matched = self::quotable($match[0]);
+
+                    if ($matched !== '' && ! ($description && mb_stripos($description, $matched) !== false)) {
+                        $evidence[array_key_last($reasons)] = "\"{$matched}\"";
+                    }
                 }
             } catch (\Throwable $e) {
                 // Invalid regex pattern, log and skip
@@ -99,6 +108,7 @@ class PatternDetector extends AbstractDetector
         return new SpamScore(
             score: $totalScore,
             reasons: $reasons,
+            evidence: $evidence,
             metadata: [
                 'detector' => 'pattern',
                 'matched_patterns' => $matchedPatterns,

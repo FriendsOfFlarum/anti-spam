@@ -11,12 +11,14 @@
 
 namespace FoF\AntiSpam\Listener;
 
+use Carbon\Carbon;
 use Flarum\Flags\Flag;
 use Flarum\Post\Event\Posted;
 use Flarum\Post\Event\Revised;
 use Flarum\Post\Event\Saving;
 use Flarum\Post\Post;
 use FoF\AntiSpam\ContentFilter\AnalysisResult;
+use FoF\AntiSpam\ContentFilter\MonitoredUsers;
 use Illuminate\Contracts\Events\Dispatcher;
 
 /**
@@ -28,6 +30,24 @@ class CheckPostContent extends AbstractContentCheck
      * @var array<int, AnalysisResult>
      */
     private array $pendingAnalysis = [];
+
+    /**
+     * Edits re-checked, for a note on a flag the post already has. Null when the account is no
+     * longer monitored, so a clean result would say nothing about the edit.
+     *
+     * @var array<int, AnalysisResult|null>
+     */
+    private array $pendingEdits = [];
+
+    /**
+     * Edit notes kept on a flag besides what first raised it, so a run of edits cannot grow it
+     * without limit.
+     */
+    private const int KEPT_EDIT_NOTES = 5;
+
+    private const int EDIT_NOTE_LENGTH = 2000;
+
+    private const string EDIT_NOTE_SEPARATOR = "\n\nEdited ";
 
     public function subscribe(Dispatcher $events): void
     {
@@ -76,6 +96,12 @@ class CheckPostContent extends AbstractContentCheck
             'original_parsed_content' => $post->exists ? $post->getRawOriginal('content') : null,
         ]);
 
+        // A filter switched off checked nothing, so it has nothing to add to a flag.
+        if ($post->exists && $this->config->isEnabled()) {
+            $monitored = (new MonitoredUsers($this->config))->shouldMonitor($actor);
+            $this->pendingEdits[spl_object_id($post)] = $monitored ? $result : null;
+        }
+
         // No spam indicators detected at all
         if (! $this->shouldProcessResult($result)) {
             return;
@@ -98,6 +124,33 @@ class CheckPostContent extends AbstractContentCheck
         $post = $event->post;
         $objectId = spl_object_id($post);
 
+        // An edit of a post already flagged goes on that flag: what first tripped it stays, for
+        // the moderator to judge, and what the edit left is added beneath it.
+        if (array_key_exists($objectId, $this->pendingEdits)) {
+            $edit = $this->pendingEdits[$objectId];
+            unset($this->pendingEdits[$objectId]);
+
+            $flag = Flag::where('post_id', $post->id)->where('type', 'spam')->first();
+
+            if ($flag) {
+                unset($this->pendingAnalysis[$objectId]);
+                $flag->reason_detail = self::withEditNote((string) $flag->reason_detail, $edit);
+                $flag->save();
+
+                return;
+            }
+
+            // Just looked for one, so there is no need to ask again before flagging.
+            $result = $this->pendingAnalysis[$objectId] ?? null;
+            unset($this->pendingAnalysis[$objectId]);
+
+            if ($result?->shouldFlag()) {
+                $this->createSpamFlag($post, $result);
+            }
+
+            return;
+        }
+
         // Check if we have pending analysis for this post
         if (! isset($this->pendingAnalysis[$objectId])) {
             return;
@@ -110,6 +163,35 @@ class CheckPostContent extends AbstractContentCheck
         if ($result->shouldFlag()) {
             $this->flagPost($post, $result);
         }
+    }
+
+    /**
+     * A flag's detail with a note on an edit's re-check added, keeping what first raised the
+     * flag and the latest few notes.
+     */
+    protected static function withEditNote(string $detail, ?AnalysisResult $edit): string
+    {
+        $time = Carbon::now('UTC')->format('Y-m-d H:i').' UTC';
+
+        $note = match (true) {
+            $edit === null => "{$time}: not re-checked, the editing account is no longer monitored",
+            // Only the post's text is checked again: not a discussion title the flag may be about,
+            // nor the posting rate, which is judged when a post is made.
+            $edit->getTotalScore() === 0 => "{$time}: the edited text trips no content check",
+            default => "{$time}, score {$edit->getTotalScore()}:\n".implode("\n", $edit->getFlagReasons()),
+        };
+
+        // A note per matching pattern could otherwise add up, over a few edits, to more than the
+        // column holds.
+        if (mb_strlen($note) > self::EDIT_NOTE_LENGTH) {
+            $note = mb_substr($note, 0, self::EDIT_NOTE_LENGTH).'…';
+        }
+
+        $parts = explode(self::EDIT_NOTE_SEPARATOR, $detail);
+        $original = array_shift($parts);
+        $notes = array_slice([...$parts, $note], -self::KEPT_EDIT_NOTES);
+
+        return $original.self::EDIT_NOTE_SEPARATOR.implode(self::EDIT_NOTE_SEPARATOR, $notes);
     }
 
     /**

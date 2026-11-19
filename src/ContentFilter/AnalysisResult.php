@@ -79,6 +79,29 @@ class AnalysisResult
     }
 
     /**
+     * Every reason with what tripped it, for a spam flag's detail: only moderators who may see
+     * the post read it, unlike the logs getAllReasons() goes to.
+     *
+     * @return array<string>
+     */
+    public function getFlagReasons(): array
+    {
+        $reasons = [];
+
+        foreach ($this->detectorScores as $detectorName => $score) {
+            $evidence = $score->getEvidence();
+
+            foreach ($score->getReasons() as $index => $reason) {
+                $reasons[] = isset($evidence[$index])
+                    ? "[{$detectorName}] {$reason}: {$evidence[$index]}"
+                    : "[{$detectorName}] {$reason}";
+            }
+        }
+
+        return $reasons;
+    }
+
+    /**
      * Convert to array for JSON serialization.
      *
      * @return array{totalScore: int, isSpam: bool, shouldFlag: bool, shouldUnapprove: bool, reasons: array<string>, detectors: array<string, array>}
