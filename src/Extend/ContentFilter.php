@@ -194,6 +194,18 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
+     * Hold a monitored account's posts once it has made this many within the given minutes.
+     * A count of 0 turns the limit off.
+     */
+    public function limitNewAccountPosts(int $posts, int $minutes): self
+    {
+        $this->config['burst_post_count'] = $posts;
+        $this->config['burst_minutes'] = $minutes;
+
+        return $this;
+    }
+
+    /**
      * Enable/disable email address detection in post content.
      */
     public function blockEmailAddresses(bool $enabled = true): self

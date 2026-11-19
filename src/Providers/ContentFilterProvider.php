@@ -18,6 +18,7 @@ use FoF\AntiSpam\ContentFilter\ConfigurationManager;
 use FoF\AntiSpam\ContentFilter\Detectors\EmailDetector;
 use FoF\AntiSpam\ContentFilter\Detectors\PatternDetector;
 use FoF\AntiSpam\ContentFilter\Detectors\PhoneDetector;
+use FoF\AntiSpam\ContentFilter\Detectors\PostBurstDetector;
 use FoF\AntiSpam\ContentFilter\Detectors\UrlDetector;
 
 /**
@@ -47,6 +48,7 @@ class ContentFilterProvider extends AbstractServiceProvider
             $analyzer->addDetector($container->make(EmailDetector::class));
             $analyzer->addDetector($container->make(UrlDetector::class));
             $analyzer->addDetector($container->make(PatternDetector::class));
+            $analyzer->addDetector($container->make(PostBurstDetector::class));
 
             return $analyzer;
         });
