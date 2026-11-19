@@ -80,14 +80,16 @@ fof-anti-spam:
         detect_repeats_label: Detect repeated posts
         detect_repeats_help: >
           Flag a post that says the same as one of the account's recent posts, ignoring case,
-          spacing, punctuation and formatting. Posts shorter than 40 characters may be repeated.
+          spacing, punctuation and formatting. Posts shorter than 40 characters may be repeated, and
+          posts the author deleted don't count.
 
         posting_rate_heading: Posting Rate
         burst_post_count_label: Posts allowed in a short time
         burst_post_count_help: >
-          Once a monitored account has made this many posts within the minutes below, every further
-          post scores as spam until it slows down. Posts waiting for approval count too, and edits
-          don't. With 0, there is no limit.
+          Once a monitored account has made this many posts in other discussions within the minutes
+          below, every further post scores as spam until it slows down. Posts in the discussion being
+          posted in don't count, so a conversation in one thread isn't caught. Posts waiting for
+          approval count too, and edits don't. With 0, there is no limit.
         burst_minutes_label: Within how many minutes
 
         thresholds_heading: Spam Score Thresholds

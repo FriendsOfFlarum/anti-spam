@@ -68,6 +68,8 @@ class CheckPostContent extends AbstractContentCheck
             'type' => 'post',
             'post_id' => $post->id,
             'discussion_id' => $post->discussion_id,
+            // Not always the actor: someone allowed to edit others' posts may be editing it.
+            'author_id' => $post->user_id,
         ]);
 
         // No spam indicators detected at all

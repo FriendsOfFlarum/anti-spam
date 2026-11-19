@@ -65,7 +65,8 @@ class PhoneDetector extends AbstractDetector
     protected const int MAX_SINGLE_DIGIT_GROUPS = 2;
 
     /**
-     * A zero in any script, for the trunk prefix every local number starts with.
+     * A zero, for the trunk prefix every local number starts with: ASCII, fullwidth, Arabic-Indic,
+     * Persian and Devanagari, the scripts spammers reach for to slip past an ASCII pattern.
      */
     protected const string ZERO = '[0\x{FF10}\x{0660}\x{06F0}\x{0966}]';
 
@@ -74,16 +75,20 @@ class PhoneDetector extends AbstractDetector
      * by short runs of separators, the first group optionally bracketed (`(021) 5555 1234`).
      *
      * The same characters as the international pattern's `00` may not come before it, for the
-     * same reason, and neither may `,`: `3,0811…` is a decimal. extractLocalPhoneNumbers() and
-     * trimToLocalNumber() decide the rest.
+     * same reason, and neither may `,` (`3,0811…` is a decimal) or `=` (`?ref=0811…`). Nor may a
+     * letter, digit or `_` come straight after it: `08123456789AB` is a reference, not a number.
+     * Every repetition is possessive, so a failed check after the digits fails the candidate
+     * rather than giving back its last group. extractLocalPhoneNumbers() and trimToLocalNumber()
+     * decide the rest.
      */
     protected const string LOCAL_PATTERN = '~
-        (?<! [\p{L}\p{N}_+\x{FF0B}.,:/\#\-] )
+        (?<! [\p{L}\p{N}_+\x{FF0B}.,:=/\#\-] )
         (?<body>
             (?: \( (?= ZERO ) )?+
             ZERO (?! ZERO ) (?= \p{Nd} )
             GROUP (?: [\p{Zs}\-\p{Pd}.()]{1,3}+ GROUP )*+
         )
+        (?! [\p{L}\p{N}_] )
     ~xu';
 
     /**
@@ -105,19 +110,29 @@ class PhoneDetector extends AbstractDetector
      */
     public static function extractPhoneNumbers(string $content): array
     {
+        return array_column(self::matchInternational($content), 0);
+    }
+
+    /**
+     * Every international number with its byte offset in the content.
+     *
+     * @return array<array{0: string, 1: int}>
+     */
+    protected static function matchInternational(string $content): array
+    {
         $pattern = str_replace('GROUP', self::GROUP, self::PHONE_PATTERN);
 
-        if (preg_match_all($pattern, $content, $matches, PREG_SET_ORDER) === false) {
+        if (preg_match_all($pattern, $content, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE) === false) {
             throw new \RuntimeException('Phone number pattern failed: '.preg_last_error_msg());
         }
 
         $numbers = [];
 
         foreach ($matches as $match) {
-            $number = self::trimToNumber($match['prefix'], $match['body']);
+            $number = self::trimToNumber($match['prefix'][0], $match['body'][0]);
 
             if ($number !== null) {
-                $numbers[] = $number;
+                $numbers[] = [$number, $match['prefix'][1]];
             }
         }
 
@@ -128,18 +143,16 @@ class PhoneDetector extends AbstractDetector
      * Extract every local-format phone number (`0811-2506-6288`, `020 7946 0958`) from content
      * that has already had its formatting stripped.
      *
-     * Anything the international pattern reads is blanked first, so `+62 0811-2506-6288` is one
-     * international number and not a local one as well.
+     * Every international number is blanked first, so `+62 0811-2506-6288` is one international
+     * number and not a local one as well. Only what was accepted as one: a candidate rejected as
+     * too long would otherwise take the local number after it down with it.
      *
      * @return array<string> The matched numbers, in the order they appear.
      */
     public static function extractLocalPhoneNumbers(string $content): array
     {
-        $international = str_replace('GROUP', self::GROUP, self::PHONE_PATTERN);
-        $content = preg_replace($international, ' ', $content);
-
-        if ($content === null) {
-            throw new \RuntimeException('Phone number pattern failed: '.preg_last_error_msg());
+        foreach (self::matchInternational($content) as [$number, $offset]) {
+            $content = substr_replace($content, str_repeat(' ', strlen($number)), $offset, strlen($number));
         }
 
         $pattern = str_replace(['GROUP', 'ZERO'], [self::GROUP, self::ZERO], self::LOCAL_PATTERN);
@@ -167,8 +180,7 @@ class PhoneDetector extends AbstractDetector
      * Without a country code there is less to go on, so the shape has to look like a number:
      * - the area or operator code with its trunk zero is three to five digits (`020`, `0811`,
      *   `07700`), which is what tells it apart from a day-first date (`01-02-2024 10:00`);
-     * - except that a number written entirely in pairs (`01 23 45 67 89`) is how France and
-     *   Belgium write theirs;
+     * - except that five pairs (`01 23 45 67 89`) is how France writes its numbers;
      * - or the whole number is one unbroken run (`081125066288`);
      * - no group is a single digit, and four short dotted groups are an IP address.
      */
@@ -199,7 +211,7 @@ class PhoneDetector extends AbstractDetector
         $number = substr($body, 0, $end);
 
         if (count($counts) > 1) {
-            $pairs = count(array_unique($counts)) === 1 && $counts[0] === 2;
+            $pairs = $counts === [2, 2, 2, 2, 2];
 
             if (! $pairs && ($counts[0] < 3 || $counts[0] > 5)) {
                 return null;

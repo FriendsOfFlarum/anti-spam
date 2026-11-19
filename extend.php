@@ -118,8 +118,8 @@ return [
         ->default('fof-anti-spam.content-filter.auto_flag', true)
         ->default('fof-anti-spam.content-filter.allowed_domains', '')
         // A new account's posts beyond this many within burst_minutes are held. 0 turns it off.
-        ->default('fof-anti-spam.content-filter.burst_post_count', 5)
-        ->default('fof-anti-spam.content-filter.burst_minutes', 10)
+        ->default('fof-anti-spam.content-filter.burst_post_count', ContentFilter\Detectors\PostBurstDetector::DEFAULT_POSTS)
+        ->default('fof-anti-spam.content-filter.burst_minutes', ContentFilter\Detectors\PostBurstDetector::DEFAULT_MINUTES)
         ->default('fof-anti-spam.content-filter.detect_repeats', true)
         // Empty means no domain is held, which is the behaviour that shipped.
         ->default('fof-anti-spam.content-filter.held_email_domains', '')

@@ -16,7 +16,8 @@ Automatically detect and hold spam content from new users before it becomes visi
   - URLs not on your allowlist, whether or not they carry a scheme
   - Custom blocked words and phrases
   - Advanced regex pattern matching
-  - Posting faster than a limit (by default, more than 5 posts within 10 minutes)
+  - Posting across the forum faster than a limit (by default, more than 5 posts in other
+    discussions within 10 minutes)
   - Repeating an earlier post
 
 - **Smart User Targeting**: By default, only monitors new accounts: until they are past both a few
@@ -335,22 +336,29 @@ matched: "Held for approval: new account with an email address on {domain}".
   `blockLocalPhoneNumbers()`): numbers written for callers in the same country, with a leading `0`
   and 10 to 13 digits: `0811-2506-6288`, `07700 900123`, `(021) 5555 1234`, `01 23 45 67 89`,
   `081125066288`. They are harder to tell apart from dates and reference numbers, so the shape is
-  stricter: the area or operator code is 3 to 5 digits (unless the number is written entirely in
-  pairs), no group is a single digit, and anything glued to a word or after `#`, `:`, `/` or `-` is
-  left alone. Short codes such as `1500888` are not counted. A number with a country code counts
-  once, as an international number
+  stricter: the area or operator code is 3 to 5 digits (unless the number is five pairs), no group
+  is a single digit, and anything glued to a word on either side, or after `#`, `:`, `=`, `/` or
+  `-`, is left alone. That means `WA:0811…` is not counted either. Short codes such as `1500888`
+  are not counted. A number with a country code counts once, as an international number
 
 **Posting Rate Detector**
-- Counts a monitored account's posts, including ones waiting for approval or hidden, over the last
-  **10** minutes. Once it has made **5**, every further new post scores 50 until it slows down. Both are
-  set under **Posting Rate**, or with `limitNewAccountPosts()`; 0 posts turns it off
+- Counts a monitored account's posts in other discussions, including ones waiting for approval or
+  hidden, over the last **10** minutes. Once it has made **5**, every further new post scores 50
+  until it slows down. Posts in the discussion being posted in are left out, so a new member going
+  back and forth with whoever is helping them is not caught; spam goes everywhere. Both numbers are
+  set under **Posting Rate**, or with `limitNewAccountPosts()`; 0 posts turns it off, and a blank
+  field keeps the default
+- The flag gives the limit, not the count, which could include posts in tags the moderator cannot
+  see
 - Edits are not posting again and are not counted. Discussion titles and profile fields are not
   checked
 
 **Repeated Post Detector**
 - Scores 50 when a monitored account's post says the same as one of its 20 most recent posts,
-  including ones waiting for approval or hidden, after case, spacing, punctuation and formatting are
-  removed. An edit is compared with the account's other posts, not with itself
+  including ones waiting for approval or hidden by a moderator, after case, spacing, punctuation and
+  formatting are removed. Posts the author deleted, or in a discussion they deleted, do not count,
+  so posting in the wrong place and posting again in the right one is not a repeat
+- An edit is compared with the author's posts from before it, not with itself or later copies
 - Posts shorter than 40 characters once normalised (`Thanks, that worked for me!`) may be repeated
 
 **Email Detector**

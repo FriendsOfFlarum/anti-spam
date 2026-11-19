@@ -39,11 +39,13 @@ class PostBurstTest extends TestCase
             ],
             Discussion::class => [
                 ['id' => 1, 'title' => 'Welcome', 'created_at' => Carbon::now()->subYear(), 'user_id' => 1, 'first_post_id' => 1, 'comment_count' => 1, 'is_approved' => 1],
+                ['id' => 2, 'title' => 'Help thread', 'created_at' => Carbon::now()->subYear(), 'user_id' => 1, 'first_post_id' => 3, 'comment_count' => 1, 'is_approved' => 1],
             ],
             Post::class => [
                 ['id' => 1, 'discussion_id' => 1, 'user_id' => 1, 'type' => 'comment', 'content' => '<t><p>Welcome</p></t>', 'number' => 1, 'created_at' => Carbon::now()->subYear(), 'is_approved' => 1],
                 // The established member's first post, so they are past the age limit too.
                 ['id' => 2, 'discussion_id' => 1, 'user_id' => 4, 'type' => 'comment', 'content' => '<t><p>Hello all</p></t>', 'number' => 99, 'created_at' => Carbon::now()->subYear(), 'is_approved' => 1],
+                ['id' => 3, 'discussion_id' => 2, 'user_id' => 1, 'type' => 'comment', 'content' => '<t><p>What is wrong?</p></t>', 'number' => 1, 'created_at' => Carbon::now()->subYear(), 'is_approved' => 1],
             ],
         ]);
     }
@@ -53,12 +55,12 @@ class PostBurstTest extends TestCase
      *
      * @param array<int> $minutesAgo
      */
-    private function postedEarlier(int $userId, array $minutesAgo, bool $approved = true): void
+    private function postedEarlier(int $userId, array $minutesAgo, bool $approved = true, int $discussionId = 2): void
     {
         $this->prepareDatabase([
             Post::class => array_map(fn (int $i) => [
                 'id' => 100 + $i,
-                'discussion_id' => 1,
+                'discussion_id' => $discussionId,
                 'user_id' => $userId,
                 'type' => 'comment',
                 'content' => "<t><p>Reply number $i</p></t>",
@@ -101,6 +103,38 @@ class PostBurstTest extends TestCase
 
         $this->assertFalse((bool) $post->is_approved);
         $this->assertStringContainsString('5 posts in the last 10 minutes', $this->spamFlag($post)->reason_detail);
+    }
+
+    #[Test]
+    public function a_conversation_in_one_discussion_is_not_a_burst()
+    {
+        // A new member going back and forth with whoever is helping them.
+        $this->postedEarlier(3, [1, 2, 3, 4, 5], discussionId: 1);
+
+        $this->assertTrue((bool) $this->reply(3)->is_approved);
+    }
+
+    #[Test]
+    public function the_flag_gives_the_limit_not_the_count()
+    {
+        // The count would include posts in tags the moderator reading the flag cannot see.
+        $this->postedEarlier(3, [1, 2, 3, 4, 5, 6, 7]);
+
+        $reason = $this->spamFlag($this->reply(3))->reason_detail;
+
+        $this->assertStringContainsString('5 posts in the last 10 minutes', $reason);
+        $this->assertStringNotContainsString('7', $reason);
+    }
+
+    #[Test]
+    public function a_blank_setting_keeps_the_default_rather_than_turning_the_limit_off()
+    {
+        // An emptied number field in the admin panel saves an empty string.
+        $this->setting('fof-anti-spam.content-filter.burst_post_count', '');
+        $this->setting('fof-anti-spam.content-filter.burst_minutes', '');
+        $this->postedEarlier(3, [1, 2, 3, 4, 5]);
+
+        $this->assertFalse((bool) $this->reply(3)->is_approved);
     }
 
     #[Test]

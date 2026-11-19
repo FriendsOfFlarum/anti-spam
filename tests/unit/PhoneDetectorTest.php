@@ -116,6 +116,9 @@ class PhoneDetectorTest extends TestCase
         yield 'pairs of digits' => ['Appelez le 01 23 45 67 89', ['01 23 45 67 89']];
         yield 'followed by a year' => ['WA 0811-2506-6288 2024', ['0811-2506-6288']];
         yield 'fullwidth digits' => ['WA ０８１１-２５０６-６２８８', ['０８１１-２５０６-６２８８']];
+        // An international candidate too long to be a number is not a number, and must not take
+        // the local one after it down with it.
+        yield 'after an overlong international candidate' => ['Hash +1234567890123456 0811-2506-6288', ['0811-2506-6288']];
     }
 
     #[Test]
@@ -146,6 +149,10 @@ class PhoneDetectorTest extends TestCase
         yield 'decimal' => ['Rate 3.0811250662'];
         yield 'ip address' => ['Server 010.123.456.789'];
         yield 'single-digit groups' => ['Steps 0 1 2 3 4 5 6 7 8 9'];
+        yield 'query string' => ['See /page?ref=081125066288'];
+        yield 'glued to letters after' => ['Ref 08123456789AB'];
+        yield 'glued to an underscore after' => ['Ref 08123456789_x'];
+        yield 'list of pairs' => ['Scores 05 12 23 34 45 56'];
         // International numbers are the other extractor's: counting them again would score them twice.
         yield 'international with a trunk zero' => ['Call +62 0811-2506-6288'];
         yield 'international' => ['Call +44 20 7946 0958'];

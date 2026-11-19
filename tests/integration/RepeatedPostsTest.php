@@ -49,11 +49,14 @@ class RepeatedPostsTest extends TestCase
         ]);
     }
 
-    private function postedEarlier(int $userId, string $text, bool $approved = true): void
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    private function postedEarlier(int $userId, string $text, bool $approved = true, array $attributes = []): void
     {
         $this->prepareDatabase([
             Post::class => [
-                ['id' => 100, 'discussion_id' => 1, 'user_id' => $userId, 'type' => 'comment', 'content' => '<t><p>'.htmlspecialchars($text).'</p></t>', 'number' => 3, 'created_at' => Carbon::now()->subHour(), 'is_approved' => $approved ? 1 : 0],
+                ['id' => 100, 'discussion_id' => 1, 'user_id' => $userId, 'type' => 'comment', 'content' => '<t><p>'.htmlspecialchars($text).'</p></t>', 'number' => 3, 'created_at' => Carbon::now()->subHour(), 'is_approved' => $approved ? 1 : 0, ...$attributes],
             ],
         ]);
     }
@@ -150,7 +153,8 @@ class RepeatedPostsTest extends TestCase
     {
         $this->postedEarlier(3, self::TEXT);
 
-        $this->assertTrue((bool) $this->edit(3, 100, self::TEXT.' Terima kasih.')->is_approved);
+        // Only the punctuation changes, so the post would match itself.
+        $this->assertTrue((bool) $this->edit(3, 100, rtrim(self::TEXT, '.').'!')->is_approved);
     }
 
     #[Test]
@@ -164,6 +168,92 @@ class RepeatedPostsTest extends TestCase
         ]);
 
         $this->assertFalse((bool) $this->edit(3, 101, self::TEXT)->is_approved);
+    }
+
+    #[Test]
+    public function an_edit_is_not_compared_with_later_posts()
+    {
+        // The later copy was held as the repeat. Fixing a typo in the original must not hold it too.
+        $this->postedEarlier(3, self::TEXT);
+        $this->prepareDatabase([
+            Post::class => [
+                ['id' => 101, 'discussion_id' => 1, 'user_id' => 3, 'type' => 'comment', 'content' => '<t><p>'.self::TEXT.'</p></t>', 'number' => 4, 'created_at' => Carbon::now()->subMinutes(30), 'is_approved' => 0],
+            ],
+        ]);
+
+        $this->assertTrue((bool) $this->edit(3, 100, rtrim(self::TEXT, '.').'!')->is_approved);
+    }
+
+    #[Test]
+    public function reposting_a_post_the_author_deleted_is_not_a_repeat()
+    {
+        // Posted in the wrong place, deleted and posted again in the right one.
+        $this->postedEarlier(3, self::TEXT, attributes: ['hidden_at' => Carbon::now()->subMinutes(5), 'hidden_user_id' => 3]);
+
+        $this->assertTrue((bool) $this->reply(3, self::TEXT)->is_approved);
+    }
+
+    #[Test]
+    public function reposting_a_discussion_the_author_deleted_is_not_a_repeat()
+    {
+        $this->prepareDatabase([
+            Discussion::class => [
+                ['id' => 2, 'title' => 'Wrong tag', 'created_at' => Carbon::now()->subHour(), 'user_id' => 3, 'first_post_id' => 100, 'comment_count' => 1, 'is_approved' => 1, 'hidden_at' => Carbon::now()->subMinutes(5), 'hidden_user_id' => 3],
+            ],
+        ]);
+        $this->postedEarlier(3, self::TEXT, attributes: ['discussion_id' => 2, 'number' => 1]);
+
+        $this->assertTrue((bool) $this->reply(3, self::TEXT)->is_approved);
+    }
+
+    #[Test]
+    public function reposting_a_post_a_moderator_deleted_is_a_repeat()
+    {
+        $this->postedEarlier(3, self::TEXT, attributes: ['hidden_at' => Carbon::now()->subMinutes(5), 'hidden_user_id' => 1]);
+
+        $this->assertFalse((bool) $this->reply(3, self::TEXT)->is_approved);
+    }
+
+    #[Test]
+    public function a_repeat_of_a_post_with_a_mention_is_held()
+    {
+        // Compared as stored, without rebuilding each earlier post's source.
+        $this->prepareDatabase([
+            Post::class => [
+                ['id' => 100, 'discussion_id' => 1, 'user_id' => 3, 'type' => 'comment', 'content' => '<r><p><POSTMENTION discussionid="1" displayname="admin" id="1" number="1">@"admin"#p1</POSTMENTION> '.self::TEXT.'</p></r>', 'number' => 3, 'created_at' => Carbon::now()->subHour(), 'is_approved' => 1],
+            ],
+        ]);
+
+        $this->assertFalse((bool) $this->reply(3, '@"admin"#p1 '.self::TEXT)->is_approved);
+    }
+
+    #[Test]
+    public function vowel_signs_tell_words_apart()
+    {
+        // In Devanagari a vowel is a combining mark: कि and की differ only in theirs.
+        $this->postedEarlier(3, 'मैंने बैंक को फ़ोन किया और उन्होंने कहा कि पैसा कल वापस आ जाएगा');
+
+        $this->assertTrue((bool) $this->reply(3, 'मैंने बैंक को फ़ोन किया और उन्होंने कहा की पैसा कल वापस आ जाएगा')->is_approved);
+    }
+
+    #[Test]
+    public function an_edit_by_someone_else_is_compared_with_the_author_s_posts()
+    {
+        // A member allowed to edit others' posts is not exempt, but whose history counts is the author's.
+        $this->postedEarlier(3, self::TEXT);
+        $this->prepareDatabase([
+            'group_permission' => [
+                ['permission' => 'discussion.editPosts', 'group_id' => 3],
+            ],
+            User::class => [
+                ['id' => 5, 'username' => 'author', 'email' => 'author@machine.local', 'is_email_confirmed' => 1, 'joined_at' => Carbon::now()],
+            ],
+            Post::class => [
+                ['id' => 101, 'discussion_id' => 1, 'user_id' => 5, 'type' => 'comment', 'content' => '<t><p>Something quite different to say about the topic here.</p></t>', 'number' => 4, 'created_at' => Carbon::now()->subMinutes(30), 'is_approved' => 1],
+            ],
+        ]);
+
+        $this->assertTrue((bool) $this->edit(3, 101, self::TEXT)->is_approved);
     }
 
     #[Test]

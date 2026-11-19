@@ -32,8 +32,8 @@ class RepeatedPostDetector extends AbstractDetector
     protected const int MIN_LENGTH = 40;
 
     /**
-     * How many of the account's latest posts are compared. Monitoring ends after a handful of
-     * posts by default, so this is only reached on a forum that raises that or monitors everyone.
+     * How many of the author's latest posts are compared: enough to catch a spammer's run, few
+     * enough to stay one cheap query.
      */
     protected const int RECENT_POSTS = 20;
 
@@ -53,24 +53,37 @@ class RepeatedPostDetector extends AbstractDetector
             return new SpamScore();
         }
 
-        // Every comment, held or hidden ones too: a held post is the one most likely to be
-        // posted again. Not the post being edited, which would always repeat itself.
+        $authorId = $context['author_id'] ?? $user->id;
+        $postId = $context['post_id'] ?? null;
+
+        // Held posts and posts moderators hid count: a held post is the one most likely to be
+        // posted again. Posts the author deleted, or that are in a discussion they deleted, do
+        // not: posting in the wrong place, deleting it and posting it again is not spam.
+        //
+        // An edit is compared only with the posts before it: neither with itself, which it always
+        // repeats, nor with a later copy, which is the repeat and has already been judged.
+        //
+        // Compared as stored, without rebuilding each post's source: that runs every formatter
+        // extension's unparse callbacks, and mentions' query for the models they mention.
         $recent = Post::query()
-            ->where('user_id', $user->id)
+            ->where('user_id', $authorId)
             ->where('type', 'comment')
-            ->when(! empty($context['post_id']), fn ($query) => $query->where('id', '!=', $context['post_id']))
+            ->where(fn ($query) => $query->whereNull('hidden_user_id')->orWhereColumn('hidden_user_id', '!=', 'user_id'))
+            ->whereNotIn('discussion_id', fn ($query) => $query->select('id')->from('discussions')->where('hidden_user_id', $authorId))
+            ->when($postId, fn ($query) => $query->where('id', '<', $postId))
             ->latest()
             ->limit(self::RECENT_POSTS)
-            ->get();
+            ->toBase()
+            ->pluck('content', 'id');
 
-        foreach ($recent as $post) {
-            if ($this->normalise((string) $post->content) === $normalised) {
+        foreach ($recent as $id => $stored) {
+            if ($this->normalise((string) $stored) === $normalised) {
                 return new SpamScore(
                     score: 50,
                     reasons: ['Repeats one of their earlier posts'],
                     metadata: [
                         'detector' => 'repeat',
-                        'post_id' => $post->id,
+                        'post_id' => $id,
                     ]
                 );
             }
@@ -80,13 +93,21 @@ class RepeatedPostDetector extends AbstractDetector
     }
 
     /**
-     * The words alone: formatting, punctuation and case removed, whitespace collapsed.
+     * The words alone: formatting, punctuation and case removed, whitespace collapsed. Works on
+     * both a post's source and its stored XML, whose tags are stripped the same way.
+     *
+     * Combining marks are kept: in scripts such as Devanagari they are the vowels, and words
+     * that differ only in them are different words.
      */
     protected function normalise(string $content): string
     {
-        $text = mb_strtolower($this->stripFormatting($content));
+        $text = $this->stripFormatting($content);
 
-        return trim((string) preg_replace('~[^\p{L}\p{N}]+~u', ' ', $text));
+        if (class_exists(\Normalizer::class)) {
+            $text = \Normalizer::normalize($text) ?: $text;
+        }
+
+        return trim((string) preg_replace('~[^\p{L}\p{M}\p{N}]+~u', ' ', mb_strtolower($text)));
     }
 
     public function getName(): string
