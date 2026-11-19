@@ -183,6 +183,17 @@ class ContentFilter implements ExtenderInterface
     }
 
     /**
+     * Enable/disable detection of phone numbers in local format (`0811-2506-6288`), without a
+     * `+` or `00` country prefix. Needs phone number detection on.
+     */
+    public function blockLocalPhoneNumbers(bool $enabled = true): self
+    {
+        $this->config['detect_local_phones'] = $enabled;
+
+        return $this;
+    }
+
+    /**
      * Enable/disable email address detection in post content.
      */
     public function blockEmailAddresses(bool $enabled = true): self

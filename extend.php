@@ -106,6 +106,8 @@ return [
         ->default('fof-anti-spam.content-filter.monitor_post_count', 5)
         ->default('fof-anti-spam.content-filter.monitor_hours_old', 24)
         ->default('fof-anti-spam.content-filter.detect_phones', true)
+        // Opt in: without a country code, a number is harder to tell from a date or an ID.
+        ->default('fof-anti-spam.content-filter.detect_local_phones', false)
         ->default('fof-anti-spam.content-filter.detect_emails', true)
         ->default('fof-anti-spam.content-filter.detect_urls', true)
         ->default('fof-anti-spam.content-filter.spam_threshold', 50)

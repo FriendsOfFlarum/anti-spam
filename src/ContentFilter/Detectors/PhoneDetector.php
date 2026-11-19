@@ -16,7 +16,8 @@ use FoF\AntiSpam\ContentFilter\AbstractDetector;
 use FoF\AntiSpam\ContentFilter\SpamScore;
 
 /**
- * Detects international phone numbers: a `+` or `00` prefix and 9 to 15 digits.
+ * Detects international phone numbers: a `+` or `00` prefix and 9 to 15 digits. Local ones, a
+ * trunk `0` and 10 to 13 digits, when the admin turns them on.
  */
 class PhoneDetector extends AbstractDetector
 {
@@ -64,6 +65,40 @@ class PhoneDetector extends AbstractDetector
     protected const int MAX_SINGLE_DIGIT_GROUPS = 2;
 
     /**
+     * A zero in any script, for the trunk prefix every local number starts with.
+     */
+    protected const string ZERO = '[0\x{FF10}\x{0660}\x{06F0}\x{0966}]';
+
+    /**
+     * A number written for callers inside one country: the trunk `0`, then digit groups joined
+     * by short runs of separators, the first group optionally bracketed (`(021) 5555 1234`).
+     *
+     * The same characters as the international pattern's `00` may not come before it, for the
+     * same reason, and neither may `,`: `3,0811…` is a decimal. extractLocalPhoneNumbers() and
+     * trimToLocalNumber() decide the rest.
+     */
+    protected const string LOCAL_PATTERN = '~
+        (?<! [\p{L}\p{N}_+\x{FF0B}.,:/\#\-] )
+        (?<body>
+            (?: \( (?= ZERO ) )?+
+            ZERO (?! ZERO ) (?= \p{Nd} )
+            GROUP (?: [\p{Zs}\-\p{Pd}.()]{1,3}+ GROUP )*+
+        )
+    ~xu';
+
+    /**
+     * The shortest local number counted. Ten digits with the trunk zero is the shortest mobile
+     * number in the countries that write them this way; anything shorter is more often a date,
+     * a code or an amount.
+     */
+    protected const int MIN_LOCAL_DIGITS = 10;
+
+    /**
+     * E.164's fifteen, less a country code of at least two digits.
+     */
+    protected const int MAX_LOCAL_DIGITS = 13;
+
+    /**
      * Extract every phone number from content that has already had its formatting stripped.
      *
      * @return array<string> The matched numbers, in the order they appear.
@@ -87,6 +122,95 @@ class PhoneDetector extends AbstractDetector
         }
 
         return $numbers;
+    }
+
+    /**
+     * Extract every local-format phone number (`0811-2506-6288`, `020 7946 0958`) from content
+     * that has already had its formatting stripped.
+     *
+     * Anything the international pattern reads is blanked first, so `+62 0811-2506-6288` is one
+     * international number and not a local one as well.
+     *
+     * @return array<string> The matched numbers, in the order they appear.
+     */
+    public static function extractLocalPhoneNumbers(string $content): array
+    {
+        $international = str_replace('GROUP', self::GROUP, self::PHONE_PATTERN);
+        $content = preg_replace($international, ' ', $content);
+
+        if ($content === null) {
+            throw new \RuntimeException('Phone number pattern failed: '.preg_last_error_msg());
+        }
+
+        $pattern = str_replace(['GROUP', 'ZERO'], [self::GROUP, self::ZERO], self::LOCAL_PATTERN);
+
+        if (preg_match_all($pattern, $content, $matches, PREG_SET_ORDER) === false) {
+            throw new \RuntimeException('Phone number pattern failed: '.preg_last_error_msg());
+        }
+
+        $numbers = [];
+
+        foreach ($matches as $match) {
+            $number = self::trimToLocalNumber($match['body']);
+
+            if ($number !== null) {
+                $numbers[] = $number;
+            }
+        }
+
+        return $numbers;
+    }
+
+    /**
+     * Keep the leading groups that fit in a local number, or reject the candidate.
+     *
+     * Without a country code there is less to go on, so the shape has to look like a number:
+     * - the area or operator code with its trunk zero is three to five digits (`020`, `0811`,
+     *   `07700`), which is what tells it apart from a day-first date (`01-02-2024 10:00`);
+     * - except that a number written entirely in pairs (`01 23 45 67 89`) is how France and
+     *   Belgium write theirs;
+     * - or the whole number is one unbroken run (`081125066288`);
+     * - no group is a single digit, and four short dotted groups are an IP address.
+     */
+    protected static function trimToLocalNumber(string $body): ?string
+    {
+        preg_match_all('~'.self::GROUP.'~xu', $body, $groups, PREG_OFFSET_CAPTURE);
+
+        $digits = 0;
+        $counts = [];
+        $end = 0;
+
+        foreach ($groups[0] as [$group, $offset]) {
+            $count = (int) preg_match_all('~\p{Nd}~u', $group);
+
+            if ($digits + $count > self::MAX_LOCAL_DIGITS) {
+                break;
+            }
+
+            $digits += $count;
+            $counts[] = $count;
+            $end = $offset + strlen($group);
+        }
+
+        if ($digits < self::MIN_LOCAL_DIGITS || min($counts) < 2) {
+            return null;
+        }
+
+        $number = substr($body, 0, $end);
+
+        if (count($counts) > 1) {
+            $pairs = count(array_unique($counts)) === 1 && $counts[0] === 2;
+
+            if (! $pairs && ($counts[0] < 3 || $counts[0] > 5)) {
+                return null;
+            }
+
+            if (preg_match('~^\p{Nd}{1,3}(?:\.\p{Nd}{1,3}){3}$~u', $number)) {
+                return null;
+            }
+        }
+
+        return $number;
     }
 
     /**
@@ -144,6 +268,10 @@ class PhoneDetector extends AbstractDetector
         $cleanContent = $this->stripFormatting($content);
 
         $phoneNumbers = self::extractPhoneNumbers($cleanContent);
+
+        if ($this->config->get('detect_local_phones')) {
+            $phoneNumbers = array_merge($phoneNumbers, self::extractLocalPhoneNumbers($cleanContent));
+        }
         $count = count($phoneNumbers);
 
         if ($count === 0) {
@@ -181,6 +309,6 @@ class PhoneDetector extends AbstractDetector
 
     public function getDescription(): string
     {
-        return 'Detects international phone numbers in content (format: +/00 followed by 9 to 15 digits)';
+        return 'Detects international phone numbers in content (format: +/00 followed by 9 to 15 digits), and optionally local ones (a leading 0 and 10 to 13 digits)';
     }
 }

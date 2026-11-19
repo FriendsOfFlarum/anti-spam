@@ -350,6 +350,10 @@ class ConfigurationManager
                 'value' => $this->get('detect_phones'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_phones'),
             ],
+            'detectLocalPhones' => [
+                'value' => $this->get('detect_local_phones'),
+                'isCodeConfigured' => $this->isCodeConfigured('detect_local_phones'),
+            ],
             'detectEmails' => [
                 'value' => $this->get('detect_emails'),
                 'isCodeConfigured' => $this->isCodeConfigured('detect_emails'),

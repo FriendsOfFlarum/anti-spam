@@ -98,4 +98,71 @@ class PhoneDetectorTest extends TestCase
     {
         $this->assertSame([], PhoneDetector::extractPhoneNumbers($content));
     }
+
+    /**
+     * @return iterable<string, array{string, array<string>}>
+     */
+    public static function localPhoneNumbers(): iterable
+    {
+        // The posts that got through: a WhatsApp number written the way people in Indonesia write it.
+        yield 'indonesian mobile, dashed' => ['layanan BCA WhatsApp Halo BCA 0811-2506-6288 resmi BCA atau 1500888', ['0811-2506-6288']];
+        yield 'after a bracketed short code' => ['Halo BCA melalui (1500888) 0811-2506-6288 tersedia 24 jam', ['0811-2506-6288']];
+        yield 'twice' => ['WA 0811-2506-6288 atau 0821-4426-2630.', ['0811-2506-6288', '0821-4426-2630']];
+        yield 'spaced' => ['Ring 07700 900123 now', ['07700 900123']];
+        yield 'dotted' => ['WA 0811.2506.6288', ['0811.2506.6288']];
+        yield 'unbroken' => ['WA 081125066288 sekarang', ['081125066288']];
+        yield 'bracketed area code' => ['Kantor (021) 5555 1234', ['(021) 5555 1234']];
+        yield 'landline' => ['Call 020 7946 0958', ['020 7946 0958']];
+        yield 'pairs of digits' => ['Appelez le 01 23 45 67 89', ['01 23 45 67 89']];
+        yield 'followed by a year' => ['WA 0811-2506-6288 2024', ['0811-2506-6288']];
+        yield 'fullwidth digits' => ['WA ０８１１-２５０６-６２８８', ['０８１１-２５０６-６２８８']];
+    }
+
+    #[Test]
+    #[DataProvider('localPhoneNumbers')]
+    public function it_finds_local_phone_numbers(string $content, array $expected): void
+    {
+        $this->assertSame($expected, PhoneDetector::extractLocalPhoneNumbers($content));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function notLocalPhoneNumbers(): iterable
+    {
+        yield 'short code' => ['Call 1500888 any time'];
+        yield 'day-first date and time' => ['Posted 01-02-2024 10:00'];
+        yield 'day-first date, dotted' => ['Updated 01.02.2024 and again 03.04.2025'];
+        yield 'iso date' => ['Released 2008-12-01 12:30'];
+        yield 'version' => ['Upgrade to 0.12.3456 7890'];
+        yield 'too short' => ['Dial 0811 2506'];
+        yield 'too long' => ['Hash 012345678901234567'];
+        yield 'run of zeros' => ['Balance 0000 0000 0000'];
+        yield 'glued to a word' => ['ID0811-2506-6288'];
+        yield 'labelled id' => ['ID:081125066288'];
+        yield 'hashed id' => ['Order #081125066288'];
+        yield 'dashed id' => ['INV-081125066288'];
+        yield 'path segment' => ['GET /api/081125066288'];
+        yield 'decimal' => ['Rate 3.0811250662'];
+        yield 'ip address' => ['Server 010.123.456.789'];
+        yield 'single-digit groups' => ['Steps 0 1 2 3 4 5 6 7 8 9'];
+        // International numbers are the other extractor's: counting them again would score them twice.
+        yield 'international with a trunk zero' => ['Call +62 0811-2506-6288'];
+        yield 'international' => ['Call +44 20 7946 0958'];
+    }
+
+    #[Test]
+    #[DataProvider('notLocalPhoneNumbers')]
+    public function it_leaves_other_numbers_alone_when_looking_for_local_ones(string $content): void
+    {
+        $this->assertSame([], PhoneDetector::extractLocalPhoneNumbers($content));
+    }
+
+    #[Test]
+    public function a_huge_run_of_digits_does_not_break_the_local_pattern(): void
+    {
+        $content = 'WA 0811-2506-6288 now. 0'.str_repeat('9', 100000);
+
+        $this->assertSame(['0811-2506-6288'], PhoneDetector::extractLocalPhoneNumbers($content));
+    }
 }
