@@ -23,9 +23,9 @@ export interface IFlagAccountSettingAttrs extends ComponentAttrs {
  * Chooses the account automatic spam flags are raised by, by name rather than by user ID.
  */
 export default class FlagAccountSetting extends Component<IFlagAccountSettingAttrs> {
+    /** The account as the page was loaded; saving does not reload it. */
     protected saved: FlagAccountPayload | null;
-    protected savedValue: string;
-    /** The account shown: the saved one until another is picked. */
+    /** The account shown, when it is not the default. */
     protected user: User | null;
     /** The first administrator, when the saved state tells us who that is. */
     protected defaultUser: User | null;
