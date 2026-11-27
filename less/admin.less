@@ -1,57 +1,4 @@
 .FoFAntiSpamSettings {
-  padding-top: 20px;
-
-  .Button {
-    margin-right: 10px;
-    margin-bottom: 10px;
-  }
-
-  &--settings {
-    background: var(--control-bg); // Use control background for coherence
-    padding: 20px;
-    border-radius: var(--border-radius); // Consistent border radius
-    box-shadow: 0 2px 4px var(--shadow-color); // Subtle shadow for depth
-    //max-width: 720px;
-    margin: 0 auto; // Center align for better presentation
-
-    @media @desktop-up {
-      margin: 0;
-    }
-
-    .Section {
-      background: var(--body-bg); // Contrast with the section background
-      border-radius: var(--border-radius);
-      box-shadow: 0 1px 3px var(--shadow-color);
-      padding: 15px;
-      margin-bottom: 20px;
-
-      h3 {
-        color: var(--primary-color); // Primary color for headings
-        margin-bottom: 10px;
-      }
-    }
-
-    .Form {
-      .control {
-        background: var(--body-bg);
-        border: 1px solid var(--muted-color); // Defines the input fields
-        color: var(--text-color);
-        padding: 6px 12px;
-        border-radius: var(--border-radius);
-      }
-
-      // A link button keeps core's look: transparent, so white text would vanish.
-      .Button:not(.Button--link) {
-        background: var(--primary-color); // Button with primary color
-        color: var(--body-bg);
-
-        &:hover {
-          background: darken(@primary-color, 5%);
-        }
-      }
-    }
-  }
-
   &--blockedRegistrations {
     background: var(--control-bg); // Use control background for coherence
     padding: 20px;
@@ -260,7 +207,7 @@
     margin: 0 20px;
 
     & > :not(:last-child) {
-      margin-right: 10px;
+      margin-inline-end: 10px;
     }
   }
 
@@ -285,7 +232,7 @@
     overflow: auto;
 
     & > :not(:last-child) {
-      margin-right: 10px;
+      margin-inline-end: 10px;
     }
   }
 
@@ -357,11 +304,6 @@
       display: flex;
       align-items: center;
       gap: 8px;
-
-      // The page's blanket .Button margins would break the row's alignment.
-      .Button {
-        margin: 0;
-      }
     }
 
     .BlockedRegistrationSearch-wrapper {
@@ -377,7 +319,7 @@
       .Search-clear {
         position: absolute;
         top: 0;
-        right: 5px;
+        inset-inline-end: 5px;
         width: 36px;
         outline: none;
       }
@@ -387,7 +329,7 @@
   .BlockedRegistrationSearch-autocomplete {
     position: absolute;
     top: 100%;
-    left: 0;
+    inset-inline-start: 0;
     z-index: var(--zindex-dropdown, 1000);
     min-width: 16em;
     max-height: 18em;
@@ -406,7 +348,7 @@
     .BlockedRegistrationSearch-suggestion {
       display: block;
       width: 100%;
-      text-align: left;
+      text-align: start;
       padding: 4px 12px;
       border: 0;
       background: none;
@@ -438,8 +380,8 @@
     }
 
     .BlockedRegistrationSearch-toggle {
-      // auto pushes it to the end of the row; the rest clears the page's blanket .Button margins.
-      margin: 0 0 0 auto;
+      margin: 0;
+      margin-inline-start: auto;
       color: var(--muted-color);
       background: none;
 
@@ -451,9 +393,6 @@
 
     // Pill-shaped chips that read as controls rather than text, in both themes.
     .BlockedRegistrationSearch-filter {
-      // The page gives every .Button a right/bottom margin; the chips space themselves
-      // with gap, so that has to be cleared or the row falls out of alignment.
-      margin: 0;
       height: auto;
       padding: 3px 10px;
       border: 1px solid var(--control-bg);
@@ -511,18 +450,16 @@
         display: inline-flex;
         flex-wrap: wrap;
         gap: 4px;
-        margin-left: 6px;
+        margin-inline-start: 6px;
       }
 
       .BlockedRegistrationSearch-syntax {
         margin: 10px 0 0;
-        padding-left: 18px;
+        padding-inline-start: 18px;
         color: var(--muted-color);
       }
     }
   }
-
-
 }
 
 .BlockedRegistrations-total {
@@ -548,4 +485,12 @@
 .FlagAccountSetting-controls {
   display: flex;
   gap: 8px;
+}
+
+.FoFAntiSpam-tabIntro {
+  margin-bottom: 20px;
+}
+
+.FoFAntiSpam-lookupFailed {
+  margin-bottom: 15px;
 }

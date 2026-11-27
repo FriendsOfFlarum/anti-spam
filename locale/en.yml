@@ -7,7 +7,6 @@ fof-anti-spam:
       stopforumspam: StopForumSpam
       content_filter: Content Filter
       spammer_actions: Spammer Actions
-    unsaved_changes: You have unsaved changes on this tab. Leave without saving them?
     settings:
       sign_ups:
         heading: Sign-up Checks

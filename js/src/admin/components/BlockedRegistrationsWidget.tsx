@@ -85,7 +85,7 @@ export default class BlockedRegistrationsWidget extends DashboardWidget {
         {this.failed ? this.error() : this.figures()}
 
         <div className="SpamDefenceWidget-viewFull">
-          <Link href={app.route('extension', { id: 'fof-anti-spam', page: 'blocked-registrations' })}>
+          <Link href={app.route('extension', { id: 'fof-anti-spam', tab: 'blocked-registrations' })}>
             {app.translator.trans(`${PREFIX}.view_all`)}
           </Link>
         </div>
