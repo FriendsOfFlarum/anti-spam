@@ -58,11 +58,13 @@ class SettingsDefaultsTest extends TestCase
             'fof-anti-spam.honeypot.enabled',
             'fof-anti-spam.honeypot.strict',
             'fof-anti-spam.honeypot.minSeconds',
+            'fof-anti-spam.api_key',
 
             // Spamblock actions
             'fof-anti-spam.actions.deleteUser',
             'fof-anti-spam.actions.deletePosts',
             'fof-anti-spam.actions.deleteDiscussions',
+            'fof-anti-spam.actions.moveDiscussionsToTags',
 
             // Content filter
             'fof-anti-spam.moderation.system_user_id',
