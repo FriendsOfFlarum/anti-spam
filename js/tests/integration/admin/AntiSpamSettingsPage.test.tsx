@@ -78,6 +78,8 @@ beforeAll(() => {
 
   app.translator.addTranslations(flatten(jsYaml.load(fs.readFileSync(new URL('../../../../locale/en.yml', import.meta.url), 'utf8')) as object));
 
+  ['flarum-flags', 'flarum-approval', 'flarum-tags'].forEach((id) => app.initializers.add(id, () => {}));
+
   extend.forEach((extender) => extender.extend(app, { name: 'fof-anti-spam', exports: {} }));
 
   app.boot();
@@ -155,11 +157,52 @@ test('a link from before 2.1, with the tab in `page`, opens that tab', () => {
   const param = jest.spyOn(m.route, 'param').mockImplementation(((key?: string) => (key === 'page' ? 'content-filter' : undefined)) as any);
   const set = jest.spyOn(m.route, 'set').mockImplementation(() => {});
 
-  const legacy = page();
+  page();
 
-  expect(legacy.instance().activePageTab).toBe('content-filter');
   expect(set).toHaveBeenCalledWith(expect.stringContaining('tab=content-filter'), undefined, { replace: true });
 
   param.mockRestore();
   set.mockRestore();
+});
+
+test('the flag account picker shows the unsaved pick after switching tabs', () => {
+  const set = jest.spyOn(m.route, 'set').mockImplementation(() => {});
+  const find = jest.spyOn(app.store, 'find').mockResolvedValue(app.store.getById('users', '1') as any);
+
+  app.store.pushPayload({ data: { type: 'users', id: '2', attributes: { username: 'bob', displayName: 'Bob the moderator' } } });
+  app.forum.pushAttributes({
+    'fof-anti-spam.flagAccount': {
+      id: '1',
+      displayName: 'Admin',
+      username: 'admin',
+      avatarUrl: null,
+      isDefault: true,
+      configuredMissing: false,
+      chosenInCode: false,
+    },
+  });
+
+  const contentFilter = page({ tab: 'content-filter' });
+  const instance = contentFilter.instance();
+
+  instance.setting('fof-anti-spam.moderation.system_user_id')('2');
+  instance.changePageTab('stopforumspam');
+  contentFilter.redraw();
+  instance.changePageTab('content-filter');
+  contentFilter.redraw();
+
+  expect(contentFilter).toContainRaw('Bob the moderator');
+
+  set.mockRestore();
+  find.mockRestore();
+});
+
+test('a failed StopForumSpam lookup is shown on its tab', () => {
+  app.data.settings['fof-anti-spam.lookupFailedAt'] = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+  const sfs = page({ tab: 'stopforumspam' });
+
+  expect(sfs).toHaveElement('.FoFAntiSpam-lookupFailed');
+
+  delete app.data.settings['fof-anti-spam.lookupFailedAt'];
 });

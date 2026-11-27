@@ -43,12 +43,19 @@ export default class FlagAccountSetting extends Component<IFlagAccountSettingAtt
     super.oninit(vnode);
 
     this.saved = app.forum.attribute<FlagAccountPayload | null>('fof-anti-spam.flagAccount') ?? null;
-    this.savedValue = this.attrs.setting() || '';
+    this.savedValue = app.data.settings['fof-anti-spam.moderation.system_user_id'] || '';
+
+    // The page keeps unsaved edits while this is rebuilt on every visit to its tab, so an unsaved pick is shown here.
+    const picked = this.attrs.setting() || '';
+
+    if (picked && picked !== this.savedValue) {
+      this.user = app.store.getById<User>('users', picked) ?? null;
+    }
 
     if (this.saved?.id) {
       app.store.find<User>('users', this.saved.id).then((user) => {
-        this.user = user;
         if (this.saved?.isDefault) this.defaultUser = user;
+        if (!picked || picked === this.savedValue) this.user = user;
         m.redraw();
       });
     }

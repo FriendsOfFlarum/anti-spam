@@ -181,8 +181,9 @@ StopForumSpam and the content filter are there for those.
 
 ### Basic Setup (Admin UI)
 
-All settings are in the admin panel under Extensions → FoF Anti Spam, on five tabs. Each settings
-tab has its own Save button, and you are asked before leaving a tab with unsaved changes.
+All settings are in the admin panel under Extensions → FoF Anti Spam, on the tabs below. Unsaved
+changes are kept when you switch tabs, a tab with unsaved changes is marked, and Save saves the
+changes on every tab. The admin search finds each setting and opens its tab.
 
 - **Sign-ups**: the honeypot, and the interval between registrations from one address
 - **StopForumSpam**: the registration lookup, what it checks and when it blocks, Tor and network
@@ -191,6 +192,7 @@ tab has its own Save button, and you are asked before leaving a tab with unsaved
   domains, blocked words and advanced patterns
 - **Spammer Actions**: the defaults offered when a moderator marks a user as a spammer
 - **Blocked Registrations**: every refused sign-up, with the reason
+- **Permissions**: who may mark users as spammers
 
 To set up the content filter, on the **Content Filter** tab:
 

@@ -9,7 +9,6 @@ fof-anti-spam:
       spammer_actions: Spammer Actions
     settings:
       sign_ups:
-        heading: Sign-up Checks
         introduction: Checks this forum makes on every sign-up by itself, with nothing sent to an outside service. Lookups against StopForumSpam have a tab of their own.
 
         honeypot_heading: Honeypot

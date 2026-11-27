@@ -10,9 +10,7 @@ import BlockedRegistrationList from './BlockedRegistrationList';
 export default class AntiSpamSettingsPage extends ExtensionPage {
   static readonly BLOCKED_REGISTRATIONS_TAB = 'blocked-registrations';
 
-  /**
-   * Settings shown only while another setting makes them matter, read from the unsaved values.
-   */
+  /** Read from the unsaved values. */
   static readonly shownWhen: Record<string, (page: AntiSpamSettingsPage) => boolean> = {
     'fof-anti-spam.honeypot.minSeconds': (page) => page.honeypotOn(),
     'fof-anti-spam.honeypot.strict': (page) => page.honeypotOn(),
@@ -25,10 +23,11 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     super.oninit(vnode);
 
     // Before 2.1 each tab was a `page` route parameter, so links and bookmarks to them still carry one.
+    // Changing the query rebuilds the page, so the tab opens on the rebuilt one rather than being loaded twice.
     const legacyTab = m.route.param('page');
 
     if (this.extension && !this.attrs.tab && legacyTab) {
-      this.changePageTab(legacyTab);
+      m.route.set(app.route('extension', { id: this.extension.id, tab: legacyTab }), undefined, { replace: true });
     }
   }
 
@@ -68,9 +67,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
   }
 
   /**
-   * A lookup that cannot reach StopForumSpam lets the registration through. That is the right
-   * call — better an open door than a forum nobody can join — but it must not happen quietly, or
-   * an admin cannot tell a working forum from one that has been checking nothing for a week.
+   * Lookups fail open, so the admin needs to know when sign-ups have been going unchecked.
    */
   lookupFailureWarning(): Mithril.Children {
     const failedAt = app.data.settings['fof-anti-spam.lookupFailedAt'];

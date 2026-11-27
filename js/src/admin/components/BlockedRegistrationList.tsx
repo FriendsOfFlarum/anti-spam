@@ -13,9 +13,6 @@ import BlockedRegistrationSearch from './BlockedRegistrationSearch';
 import BlockEvidenceSummary from './BlockEvidenceSummary';
 import parseBlockedRegistrationQuery from '../utils/parseBlockedRegistrationQuery';
 
-/**
- * The searchable, paginated log of blocked sign-ups, on its own tab of the settings page.
- */
 export default class BlockedRegistrationList extends Component {
   static readonly ITEMS_PER_PAGE: number = 20;
 
@@ -109,8 +106,6 @@ export default class BlockedRegistrationList extends Component {
 
       this.blockedRegistrations = response;
 
-      // The endpoint counts the full result set and reports it in meta, so we can show a real
-      // total instead of inferring "there is probably one more page" from a full page of rows.
       const total = response.payload?.meta?.page?.total;
 
       this.total = typeof total === 'number' ? total : response.length;
@@ -131,8 +126,8 @@ export default class BlockedRegistrationList extends Component {
 
   /**
    * Whether the table holds anything at all, as opposed to the current query matching nothing.
-   * Recorded from the first unfiltered load so a query that matches nothing cannot make the
-   * page claim the forum has never blocked a registration.
+   * Taken from unfiltered loads, so a query that matches nothing cannot make the page claim the
+   * forum has never blocked a registration.
    */
   hasRecords(): boolean {
     return this.totalUnfiltered > 0;
@@ -143,12 +138,8 @@ export default class BlockedRegistrationList extends Component {
   }
 
   renderPagination(): Mithril.Children {
-    // Nothing to navigate when everything already fits on one page.
     if (this.total <= BlockedRegistrationList.ITEMS_PER_PAGE) return null;
 
-    // Core's component rather than a bespoke one: it brings first/last buttons, a jump-to-page
-    // input, translated labels and the a11y wiring, and stays consistent with the admin Users
-    // page an admin has already learned.
     return (
       <Pagination
         currentPage={this.currentPage}
@@ -169,10 +160,7 @@ export default class BlockedRegistrationList extends Component {
       'attemptedAt',
       <div className="BlockedRegistrations-item--details">
         <span className="BlockedRegistrations-label">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.attempted-at')}</span>
-        {/*
-          No `?? new Date()` fallback here: a missing date rendered as "now" is indistinguishable
-          from a registration that really was blocked seconds ago, which is how this went unnoticed.
-        */}
+        {/* No fallback to now: a missing date would pass for a block seconds ago. */}
         <span className="BlockedRegistrations-value">{attemptedAt ? fullTime(attemptedAt) : <em>&mdash;</em>}</span>
       </div>,
       100
@@ -231,19 +219,12 @@ export default class BlockedRegistrationList extends Component {
       20
     );
 
-    // The full payloads stay available, but behind a click: they are reference material, not
-    // something to read every time. Loaded on demand so the bundle does not carry the modal
-    // for admins who never open it.
     items.add(
       'rawData',
       <div className="BlockedRegistrations-item--details">
         <span className="BlockedRegistrations-label" />
         <span className="BlockedRegistrations-value">
-          {/*
-            Passed as a loader rather than a resolved component: app.modal.show accepts an async
-            import, so the modal is fetched only when an admin actually opens it. The chunk is
-            served via the jsDirectory registered in extend.php.
-          */}
+          {/* Loaded on demand, from the jsDirectory registered in extend.php. */}
           <Button
             className="Button Button--text"
             icon="fas fa-code"
