@@ -11,3 +11,5 @@ tests/.phpunit.result.cache
 .vscode
 js/coverage-ts
 .phpunit.cache
+js/dist
+js/dist-typings
