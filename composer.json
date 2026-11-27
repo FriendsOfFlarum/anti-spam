@@ -19,9 +19,9 @@
         }
     ],
     "require": {
-        "flarum/core": "^2.0.0",
-        "flarum/approval": "^2.0.0",
-        "flarum/flags": "^2.0.0"
+        "flarum/core": "2.x-dev",
+        "flarum/approval": "^2.1.0-beta.1",
+        "flarum/flags": "^2.1.0-beta.1"
     },
     "authors": [
         {
@@ -68,9 +68,12 @@
                 "editorConfig": true,
                 "styleci": true
             }
+        },
+        "branch-alias": {
+            "dev-2.x": "2.x-dev"
         }
     },
-    "minimum-stability": "beta",
+    "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload-dev": {
         "psr-4": {
@@ -100,16 +103,16 @@
         "test:integration:filter": "Runs integration tests whose name matches: composer test:integration:filter -- ClassName"
     },
     "require-dev": {
-        "flarum/testing": "^2.0.0",
-        "flarum/phpstan": "^2.0.0",
-        "flarum/suspend": "^2.0.0",
+        "flarum/testing": "^2.1.0-beta.1",
+        "flarum/phpstan": "^2.1.0-beta.1",
+        "flarum/suspend": "^2.1.0-beta.1",
         "fof/user-bio": "^2.0.0",
-        "flarum/tags": "^2.0.0",
+        "flarum/tags": "^2.1.0-beta.1",
         "fof/oauth": "^2.0.0",
-        "flarum/realtime": "^2.0.0",
-        "flarum/audit": "^2.0.0",
-        "flarum/markdown": "^2.0",
-        "flarum/nicknames": "^2.0",
+        "flarum/realtime": "^2.1.0-beta.1",
+        "flarum/audit": "^2.1.0-beta.1",
+        "flarum/markdown": "^2.1.0-beta.1",
+        "flarum/nicknames": "^2.1.0-beta.1",
         "fof/masquerade": "^3.0"
     },
     "suggest": {

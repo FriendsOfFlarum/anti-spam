@@ -94,6 +94,9 @@ return [
         ->default('fof-anti-spam.actions.deleteUser', false)
         ->default('fof-anti-spam.actions.deletePosts', false)
         ->default('fof-anti-spam.actions.deleteDiscussions', false)
+        // A JSON list of tag IDs; '[]' is what the read sites treat as "don't move".
+        ->default('fof-anti-spam.actions.moveDiscussionsToTags', '[]')
+        ->default('fof-anti-spam.api_key', '')
         ->default('fof-anti-spam.reportToStopForumSpam', true)
         ->default('fof-anti-spam.report_blocked_registrations', true)
         // Content filter defaults

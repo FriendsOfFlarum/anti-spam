@@ -30,10 +30,10 @@ export interface IFlagAccountSettingAttrs extends ComponentAttrs {
  * Chooses the account automatic spam flags are raised by, by name rather than by user ID.
  */
 export default class FlagAccountSetting extends Component<IFlagAccountSettingAttrs> {
+  /** The account as the page was loaded; saving does not reload it. */
   protected saved: FlagAccountPayload | null = null;
-  protected savedValue = '';
 
-  /** The account shown: the saved one until another is picked. */
+  /** The account shown, when it is not the default. */
   protected user: User | null = null;
 
   /** The first administrator, when the saved state tells us who that is. */
@@ -43,12 +43,19 @@ export default class FlagAccountSetting extends Component<IFlagAccountSettingAtt
     super.oninit(vnode);
 
     this.saved = app.forum.attribute<FlagAccountPayload | null>('fof-anti-spam.flagAccount') ?? null;
-    this.savedValue = this.attrs.setting() || '';
+
+    // Rebuilt on every visit to its tab, while the page keeps the value picked since it loaded.
+    const value = this.attrs.setting() || '';
+    const loadedAccount = value !== '' && value === this.saved?.id && !this.saved?.isDefault;
+
+    if (value !== '' && !loadedAccount) {
+      this.user = app.store.getById<User>('users', value) ?? null;
+    }
 
     if (this.saved?.id) {
       app.store.find<User>('users', this.saved.id).then((user) => {
-        this.user = user;
         if (this.saved?.isDefault) this.defaultUser = user;
+        if (loadedAccount) this.user = user;
         m.redraw();
       });
     }
@@ -64,7 +71,7 @@ export default class FlagAccountSetting extends Component<IFlagAccountSettingAtt
         <label>{app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_label')}</label>
         <div className="helpText">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_help')}</div>
 
-        {this.saved?.configuredMissing && value === this.savedValue && (
+        {this.saved?.configuredMissing && !usingDefault && !app.store.getById('users', value) && (
           <p className="Alert Alert--warning">{app.translator.trans('fof-anti-spam.admin.settings.content-filter.flag_account_missing')}</p>
         )}
 
