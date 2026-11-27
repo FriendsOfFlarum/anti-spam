@@ -1,5 +1,5 @@
 import app from 'flarum/admin/app';
-import Component from 'flarum/common/Component';
+import Component, { type ComponentAttrs } from 'flarum/common/Component';
 import Form from 'flarum/common/components/Form';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
@@ -13,7 +13,9 @@ import BlockedRegistrationSearch from './BlockedRegistrationSearch';
 import BlockEvidenceSummary from './BlockEvidenceSummary';
 import parseBlockedRegistrationQuery from '../utils/parseBlockedRegistrationQuery';
 
-export default class BlockedRegistrationList extends Component {
+export interface IBlockedRegistrationListAttrs extends ComponentAttrs {}
+
+export default class BlockedRegistrationList extends Component<IBlockedRegistrationListAttrs> {
   static readonly ITEMS_PER_PAGE: number = 20;
 
   blockedLoading: boolean = false;
@@ -29,7 +31,7 @@ export default class BlockedRegistrationList extends Component {
   /** Total with no filters applied, to tell "nothing recorded" from "nothing matched". */
   totalUnfiltered: number = 0;
 
-  oninit(vnode: Mithril.Vnode<{}, this>) {
+  oninit(vnode: Mithril.Vnode<IBlockedRegistrationListAttrs, this>) {
     super.oninit(vnode);
 
     this.loadData();
@@ -42,10 +44,7 @@ export default class BlockedRegistrationList extends Component {
           <h3>{app.translator.trans('fof-anti-spam.admin.blocked_registrations.title')}</h3>
           <p className="helpText">{app.translator.trans('fof-anti-spam.admin.blocked_registrations.help')}</p>
 
-          {/*
-            The controls stay put whatever the results are. Rendering them only when there are
-            rows would hide them the moment a filter matched nothing, leaving no way to undo it.
-          */}
+          {/* Kept while a filter matches nothing, so it can be undone. */}
           {(this.hasRecords() || this.hasActiveFilters()) && (
             <BlockedRegistrationSearch
               query={this.query}

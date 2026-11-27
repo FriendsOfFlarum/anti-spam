@@ -418,7 +418,7 @@ or nginx's `real_ip` module. Without it every visitor looks to this extension li
 
 ## Requirements
 
-- Flarum 2.0+
+- Flarum 2.1+
 - PHP 8.3+ (inherited from Flarum 2.0)
 - `flarum/approval` and `flarum/flags` — both are hard dependencies, installed by Composer
 

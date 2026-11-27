@@ -23,7 +23,7 @@ export default class AntiSpamSettingsPage extends ExtensionPage {
     super.oninit(vnode);
 
     // Before 2.1 each tab was a `page` route parameter, so links and bookmarks to them still carry one.
-    // Changing the query rebuilds the page, so the tab opens on the rebuilt one rather than being loaded twice.
+    // Dropping `page` changes the route key and rebuilds the page, so only the rebuilt one opens the tab.
     const legacyTab = m.route.param('page');
 
     if (this.extension && !this.attrs.tab && legacyTab) {

@@ -165,36 +165,66 @@ test('a link from before 2.1, with the tab in `page`, opens that tab', () => {
   set.mockRestore();
 });
 
-test('the flag account picker shows the unsaved pick after switching tabs', () => {
-  const set = jest.spyOn(m.route, 'set').mockImplementation(() => {});
-  const find = jest.spyOn(app.store, 'find').mockResolvedValue(app.store.getById('users', '1') as any);
+describe('the flag account picker, rebuilt on each visit to its tab', () => {
+  const key = 'fof-anti-spam.moderation.system_user_id';
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  let set: any, find: any;
 
-  app.store.pushPayload({ data: { type: 'users', id: '2', attributes: { username: 'bob', displayName: 'Bob the moderator' } } });
-  app.forum.pushAttributes({
-    'fof-anti-spam.flagAccount': {
-      id: '1',
-      displayName: 'Admin',
-      username: 'admin',
-      avatarUrl: null,
-      isDefault: true,
-      configuredMissing: false,
-      chosenInCode: false,
-    },
+  beforeEach(() => {
+    set = jest.spyOn(m.route, 'set').mockImplementation(() => {});
+    find = jest.spyOn(app.store, 'find').mockResolvedValue(app.store.getById('users', '1') as any);
+
+    app.store.pushPayload({ data: { type: 'users', id: '2', attributes: { username: 'bob', displayName: 'Bob the moderator' } } });
+    app.forum.pushAttributes({
+      'fof-anti-spam.flagAccount': {
+        id: '1',
+        displayName: 'Admin',
+        username: 'admin',
+        avatarUrl: null,
+        isDefault: true,
+        configuredMissing: false,
+        chosenInCode: false,
+      },
+    });
+    app.data.settings[key] = '';
   });
 
-  const contentFilter = page({ tab: 'content-filter' });
-  const instance = contentFilter.instance();
+  afterEach(() => {
+    set.mockRestore();
+    find.mockRestore();
+    app.data.settings[key] = '';
+  });
 
-  instance.setting('fof-anti-spam.moderation.system_user_id')('2');
-  instance.changePageTab('stopforumspam');
-  contentFilter.redraw();
-  instance.changePageTab('content-filter');
-  contentFilter.redraw();
+  async function revisit(contentFilter: ReturnType<typeof page>) {
+    const instance = contentFilter.instance();
 
-  expect(contentFilter).toContainRaw('Bob the moderator');
+    instance.changePageTab('stopforumspam');
+    contentFilter.redraw();
+    instance.changePageTab('content-filter');
+    contentFilter.redraw();
+    await flush();
+    contentFilter.redraw();
+  }
 
-  set.mockRestore();
-  find.mockRestore();
+  test('shows an unsaved pick', async () => {
+    const contentFilter = page({ tab: 'content-filter' });
+
+    contentFilter.instance().setting(key)('2');
+    await revisit(contentFilter);
+
+    expect(contentFilter).toContainRaw('Bob the moderator');
+  });
+
+  test('shows a pick saved since the page loaded', async () => {
+    const contentFilter = page({ tab: 'content-filter' });
+
+    contentFilter.instance().setting(key)('2');
+    // What core's saveSettings() does on Save; the forum payload describing the account is not reloaded.
+    app.data.settings[key] = '2';
+    await revisit(contentFilter);
+
+    expect(contentFilter).toContainRaw('Bob the moderator');
+  });
 });
 
 test('a failed StopForumSpam lookup is shown on its tab', () => {

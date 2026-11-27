@@ -8,19 +8,17 @@ import { extend } from '../../../src/admin';
 import AntiSpamSettingsPage from '../../../src/admin/components/AntiSpamSettingsPage';
 
 beforeAll(() => {
+  const installed = ['fof-anti-spam', 'flarum-flags', 'flarum-approval', 'flarum-tags'];
+
   bootstrapAdmin({
-    extensions: {
-      'fof-anti-spam': {
-        id: 'fof-anti-spam',
-        version: '1.0.0',
-        description: '',
-        icon: { name: 'fas fa-cog' },
-        links: {},
-        extra: { 'flarum-extension': { title: 'fof-anti-spam' } },
-      },
-    },
+    extensions: Object.fromEntries(
+      installed.map((id) => [
+        id,
+        { id, version: '1.0.0', description: '', icon: { name: 'fas fa-cog' }, links: {}, extra: { 'flarum-extension': { title: id } } },
+      ])
+    ),
     // Safe mode can leave enabled extensions unloaded, so the list is not what decides.
-    settings: { extensions_enabled: JSON.stringify(['fof-anti-spam', 'flarum-flags', 'flarum-approval', 'flarum-tags']) },
+    settings: { extensions_enabled: JSON.stringify(installed) },
     dbDriver: 'sqlite',
   });
 
@@ -43,6 +41,5 @@ test('settings for extensions that are not loaded are left out', () => {
 test('the content filter says how to get automatic actions', () => {
   const contentFilter = mq(AntiSpamSettingsPage, { id: 'fof-anti-spam', tab: 'content-filter' });
 
-  // The full text has an apostrophe, which the rendered HTML escapes.
   expect(contentFilter).toContainRaw('Install flarum/approval and/or flarum/flags');
 });
